@@ -1,0 +1,128 @@
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #121212;
+  color: #ffffff;
+  padding: 20px;
+}
+
+.auth-card {
+  background: #1e1e1e;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 500px;
+}
+
+h2 {
+  margin-top: 0;
+  color: #e50914;
+  text-align: center;
+}
+
+.subtitle {
+  text-align: center;
+  color: #aaaaaa;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.error-alert {
+  background-color: #d9534f;
+  color: white;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+  flex: 1;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+}
+
+label {
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+  color: #cccccc;
+}
+
+input, select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background-color: #2b2b2b;
+  color: white;
+  font-size: 0.95rem;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #e50914;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background-color: #e50914;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn-primary:hover {
+  background-color: #b80710;
+}
+
+.btn-primary:disabled {
+  background-color: #555555;
+  cursor: not-allowed;
+}
+
+.auth-actions {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #e50914;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
+
+hr {
+  margin: 15px 0;
+  border: 0;
+  border-top: 1px solid #333;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #e50914;
+  color: #e50914;
+  padding: 10px;
+  border-radius: 6px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(229, 9, 20, 0.1);
+}

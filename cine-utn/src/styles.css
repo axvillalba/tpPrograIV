@@ -1,0 +1,28 @@
+/* You can add global styles to this file, and also import other style files */
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+body {
+  background-color: #121212;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+}
+
+.bg-dark-card {
+  background-color: #1e1e1e !important;
+  border: 1px solid #2d2d2d;
+}
+
+.btn-danger-custom {
+  background-color: #e50914;
+  border-color: #e50914;
+  color: white;
+  font-weight: 600;
+}
+
+.btn-danger-custom:hover {
+  background-color: #b80710;
+  border-color: #b80710;
+  color: white;
+}

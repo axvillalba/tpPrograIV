@@ -1,0 +1,67 @@
+<app-navbar></app-navbar>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 bg-dark-card p-3 rounded border border-secondary">
+    <div>
+      <h2 class="text-danger fw-bold mb-1"><i class="bi bi-cup-straw me-2"></i>Sector Candy Bar</h2>
+      <p class="text-secondary mb-0">Agregá tus snacks preferidos para retirarlos en el cine</p>
+    </div>
+    
+    <!-- Desglose de Subtotales y Total General -->
+    <div class="text-end">
+      <div class="small text-secondary">
+        Entradas: <span class="text-light fw-bold me-3">${{ montoEntradas() }}</span>
+        Candy: <span class="text-light fw-bold">${{ totalCandy() }}</span>
+      </div>
+      <h4 class="text-light mb-0 mt-1">
+        Total General: <span class="text-success fw-bold">${{ totalGeneral() }}</span>
+      </h4>
+    </div>
+  </div>
+
+  <!-- Filtro por Categorías -->
+  <div class="d-flex gap-2 mb-4">
+    @for (cat of categorias; track cat) {
+      <button 
+        class="btn btn-sm"
+        [ngClass]="categoriaFiltro() === cat ? 'btn-danger-custom' : 'btn-outline-secondary text-light'"
+        (click)="categoriaFiltro.set(cat)">
+        {{ cat }}
+      </button>
+    }
+  </div>
+
+  <!-- Grilla de Productos -->
+  <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+    @for (p of productosFiltrados(); track p.id) {
+      <div class="col">
+        <div class="card h-100 bg-dark-card text-white border-secondary shadow-sm">
+          <img [src]="p.imagen_url" class="card-img-top object-fit-cover" alt="{{ p.nombre }}" style="height: 200px;">
+          <div class="card-body d-flex flex-column">
+            <span class="badge bg-secondary mb-2 w-fit">{{ p.categoria }}</span>
+            <h5 class="card-title fw-bold mb-1">{{ p.nombre }}</h5>
+            <p class="card-text text-secondary small flex-grow-1">{{ p.descripcion }}</p>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <span class="fs-5 fw-bold text-success">${{ p.precio }}</span>
+              <div class="btn-group align-items-center">
+                <button class="btn btn-outline-danger btn-sm" (click)="modificarCantidad(p, -1)">-</button>
+                <span class="px-3 fw-bold text-light">{{ p.cantidad || 0 }}</span>
+                <button class="btn btn-outline-success btn-sm" (click)="modificarCantidad(p, 1)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Botones de Acción -->
+  <div class="d-flex justify-content-between">
+    <button class="btn btn-outline-secondary" (click)="continuarAlCheckout()">
+      Omitir Candy Bar
+    </button>
+    <button class="btn btn-danger-custom btn-lg px-5 shadow" (click)="continuarAlCheckout()">
+      Continuar al Pago <i class="bi bi-arrow-right ms-2"></i>
+    </button>
+  </div>
+</div>

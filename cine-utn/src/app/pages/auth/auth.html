@@ -1,0 +1,88 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <h2>{{ modoRegistro() ? 'Registro de Usuario' : 'Iniciar Sesión' }}</h2>
+    <p class="subtitle">
+      {{ modoRegistro() ? 'Completá tus datos para obtener tu 20% OFF en la primera compra' : 'Bienvenido a Cine UTN' }}
+    </p>
+
+    @if (mensajeError()) {
+      <div class="error-alert">
+        {{ mensajeError() }}
+      </div>
+    }
+
+    <form [formGroup]="authForm" (ngSubmit)="onSubmit()">
+      <!-- Campos Básicos -->
+      <div class="form-group">
+        <label for="email">Correo Electrónico</label>
+        <input type="email" id="email" formControlName="email" placeholder="ejemplo@correo.com">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" formControlName="password" placeholder="******">
+      </div>
+
+      <!-- Campos Exclusivos de Registro -->
+      @if (modoRegistro()) {
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" formControlName="nombre" placeholder="Juan">
+          </div>
+          <div class="form-group">
+            <label for="apellido">Apellido</label>
+            <input type="text" id="apellido" formControlName="apellido" placeholder="Pérez">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fechaNacimiento">Fecha de Nacimiento</label>
+            <input type="date" id="fechaNacimiento" formControlName="fechaNacimiento">
+          </div>
+          <div class="form-group">
+            <label for="tipoSangre">Tipo de Sangre</label>
+            <select id="tipoSangre" formControlName="tipoSangre">
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="colorOjos">Color de Ojos</label>
+            <input type="text" id="colorOjos" formControlName="colorOjos" placeholder="Ej: Marrón">
+          </div>
+          <div class="form-group">
+            <label for="diasVacaciones">Días de Vacaciones / Año</label>
+            <input type="number" id="diasVacaciones" formControlName="diasVacaciones" min="0">
+          </div>
+        </div>
+      }
+
+      <button type="submit" class="btn-primary" [disabled]="cargando()">
+        {{ cargando() ? 'Cargando...' : (modoRegistro() ? 'Registrarme' : 'Ingresar') }}
+      </button>
+    </form>
+
+    <div class="auth-actions">
+      <button type="button" class="btn-link" (click)="toggleModo()">
+        {{ modoRegistro() ? '¿Ya tenés cuenta? Iniciá sesión' : '¿No tenés cuenta? Registrate acá' }}
+      </button>
+
+      <hr>
+
+      <button type="button" class="btn-secondary" (click)="ingresarComoAnonimo()">
+        Continuar como invitado (Anónimo)
+      </button>
+    </div>
+  </div>
+</div>

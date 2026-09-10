@@ -1,0 +1,32 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-secondary px-3 py-2 sticky-top">
+  <div class="container-fluid">
+    <!-- Botón de Volver Atrás -->
+    <button class="btn btn-outline-light btn-sm me-3" (click)="volver()">
+      <i class="bi bi-arrow-left me-1"></i> Volver
+    </button>
+
+    <!-- Marca / Título del App -->
+    <a class="navbar-brand fw-bold text-danger fs-4 d-flex align-items-center" routerLink="/cartelera">
+      <i class="bi bi-film me-2"></i> Cine UTN
+    </a>
+
+    <!-- Datos del Usuario / Acciones -->
+    <div class="d-flex align-items-center ms-auto gap-3">
+      @if (authService.currentUser(); as user) {
+        <span class="badge bg-dark border text-light p-2">
+          <i class="bi bi-person-circle me-1 text-danger"></i> {{ user.email }}
+        </span>
+        <button class="btn btn-outline-danger btn-sm" (click)="logout()">
+          <i class="bi bi-box-arrow-right me-1"></i> Salir
+        </button>
+      } @else {
+        <span class="badge bg-secondary p-2">
+          <i class="bi bi-person-slash me-1"></i> Modo Invitado
+        </span>
+        <a class="btn btn-danger-custom btn-sm" routerLink="/login">
+          Iniciar Sesión
+        </a>
+      }
+    </div>
+  </div>
+</nav>

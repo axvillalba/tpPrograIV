@@ -1,0 +1,116 @@
+<app-navbar></app-navbar>
+
+<div class="container py-4">
+  @if (pelicula()) {
+    <!-- Encabezado con información de la película -->
+    <div class="bg-dark-card p-4 rounded-3 border border-secondary mb-4 text-white shadow-sm">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h2 class="text-danger fw-bold mb-1">{{ pelicula().titulo }}</h2>
+          <p class="text-secondary mb-2">
+            <span class="badge bg-danger me-2">{{ pelicula().clasificacion_edad }}</span>
+            <span class="badge bg-dark border me-2">{{ funcion()?.formato }}</span>
+            <span class="badge bg-dark border">{{ funcion()?.idioma }}</span>
+          </p>
+          @if (advertenciaEdad()) {
+            <div class="alert alert-warning py-2 mb-0 mt-2 small fw-bold">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ advertenciaEdad() }}
+            </div>
+          }
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+          <h4 class="text-light mb-0">Total: <span class="text-success fw-bold">${{ montoTotal() }}</span></h4>
+          <small class="text-secondary">{{ butacasSeleccionadas().length }} entradas seleccionadas</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Referencias de Colores -->
+    <div class="d-flex flex-wrap justify-content-center gap-3 mb-4 bg-black p-3 rounded border border-secondary small">
+      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-secondary"></span> Estándar ($5000)</div>
+      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-info"></span> Adaptada Discapacidad (J, K)</div>
+      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-warning text-dark"></span> VIP (R, S, T) ($6750)</div>
+      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-success"></span> Seleccionada</div>
+    </div>
+
+    <!-- Pantalla del Cine -->
+    <div class="pantalla-cine text-center py-2 mb-5 rounded fw-bold text-uppercase border border-secondary">
+      🎬 P A N T A L L A
+    </div>
+
+    <!-- Mapa Interactivo de Butacas (Distribución en 3 Bloques) -->
+    <div class="sala-scroll-container mb-4">
+      <div class="d-flex flex-column gap-2 min-w-sala">
+        @for (f of filas; track f) {
+          <div class="d-flex align-items-center justify-content-center gap-3">
+            <span class="fw-bold text-danger row-label">{{ f }}</span>
+
+            <!-- Bloque Izquierdo -->
+            <div class="d-flex gap-1">
+              @for (b of getButacasPorFilaYBloque(f, 1); track b.columna) {
+                <button 
+                  class="btn-seat"
+                  [ngClass]="{
+                    'seat-discapacidad': b.tipo === 'discapacidad',
+                    'seat-vip': b.tipo === 'vip',
+                    'seat-selected': b.seleccionada
+                  }"
+                  (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+            </div>
+
+            <div class="pasillo"></div>
+
+            <!-- Bloque Central -->
+            <div class="d-flex gap-1">
+              @for (b of getButacasPorFilaYBloque(f, 2); track b.columna) {
+                <button 
+                  class="btn-seat"
+                  [ngClass]="{
+                    'seat-discapacidad': b.tipo === 'discapacidad',
+                    'seat-vip': b.tipo === 'vip',
+                    'seat-selected': b.seleccionada
+                  }"
+                  (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+            </div>
+
+            <div class="pasillo"></div>
+
+            <!-- Bloque Derecho -->
+            <div class="d-flex gap-1">
+              @for (b of getButacasPorFilaYBloque(f, 3); track b.columna) {
+                <button 
+                  class="btn-seat"
+                  [ngClass]="{
+                    'seat-discapacidad': b.tipo === 'discapacidad',
+                    'seat-vip': b.tipo === 'vip',
+                    'seat-selected': b.seleccionada
+                  }"
+                  (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+            </div>
+
+            <span class="fw-bold text-danger row-label">{{ f }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Único Botón de Acción Centrado -->
+    <div class="text-center mt-4">
+      <button 
+        class="btn btn-danger-custom btn-lg px-5 shadow" 
+        [disabled]="montoTotal() === 0" 
+        (click)="continuarAlCandy()">
+        Confirmar Selección y Continuar <i class="bi bi-arrow-right ms-2"></i>
+      </button>
+    </div>
+  }
+</div>

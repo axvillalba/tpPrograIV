@@ -1,0 +1,68 @@
+.pantalla-cine {
+  background: linear-gradient(180deg, #333 0%, #1e1e1e 100%);
+  color: #aaa;
+  letter-spacing: 6px;
+}
+
+.seat-sample {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.sala-scroll-container {
+  overflow-x: auto;
+  padding: 10px 0;
+}
+
+.min-w-sala {
+  min-width: 900px;
+}
+
+.row-label {
+  width: 20px;
+  text-align: center;
+}
+
+.pasillo {
+  width: 25px;
+}
+
+.btn-seat {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background-color: #2b2b2b;
+  color: #eee;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-seat:hover {
+  border-color: #e50914;
+  transform: scale(1.15);
+}
+
+.seat-discapacidad {
+  background-color: #0288d1 !important;
+  color: white !important;
+  border-color: #0288d1 !important;
+}
+
+.seat-vip {
+  background-color: #ffc107 !important;
+  color: black !important;
+  border-color: #ffc107 !important;
+}
+
+.seat-selected {
+  background-color: #198754 !important;
+  color: white !important;
+  border-color: #198754 !important;
+  box-shadow: 0 0 8px #198754;
+}

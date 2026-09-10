@@ -1,0 +1,99 @@
+<app-navbar></app-navbar>
+
+<div class="container py-4">
+    @if (!compraFinalizada()) {
+    <h2 class="text-danger fw-bold mb-4"><i class="bi bi-credit-card me-2"></i>Resumen y Confirmación de Compra</h2>
+
+    <div class="row g-4">
+        <!-- Detalle de la Orden -->
+        <div class="col-md-7">
+            <!-- Entradas -->
+            <div class="bg-dark-card p-3 rounded border border-secondary mb-3 text-white">
+                <h5 class="text-danger fw-bold"><i class="bi bi-ticket-detailed me-2"></i>Entradas</h5>
+                <p class="mb-1"><strong>Película:</strong> {{ infoEntradas()?.pelicula?.titulo }}</p>
+                <p class="mb-2 text-secondary">
+                    Formato: {{ infoEntradas()?.funcion?.formato }} | {{ infoEntradas()?.funcion?.idioma }}
+                </p>
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                    @for (b of infoEntradas()?.butacas; track b.fila + b.columna) {
+                    <span class="badge bg-secondary">Fila {{ b.fila }} - Asiento {{ b.columna }}</span>
+                    }
+                </div>
+                <div class="text-end fw-bold text-success">${{ montoEntradas() }}</div>
+            </div>
+
+            <!-- Candy Bar -->
+            @if (infoCandy()?.productos?.length > 0) {
+            <div class="bg-dark-card p-3 rounded border border-secondary mb-3 text-white">
+                <h5 class="text-danger fw-bold"><i class="bi bi-cup-straw me-2"></i>Candy Bar</h5>
+                <ul class="list-unstyled mb-2">
+                    @for (p of infoCandy()?.productos; track p.id) {
+                    <li class="d-flex justify-content-between small py-1 border-bottom border-dark">
+                        <span>{{ p.cantidad }}x {{ p.nombre }}</span>
+                        <span class="text-secondary">${{ p.precio * p.cantidad }}</span>
+                    </li>
+                    }
+                </ul>
+                <div class="text-end fw-bold text-success">${{ montoCandy() }}</div>
+            </div>
+            }
+        </div>
+
+        <!-- Total e Importes -->
+        <div class="col-md-5">
+            <div class="bg-dark-card p-4 rounded border border-secondary text-white shadow">
+                <h4 class="fw-bold mb-3">Detalle del Pago</h4>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary">Subtotal:</span>
+                    <span>${{ subtotal() }}</span>
+                </div>
+
+                @if (descuentoPrimeraCompra()) {
+                <div class="d-flex justify-content-between mb-2 text-warning fw-bold">
+                    <span><i class="bi bi-stars me-1"></i> Descuento 1° Compra (20% OFF):</span>
+                    <span>-${{ montoDescuento() }}</span>
+                </div>
+                }
+
+                <hr class="border-secondary">
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span class="fs-5 fw-bold">Total a Pagar:</span>
+                    <span class="fs-3 fw-bold text-success">${{ totalPagar() }}</span>
+                </div>
+
+                <button class="btn btn-danger-custom btn-lg w-100 shadow" [disabled]="cargando()"
+                    (click)="procesarPago()">
+                    @if (cargando()) {
+                    <span class="spinner-border spinner-border-sm me-2"></span> Procesando...
+                    } @else {
+                    <i class="bi bi-check-circle me-2"></i> Confirmar y Pagar
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+    } @else {
+    <!-- Comprobante Final con Código QR -->
+    <div class="text-center py-5">
+        <div class="bg-dark-card p-5 rounded border border-success max-w-card mx-auto text-white shadow-lg">
+            <i class="bi bi-check-circle-fill text-success display-3 mb-3 d-block"></i>
+            <h2 class="fw-bold text-success mb-2">¡Compra Confirmada!</h2>
+            <p class="text-secondary mb-4">Presentá este código QR en la entrada del cine para acceder a la sala y
+                retirar tu Candy Bar.</p>
+
+            <!-- Código QR en Canvas -->
+            <div class="bg-white p-3 rounded d-inline-block mb-4 shadow">
+                <canvas #canvasQR></canvas>
+            </div>
+
+            <p class="small text-secondary mb-4">Código de Reserva: <strong>{{ codigoQR() }}</strong></p>
+
+            <button class="btn btn-outline-light btn-lg w-100" (click)="volverACartelera()">
+                Volver a la Cartelera
+            </button>
+        </div>
+    </div>
+    }
+</div>

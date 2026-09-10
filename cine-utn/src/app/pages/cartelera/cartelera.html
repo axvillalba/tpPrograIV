@@ -1,0 +1,84 @@
+
+<div class="container py-4">
+  <!-- Sección Top 3 Más Vendidas (Mail 2) -->
+  @if (masVendidas().length > 0) {
+    <section class="mb-5">
+      <h3 class="text-danger fw-bold mb-3">
+        <i class="bi bi-fire me-2"></i>Las 3 Películas Más Vendidas
+      </h3>
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        @for (pelicula of masVendidas(); track pelicula.id) {
+          <div class="col">
+            <div class="card h-100 bg-dark-card text-white border-danger shadow cursor-pointer" (click)="verDetallePelicula(pelicula.id)">
+              <img [src]="pelicula.imagen_url" class="card-img-top object-fit-cover" alt="{{ pelicula.titulo }}" style="height: 360px;">
+              <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge bg-danger">{{ pelicula.clasificacion_edad }}</span>
+                  <small class="text-secondary"><i class="bi bi-clock me-1"></i>{{ pelicula.duracion_minutos }} min</small>
+                </div>
+                <h5 class="card-title text-white fw-bold">{{ pelicula.titulo }}</h5>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Filtro y Buscador (Mail 2 y 3) -->
+  <section class="mb-4">
+    <h4 class="text-light fw-bold mb-3"><i class="bi bi-film me-2"></i>Cartelera General</h4>
+    <div class="row g-3">
+      <div class="col-md-8">
+        <div class="input-group">
+          <span class="input-group-text bg-dark text-secondary border-secondary"><i class="bi bi-search"></i></span>
+          <input 
+            type="text" 
+            class="form-control bg-dark text-white border-secondary" 
+            placeholder="Buscar por título o sinopsis..." 
+            [ngModel]="busquedaTexto()" 
+            (ngModelChange)="busquedaTexto.set($event)">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <select 
+          class="form-select bg-dark text-white border-secondary" 
+          [ngModel]="generoSeleccionado()" 
+          (ngModelChange)="generoSeleccionado.set($event)">
+          @for (genero of generosDisponibles; track genero) {
+            <option [value]="genero">{{ genero }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Grilla de Películas -->
+  <section>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+      @for (pelicula of peliculasFiltradas(); track pelicula.id) {
+        <div class="col">
+          <div class="card h-100 bg-dark-card text-white border-secondary shadow-sm card-hover" (click)="verDetallePelicula(pelicula.id)">
+            <img [src]="pelicula.imagen_url" class="card-img-top object-fit-cover" alt="{{ pelicula.titulo }}" style="height: 300px;">
+            <div class="card-body d-flex flex-column p-3">
+              <h6 class="card-title fw-bold text-truncate mb-1">{{ pelicula.titulo }}</h6>
+              <p class="card-text text-secondary small mb-2">{{ pelicula.generos ? pelicula.generos.join(', ') : '' }}</p>
+              
+              <div class="d-flex gap-2 mb-3 mt-auto">
+                <span class="badge bg-secondary">{{ pelicula.clasificacion_edad }}</span>
+                <span class="badge bg-dark border text-secondary">{{ pelicula.duracion_minutos }} min</span>
+              </div>
+              <button class="btn btn-danger-custom btn-sm w-100">
+                <i class="bi bi-ticket-perforated me-1"></i> Comprar Entradas
+              </button>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="col-12 text-center py-5">
+          <p class="text-secondary fs-5"><i class="bi bi-emoji-frown me-2"></i>No se encontraron películas que coincidan con la búsqueda.</p>
+        </div>
+      }
+    </div>
+  </section>
+</div>

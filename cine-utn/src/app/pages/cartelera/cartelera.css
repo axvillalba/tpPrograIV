@@ -1,0 +1,13 @@
+.card-hover {
+  transition: transform 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+  border-color: #e50914 !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
