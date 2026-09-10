@@ -15,11 +15,12 @@ import { NavbarComponent } from '../../components/navbar/navbar';
 })
 export class CheckoutComponent implements OnInit {
   @ViewChild('canvasQR') canvasQR!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('ticketContainer') ticketContainer!: ElementRef<HTMLDivElement>;
 
   private supabaseService = inject(SupabaseService);
   private authService = inject(AuthService);
   private router = inject(Router);
-
+  fechaActual = new Date();
   infoEntradas = signal<any>(null);
   infoCandy = signal<any>(null);
   descuentoPrimeraCompra = signal<boolean>(false);
@@ -39,31 +40,39 @@ export class CheckoutComponent implements OnInit {
   totalPagar = computed(() => this.subtotal() - this.montoDescuento());
 
   async ngOnInit() {
-    const entradas = localStorage.getItem('entradas_seleccionadas');
-    const candy = localStorage.getItem('candy_seleccionado');
+    try {
+      const entradas = localStorage.getItem('entradas_seleccionadas');
+      const candy = localStorage.getItem('candy_seleccionado');
 
-    if (!entradas) {
-      this.router.navigate(['/cartelera']);
-      return;
+      if (!entradas) {
+        this.router.navigate(['/cartelera']);
+        return;
+      }
+
+      this.infoEntradas.set(JSON.parse(entradas));
+      if (candy) this.infoCandy.set(JSON.parse(candy));
+
+      await this.verificarDescuentoUsuario();
+    } catch (err) {
+      console.error('Error al inicializar Checkout:', err);
     }
-
-    this.infoEntradas.set(JSON.parse(entradas));
-    if (candy) this.infoCandy.set(JSON.parse(candy));
-
-    await this.verificarDescuentoUsuario();
   }
 
   private async verificarDescuentoUsuario() {
-    const perfil = await this.authService.getPerfilActual();
-    if (perfil) {
-      const { data: ventas } = await this.supabaseService.client
-        .from('ventas')
-        .select('id')
-        .eq('user_id', perfil.id);
+    try {
+      const perfil = await this.authService.getPerfilActual();
+      if (perfil) {
+        const { data: ventas } = await this.supabaseService.client
+          .from('ventas')
+          .select('id')
+          .eq('user_id', perfil.id);
 
-      if (!ventas || ventas.length === 0) {
-        this.descuentoPrimeraCompra.set(true);
+        if (!ventas || ventas.length === 0) {
+          this.descuentoPrimeraCompra.set(true);
+        }
       }
+    } catch (err) {
+      console.warn('No se pudo verificar el historial de compras:', err);
     }
   }
 
@@ -87,13 +96,10 @@ export class CheckoutComponent implements OnInit {
           descuento_aplicado: this.montoDescuento(),
           detalle_butacas: this.infoEntradas()?.butacas || [],
           detalle_candy: this.infoCandy()?.productos || [],
-          codigo_qr: tokenQR // <-- Campo requerido por Supabase
+          codigo_qr: tokenQR
         });
 
-      if (error) {
-        console.error('Error reportado por Supabase:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       this.codigoQR.set(tokenQR);
       this.compraFinalizada.set(true);
@@ -114,6 +120,29 @@ export class CheckoutComponent implements OnInit {
     } finally {
       this.cargando.set(false);
     }
+  }
+
+  async descargarPDF() {
+    if (!this.ticketContainer) return;
+
+    const elemento = this.ticketContainer.nativeElement;
+
+    // Importación dinámica para evitar bloqueos de carga de la página
+    const html2pdfModule = await import('html2pdf.js');
+    const html2pdf = html2pdfModule.default || html2pdfModule;
+
+    const opciones = {
+      margin: 8,
+      filename: `Ticket-CineUTN-${this.codigoQR()}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    (html2pdf as any)().set(opciones).from(elemento).save();
+  }
+
+  imprimirTicket() {
+    window.print();
   }
 
   volverACartelera() {

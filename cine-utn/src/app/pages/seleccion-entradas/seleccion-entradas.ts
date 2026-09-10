@@ -29,7 +29,8 @@ export class SeleccionEntradasComponent implements OnInit {
   private authService = inject(AuthService);
 
   pelicula = signal<any>(null);
-  funcion = signal<any>(null);
+  funciones = signal<any[]>([]); // Lista con todas las funciones
+  funcionSeleccionada = signal<any>(null); // Función activa elegida
   mapaButacas = signal<Butaca[]>([]);
   advertenciaEdad = signal<string | null>(null);
 
@@ -42,12 +43,12 @@ export class SeleccionEntradasComponent implements OnInit {
     const peliculaId = this.route.snapshot.paramMap.get('id');
     if (!peliculaId) return;
 
-    await this.cargarPeliculaYFuncion(peliculaId);
+    await this.cargarPeliculaYFunciones(peliculaId);
     await this.validarEdadUsuario();
-    this.generarMapaSalas();
   }
 
-  private async cargarPeliculaYFuncion(peliculaId: string) {
+  private async cargarPeliculaYFunciones(peliculaId: string) {
+    // 1. Obtener Película
     const { data: p } = await this.supabaseService.client
       .from('peliculas')
       .select('*')
@@ -55,13 +56,51 @@ export class SeleccionEntradasComponent implements OnInit {
       .single();
     this.pelicula.set(p);
 
-    const { data: f } = await this.supabaseService.client
+    // 2. Obtener TODAS las Funciones disponibles con datos de la sala
+    const { data: fList } = await this.supabaseService.client
       .from('funciones')
-      .select('*')
+      .select('*, salas(nombre)')
       .eq('pelicula_id', peliculaId)
-      .limit(1)
-      .single();
-    this.funcion.set(f);
+      .order('horario_inicio', { ascending: true });
+
+    if (fList && fList.length > 0) {
+      this.funciones.set(fList);
+      // Seleccionar por defecto la primera función
+      this.seleccionarFuncion(fList[0]);
+    }
+  }
+
+  async seleccionarFuncion(f: any) {
+    this.funcionSeleccionada.set(f);
+    this.generarMapaSalas();
+    await this.cargarButacasOcupadas(f.id);
+  }
+
+  private async cargarButacasOcupadas(funcionId: string) {
+    const { data: ventasExistentes } = await this.supabaseService.client
+      .from('ventas')
+      .select('detalle_butacas')
+      .eq('funcion_id', funcionId);
+
+    if (ventasExistentes && ventasExistentes.length > 0) {
+      const asientosCompradosSet = new Set<string>();
+
+      ventasExistentes.forEach((v: any) => {
+        if (v.detalle_butacas && Array.isArray(v.detalle_butacas)) {
+          v.detalle_butacas.forEach((b: any) => {
+            asientosCompradosSet.add(`${b.fila}-${b.columna}`);
+          });
+        }
+      });
+
+      this.mapaButacas.update(asientos =>
+        asientos.map(b => ({
+          ...b,
+          ocupada: asientosCompradosSet.has(`${b.fila}-${b.columna}`),
+          seleccionada: false
+        }))
+      );
+    }
   }
 
   private async validarEdadUsuario() {
@@ -82,7 +121,7 @@ export class SeleccionEntradasComponent implements OnInit {
   }
 
   private generarMapaSalas() {
-    const precioBase = this.funcion()?.precio_base || 5000;
+    const precioBase = this.funcionSeleccionada()?.precio_base || 5000;
     const listado: Butaca[] = [];
 
     this.filas.forEach(fila => {
@@ -103,14 +142,16 @@ export class SeleccionEntradasComponent implements OnInit {
       const cantCentro = esDiscapacidad ? 10 : 20;
       const cantDer = esDiscapacidad ? 2 : 4;
 
+      let numeroAsiento = 1;
+
       for (let c = 1; c <= cantIzq; c++) {
-        listado.push({ fila, columna: c, bloque: 1, tipo, ocupada: false, seleccionada: false, precio });
+        listado.push({ fila, columna: numeroAsiento++, bloque: 1, tipo, ocupada: false, seleccionada: false, precio });
       }
       for (let c = 1; c <= cantCentro; c++) {
-        listado.push({ fila, columna: c, bloque: 2, tipo, ocupada: false, seleccionada: false, precio });
+        listado.push({ fila, columna: numeroAsiento++, bloque: 2, tipo, ocupada: false, seleccionada: false, precio });
       }
       for (let c = 1; c <= cantDer; c++) {
-        listado.push({ fila, columna: c, bloque: 3, tipo, ocupada: false, seleccionada: false, precio });
+        listado.push({ fila, columna: numeroAsiento++, bloque: 3, tipo, ocupada: false, seleccionada: false, precio });
       }
     });
 
@@ -127,14 +168,13 @@ export class SeleccionEntradasComponent implements OnInit {
     return this.mapaButacas().filter(b => b.fila === fila && b.bloque === bloque);
   }
 
-  // <--- AGREGÁ LA FUNCIÓN ACÁ ---
   continuarAlCandy() {
     const entradas = this.butacasSeleccionadas();
     if (entradas.length === 0) return;
 
     localStorage.setItem('entradas_seleccionadas', JSON.stringify({
       pelicula: this.pelicula(),
-      funcion: this.funcion(),
+      funcion: this.funcionSeleccionada(),
       butacas: entradas,
       montoEntradas: this.montoTotal()
     }));

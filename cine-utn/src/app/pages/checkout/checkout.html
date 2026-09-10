@@ -1,99 +1,174 @@
 <app-navbar></app-navbar>
 
 <div class="container py-4">
-    @if (!compraFinalizada()) {
+  @if (infoEntradas() && !compraFinalizada()) {
     <h2 class="text-danger fw-bold mb-4"><i class="bi bi-credit-card me-2"></i>Resumen y Confirmación de Compra</h2>
 
     <div class="row g-4">
-        <!-- Detalle de la Orden -->
-        <div class="col-md-7">
-            <!-- Entradas -->
-            <div class="bg-dark-card p-3 rounded border border-secondary mb-3 text-white">
-                <h5 class="text-danger fw-bold"><i class="bi bi-ticket-detailed me-2"></i>Entradas</h5>
-                <p class="mb-1"><strong>Película:</strong> {{ infoEntradas()?.pelicula?.titulo }}</p>
-                <p class="mb-2 text-secondary">
-                    Formato: {{ infoEntradas()?.funcion?.formato }} | {{ infoEntradas()?.funcion?.idioma }}
-                </p>
-                <div class="d-flex flex-wrap gap-1 mb-2">
-                    @for (b of infoEntradas()?.butacas; track b.fila + b.columna) {
-                    <span class="badge bg-secondary">Fila {{ b.fila }} - Asiento {{ b.columna }}</span>
-                    }
-                </div>
-                <div class="text-end fw-bold text-success">${{ montoEntradas() }}</div>
-            </div>
-
-            <!-- Candy Bar -->
-            @if (infoCandy()?.productos?.length > 0) {
-            <div class="bg-dark-card p-3 rounded border border-secondary mb-3 text-white">
-                <h5 class="text-danger fw-bold"><i class="bi bi-cup-straw me-2"></i>Candy Bar</h5>
-                <ul class="list-unstyled mb-2">
-                    @for (p of infoCandy()?.productos; track p.id) {
-                    <li class="d-flex justify-content-between small py-1 border-bottom border-dark">
-                        <span>{{ p.cantidad }}x {{ p.nombre }}</span>
-                        <span class="text-secondary">${{ p.precio * p.cantidad }}</span>
-                    </li>
-                    }
-                </ul>
-                <div class="text-end fw-bold text-success">${{ montoCandy() }}</div>
-            </div>
+      <!-- Detalle de Entradas y Candy Bar -->
+      <div class="col-md-7">
+        <div class="bg-dark-card p-3 rounded border border-secondary mb-3 text-white">
+          <h5 class="text-danger fw-bold"><i class="bi bi-ticket-detailed me-2"></i>Entradas</h5>
+          <p class="mb-1"><strong>Película:</strong> {{ infoEntradas()?.pelicula?.titulo }}</p>
+          <p class="mb-2 text-secondary">
+            Formato: {{ infoEntradas()?.funcion?.formato }} | {{ infoEntradas()?.funcion?.idioma }}
+          </p>
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            @for (b of infoEntradas()?.butacas; track b.fila + b.columna) {
+              <span class="badge bg-secondary">Fila {{ b.fila }} - Asiento {{ b.columna }}</span>
             }
+          </div>
+          <div class="text-end fw-bold text-success">${{ montoEntradas() }}</div>
         </div>
 
-        <!-- Total e Importes -->
-        <div class="col-md-5">
-            <div class="bg-dark-card p-4 rounded border border-secondary text-white shadow">
-                <h4 class="fw-bold mb-3">Detalle del Pago</h4>
+        @if (infoCandy()?.productos?.length > 0) {
+          <div class="bg-dark-card p-3 rounded border border-secondary mb-3 text-white">
+            <h5 class="text-danger fw-bold"><i class="bi bi-cup-straw me-2"></i>Candy Bar</h5>
+            <ul class="list-unstyled mb-2">
+              @for (p of infoCandy()?.productos; track p.id) {
+                <li class="d-flex justify-content-between small py-1 border-bottom border-dark">
+                  <span>{{ p.cantidad }}x {{ p.nombre }}</span>
+                  <span class="text-secondary">${{ p.precio * p.cantidad }}</span>
+                </li>
+              }
+            </ul>
+            <div class="text-end fw-bold text-success">${{ montoCandy() }}</div>
+          </div>
+        }
+      </div>
 
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-secondary">Subtotal:</span>
-                    <span>${{ subtotal() }}</span>
-                </div>
+      <!-- Resumen de Totales y Pago -->
+      <div class="col-md-5">
+        <div class="bg-dark-card p-4 rounded border border-secondary text-white shadow">
+          <h4 class="fw-bold mb-3">Detalle del Pago</h4>
 
-                @if (descuentoPrimeraCompra()) {
-                <div class="d-flex justify-content-between mb-2 text-warning fw-bold">
-                    <span><i class="bi bi-stars me-1"></i> Descuento 1° Compra (20% OFF):</span>
-                    <span>-${{ montoDescuento() }}</span>
-                </div>
-                }
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-secondary">Subtotal:</span>
+            <span>${{ subtotal() }}</span>
+          </div>
 
-                <hr class="border-secondary">
-
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <span class="fs-5 fw-bold">Total a Pagar:</span>
-                    <span class="fs-3 fw-bold text-success">${{ totalPagar() }}</span>
-                </div>
-
-                <button class="btn btn-danger-custom btn-lg w-100 shadow" [disabled]="cargando()"
-                    (click)="procesarPago()">
-                    @if (cargando()) {
-                    <span class="spinner-border spinner-border-sm me-2"></span> Procesando...
-                    } @else {
-                    <i class="bi bi-check-circle me-2"></i> Confirmar y Pagar
-                    }
-                </button>
+          @if (descuentoPrimeraCompra()) {
+            <div class="d-flex justify-content-between mb-2 text-warning fw-bold">
+              <span><i class="bi bi-stars me-1"></i> Descuento 1° Compra (20% OFF):</span>
+              <span>-${{ montoDescuento() }}</span>
             </div>
+          }
+
+          <hr class="border-secondary">
+
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <span class="fs-5 fw-bold">Total a Pagar:</span>
+            <span class="fs-3 fw-bold text-success">${{ totalPagar() }}</span>
+          </div>
+
+          <button 
+            class="btn btn-danger-custom btn-lg w-100 shadow" 
+            [disabled]="cargando()" 
+            (click)="procesarPago()">
+            @if (cargando()) {
+              <span class="spinner-border spinner-border-sm me-2"></span> Procesando...
+            } @else {
+              <i class="bi bi-check-circle me-2"></i> Confirmar y Pagar
+            }
+          </button>
         </div>
+      </div>
     </div>
-    } @else {
-    <!-- Comprobante Final con Código QR -->
-    <div class="text-center py-5">
-        <div class="bg-dark-card p-5 rounded border border-success max-w-card mx-auto text-white shadow-lg">
-            <i class="bi bi-check-circle-fill text-success display-3 mb-3 d-block"></i>
-            <h2 class="fw-bold text-success mb-2">¡Compra Confirmada!</h2>
-            <p class="text-secondary mb-4">Presentá este código QR en la entrada del cine para acceder a la sala y
-                retirar tu Candy Bar.</p>
+  } @else if (compraFinalizada()) {
+  <!-- Ticket / Comprobante de Compra Imprimible -->
+  <div class="text-center py-4">
+    <div #ticketContainer class="bg-white text-dark p-4 rounded max-w-card mx-auto shadow-lg mb-4 text-start border border-secondary">
+      
+      <!-- Encabezado del Cine -->
+      <div class="text-center border-bottom pb-3 mb-3">
+        <h3 class="fw-bold text-danger mb-0">🎬 CINE UTN</h3>
+        <small class="text-muted">Av. Mitre 750, Avellaneda - CUIT: 30-12345678-9</small>
+        <div class="fw-bold mt-1 text-uppercase small">Comprobante de Compra</div>
+      </div>
 
-            <!-- Código QR en Canvas -->
-            <div class="bg-white p-3 rounded d-inline-block mb-4 shadow">
-                <canvas #canvasQR></canvas>
-            </div>
+      <!-- Datos de la Función -->
+      <div class="mb-3 small">
+        <p class="mb-1"><strong>Película:</strong> {{ infoEntradas()?.pelicula?.titulo }}</p>
+        <p class="mb-1"><strong>Formato / Idioma:</strong> {{ infoEntradas()?.funcion?.formato }} ({{ infoEntradas()?.funcion?.idioma }})</p>
+        <p class="mb-1"><strong>Fecha de Compra:</strong> {{ fechaActual | date:'dd/MM/yyyy HH:mm' }}</p>
+      </div>
 
-            <p class="small text-secondary mb-4">Código de Reserva: <strong>{{ codigoQR() }}</strong></p>
+      <!-- Detalle Ítem por Ítem -->
+      <div class="table-responsive mb-3">
+        <table class="table table-sm text-dark mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Concepto</th>
+              <th class="text-center">Cant.</th>
+              <th class="text-end">Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Entradas -->
+            @for (b of infoEntradas()?.butacas; track b.fila + b.columna) {
+              <tr>
+                <td>Entrada (Fila {{ b.fila }} - Asiento {{ b.columna }})</td>
+                <td class="text-center">1</td>
+                <td class="text-end">${{ b.precio }}</td>
+              </tr>
+            }
 
-            <button class="btn btn-outline-light btn-lg w-100" (click)="volverACartelera()">
-                Volver a la Cartelera
-            </button>
+            <!-- Productos Candy Bar -->
+            @for (p of infoCandy()?.productos; track p.id) {
+              <tr>
+                <td>{{ p.nombre }}</td>
+                <td class="text-center">{{ p.cantidad }}</td>
+                <td class="text-end">${{ p.precio * p.cantidad }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Desglose de Totales -->
+      <div class="border-top pt-2 mb-3 small">
+        <div class="d-flex justify-content-between mb-1">
+          <span>Subtotal:</span>
+          <span>${{ subtotal() }}</span>
         </div>
+
+        @if (montoDescuento() > 0) {
+          <div class="d-flex justify-content-between mb-1 text-danger fw-bold">
+            <span>Descuento Aplicado (20% OFF):</span>
+            <span>-${{ montoDescuento() }}</span>
+          </div>
+        }
+
+        <div class="d-flex justify-content-between fs-5 fw-bold border-top pt-2">
+          <span>Total Pagado:</span>
+          <span class="text-success">${{ totalPagar() }}</span>
+        </div>
+      </div>
+
+      <!-- Código QR para Acceso en Sala y Retiro de Candy Bar -->
+      <div class="text-center border-top pt-3">
+        <div class="bg-light p-2 rounded d-inline-block mb-2 border">
+          <canvas #canvasQR></canvas>
+        </div>
+        <div class="small text-muted d-block">Código de Reserva:</div>
+        <small class="fw-bold text-dark d-block text-break">{{ codigoQR() }}</small>
+        <small class="text-muted d-block mt-2">Presentá este ticket impreso o digital en la entrada.</small>
+      </div>
     </div>
-    }
+
+    <!-- Botones de Acción -->
+    <div class="d-flex justify-content-center gap-2 max-w-card mx-auto">
+      <button class="btn btn-success btn-lg flex-grow-1" (click)="descargarPDF()">
+        <i class="bi bi-file-earmark-pdf me-2"></i>Descargar Ticket PDF
+      </button>
+      <button class="btn btn-outline-light btn-lg" (click)="imprimirTicket()">
+        <i class="bi bi-printer me-2"></i>Imprimir
+      </button>
+      <button class="btn btn-outline-danger btn-lg" (click)="volverACartelera()">
+        Volver
+      </button>
+    </div>
+  </div>
+
+  }
 </div>

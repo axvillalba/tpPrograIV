@@ -66,3 +66,11 @@
   border-color: #198754 !important;
   box-shadow: 0 0 8px #198754;
 }
+
+.btn-seat:disabled, .seat-ocupada {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}

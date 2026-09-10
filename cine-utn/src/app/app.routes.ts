@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { SeleccionEntradasComponent } from './pages/seleccion-entradas/seleccion-entradas';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -10,6 +11,7 @@ export const routes: Routes = [
     path: 'cartelera', 
     loadComponent: () => import('./pages/cartelera/cartelera').then(m => m.CarteleraComponent) 
   },
+  { path: 'seleccion-entradas/:id', component: SeleccionEntradasComponent},
   { 
     path: 'pelicula/:id', 
     loadComponent: () => import('./pages/seleccion-entradas/seleccion-entradas').then(m => m.SeleccionEntradasComponent) 
