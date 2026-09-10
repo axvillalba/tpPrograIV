@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase';
 import { AuthService } from '../../services/auth';
@@ -15,10 +16,18 @@ interface Butaca {
   precio: number;
 }
 
+interface Resena {
+  id?: string;
+  nombre_usuario: string;
+  calificacion: number;
+  comentario: string;
+  created_at?: string;
+}
+
 @Component({
   selector: 'app-seleccion-entradas',
   standalone: true,
-  imports: [CommonModule, NavbarComponent],
+  imports: [CommonModule, FormsModule, NavbarComponent],
   templateUrl: './seleccion-entradas.html',
   styleUrl: './seleccion-entradas.css'
 })
@@ -29,10 +38,25 @@ export class SeleccionEntradasComponent implements OnInit {
   private authService = inject(AuthService);
 
   pelicula = signal<any>(null);
-  funciones = signal<any[]>([]); // Lista con todas las funciones
-  funcionSeleccionada = signal<any>(null); // Función activa elegida
+  funciones = signal<any[]>([]);
+  funcionSeleccionada = signal<any>(null);
   mapaButacas = signal<Butaca[]>([]);
   advertenciaEdad = signal<string | null>(null);
+
+  // Estados de Reseñas y Puntuaciones
+  resenas = signal<Resena[]>([]);
+  promedioCalificacion = computed(() => {
+    const list = this.resenas();
+    if (list.length === 0) return 0;
+    const suma = list.reduce((acc, r) => acc + r.calificacion, 0);
+    return (suma / list.length).toFixed(1);
+  });
+
+  // Formulario nueva reseña + Mensaje de éxito
+  nuevaCalificacion = signal<number>(5);
+  nuevoComentario = signal<string>('');
+  mensajeExitoResena = signal<boolean>(false);
+  usuarioActual = signal<any>(null);
 
   filas = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'];
 
@@ -43,7 +67,11 @@ export class SeleccionEntradasComponent implements OnInit {
     const peliculaId = this.route.snapshot.paramMap.get('id');
     if (!peliculaId) return;
 
+    const perfil = await this.authService.getPerfilActual();
+    this.usuarioActual.set(perfil);
+
     await this.cargarPeliculaYFunciones(peliculaId);
+    await this.cargarResenas(peliculaId);
     await this.validarEdadUsuario();
   }
 
@@ -56,7 +84,7 @@ export class SeleccionEntradasComponent implements OnInit {
       .single();
     this.pelicula.set(p);
 
-    // 2. Obtener TODAS las Funciones disponibles con datos de la sala
+    // 2. Obtener Funciones disponibles
     const { data: fList } = await this.supabaseService.client
       .from('funciones')
       .select('*, salas(nombre)')
@@ -65,7 +93,6 @@ export class SeleccionEntradasComponent implements OnInit {
 
     if (fList && fList.length > 0) {
       this.funciones.set(fList);
-      // Seleccionar por defecto la primera función
       this.seleccionarFuncion(fList[0]);
     }
   }
@@ -180,5 +207,49 @@ export class SeleccionEntradasComponent implements OnInit {
     }));
 
     this.router.navigate(['/candy']);
+  }
+
+  // Lógica de Reseñas
+  async cargarResenas(peliculaId: string) {
+    const { data } = await this.supabaseService.client
+      .from('resenas')
+      .select('*')
+      .eq('pelicula_id', peliculaId)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      this.resenas.set(data);
+    }
+  }
+
+  async agregarResena() {
+    if (!this.nuevoComentario().trim()) return;
+
+    const peliculaId = this.pelicula()?.id;
+    const perfil = this.usuarioActual();
+    const nombreUsuario = perfil ? `${perfil.nombre || ''} ${perfil.apellido || ''}`.trim() : 'Cliente Cine UTN';
+
+    const nueva = {
+      pelicula_id: peliculaId,
+      usuario_id: perfil?.id || null,
+      nombre_usuario: nombreUsuario || 'Cliente',
+      calificacion: Number(this.nuevaCalificacion()),
+      comentario: this.nuevoComentario().trim()
+    };
+
+    const { error } = await this.supabaseService.client
+      .from('resenas')
+      .insert([nueva]);
+
+    if (!error) {
+      this.nuevoComentario.set('');
+      this.mensajeExitoResena.set(true);
+      await this.cargarResenas(peliculaId);
+
+      // Ocultar mensaje tras 4 segundos
+      setTimeout(() => {
+        this.mensajeExitoResena.set(false);
+      }, 4000);
+    }
   }
 }

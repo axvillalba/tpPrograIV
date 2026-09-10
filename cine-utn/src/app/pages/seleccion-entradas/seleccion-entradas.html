@@ -1,30 +1,42 @@
 <app-navbar></app-navbar>
 
-<div class="container py-4">
+<div class="container py-4 text-white">
   @if (pelicula()) {
-    <!-- Encabezado con información de la película -->
+    <!-- ENCABEZADO DE LA PELÍCULA CON PUNTUACIÓN PROMEDIO Y TOTAL -->
     <div class="bg-dark-card p-4 rounded-3 border border-secondary mb-4 text-white shadow-sm">
       <div class="row align-items-center">
         <div class="col-md-8">
           <h2 class="text-danger fw-bold mb-1">{{ pelicula().titulo }}</h2>
-          <p class="text-secondary mb-2">
-            <span class="badge bg-danger me-2">{{ pelicula().clasificacion_edad }}</span>
-            <span class="badge bg-dark border me-2">{{ funcionSeleccionada()?.formato }}</span>
-            <span class="badge bg-dark border">{{ funcionSeleccionada()?.idioma }}</span>
-          </p>
+          
+          <div class="d-flex align-items-center gap-3 my-2">
+            <span class="badge bg-danger me-1">{{ pelicula().clasificacion_edad }}</span>
+            <span class="badge bg-dark border me-1">{{ funcionSeleccionada()?.formato }}</span>
+            <span class="badge bg-dark border me-1">{{ funcionSeleccionada()?.idioma }}</span>
+
+            <!-- Promedio de Calificación con Estrellas -->
+            <div class="d-flex align-items-center text-warning fw-bold fs-6">
+              <i class="bi bi-star-fill me-1"></i>
+              <span>{{ promedioCalificacion() }}</span>
+              <span class="text-secondary small ms-1">({{ resenas().length }} opiniones)</span>
+            </div>
+          </div>
+
+          <p class="text-secondary small mb-2">{{ pelicula().sinopsis }}</p>
+
           @if (advertenciaEdad()) {
             <div class="alert alert-warning py-2 mb-0 mt-2 small fw-bold">
               <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ advertenciaEdad() }}
             </div>
           }
         </div>
+
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
           <h4 class="text-light mb-0">Total: <span class="text-success fw-bold">${{ montoTotal() }}</span></h4>
           <small class="text-secondary">{{ butacasSeleccionadas().length }} entradas seleccionadas</small>
         </div>
       </div>
 
-      <!-- Selector de Horarios y Funciones -->
+      <!-- SELECTOR DE HORARIOS Y FUNCIONES -->
       <div class="mt-4 border-top border-secondary pt-3">
         <h6 class="text-secondary fw-bold mb-3"><i class="bi bi-clock me-2"></i>Seleccionar Función / Horario:</h6>
         <div class="d-flex flex-wrap gap-2">
@@ -42,7 +54,67 @@
       </div>
     </div>
 
-    <!-- Referencias de Colores -->
+    <!-- SECCIÓN DE RESEÑAS Y OPINIONES -->
+    <div class="bg-dark-card p-4 rounded-3 border border-secondary mb-4 text-white shadow-sm">
+      <h5 class="text-danger fw-bold mb-3"><i class="bi bi-chat-square-heart me-2"></i>Reseñas de la Comunidad</h5>
+
+      <!-- Formulario para Publicar Reseña -->
+      <div class="bg-dark p-3 rounded mb-3 border border-secondary">
+        <h6 class="text-light fw-bold mb-2">¡Dejá tu opinión sobre esta película!</h6>
+        
+        @if (mensajeExitoResena()) {
+          <div class="alert alert-success py-2 mb-3 small fw-bold d-flex align-items-center">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            ¡Muchas gracias! Comentario publicado con éxito.
+          </div>
+        }
+
+        <div class="row g-2 align-items-center">
+          <div class="col-md-3">
+            <label class="small text-secondary">Calificación:</label>
+            <select class="form-select bg-dark-card text-warning border-secondary fw-bold" [ngModel]="nuevaCalificacion()" (ngModelChange)="nuevaCalificacion.set($event)">
+              <option [value]="5">⭐⭐⭐⭐⭐ (5/5)</option>
+              <option [value]="4">⭐⭐⭐⭐ (4/5)</option>
+              <option [value]="3">⭐⭐⭐ (3/5)</option>
+              <option [value]="2">⭐⭐ (2/5)</option>
+              <option [value]="1">⭐ (1/5)</option>
+            </select>
+          </div>
+          <div class="col-md-7">
+            <label class="small text-secondary">Comentario corto:</label>
+            <input type="text" class="form-control bg-dark-card text-white border-secondary" placeholder="Escribí qué te pareció..." [ngModel]="nuevoComentario()" (ngModelChange)="nuevoComentario.set($event)">
+          </div>
+          <div class="col-md-2 mt-auto">
+            <button class="btn btn-danger w-100 fw-bold" [disabled]="!nuevoComentario().trim()" (click)="agregarResena()">
+              Publicar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Comentarios Publicados -->
+      @if (resenas().length > 0) {
+        <div class="d-flex flex-column gap-2" style="max-height: 220px; overflow-y: auto;">
+          @for (r of resenas(); track r.id) {
+            <div class="p-3 bg-dark rounded border border-secondary">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold text-light">{{ r.nombre_usuario }}</span>
+                <span class="text-warning small">
+                  @for (s of [1,2,3,4,5]; track s) {
+                    <i class="bi" [class.bi-star-fill]="s <= r.calificacion" [class.bi-star]="s > r.calificacion"></i>
+                  }
+                </span>
+              </div>
+              <p class="mb-0 text-secondary small">{{ r.comentario }}</p>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="text-secondary small mb-0">Todavía no hay comentarios para esta película. ¡Sé el primero en calificarla!</p>
+      }
+    </div>
+
+    <!-- REFERENCIAS DE COLORES PARA BUTACAS -->
     <div class="d-flex flex-wrap justify-content-center gap-3 mb-4 bg-black p-3 rounded border border-secondary small text-white">
       <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-secondary"></span> Estándar ($5000)</div>
       <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-info"></span> Adaptada Discapacidad (J, K)</div>
@@ -51,12 +123,12 @@
       <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-danger"></span> Ocupada</div>
     </div>
 
-    <!-- Pantalla del Cine -->
+    <!-- PANTALLA DEL CINE -->
     <div class="pantalla-cine text-center py-2 mb-5 rounded fw-bold text-uppercase border border-secondary">
       🎬 P A N T A L L A
     </div>
 
-    <!-- Mapa Interactivo de Butacas -->
+    <!-- MAPA INTERACTIVO DE BUTACAS -->
     <div class="sala-scroll-container mb-4">
       <div class="d-flex flex-column gap-2 min-w-sala">
         @for (f of filas; track f) {
@@ -127,7 +199,7 @@
       </div>
     </div>
 
-    <!-- Botón de Acción Centrado -->
+    <!-- BOTÓN DE CONFIRMACIÓN -->
     <div class="text-center mt-4">
       <button 
         class="btn btn-danger-custom btn-lg px-5 shadow" 
