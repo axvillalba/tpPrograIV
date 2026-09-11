@@ -63,35 +63,56 @@ export class SeleccionEntradasComponent implements OnInit {
   butacasSeleccionadas = computed(() => this.mapaButacas().filter(b => b.seleccionada));
   montoTotal = computed(() => this.butacasSeleccionadas().reduce((acc, curr) => acc + curr.precio, 0));
 
-  async ngOnInit() {
-    const peliculaId = this.route.snapshot.paramMap.get('id');
-    if (!peliculaId) return;
+async ngOnInit() {
+    try {
+      const peliculaId = this.route.snapshot.paramMap.get('id');
+      if (!peliculaId) {
+        this.router.navigate(['/cartelera']);
+        return;
+      }
 
-    const perfil = await this.authService.getPerfilActual();
-    this.usuarioActual.set(perfil);
+      // 1. Obtener perfil sin congelar la app si es nulo
+      const perfil = await this.authService.getPerfilActual();
+      this.usuarioActual.set(perfil);
 
-    await this.cargarPeliculaYFunciones(peliculaId);
-    await this.cargarResenas(peliculaId);
-    await this.validarEdadUsuario();
+      // 2. Cargar película, funciones y reseñas
+      await this.cargarPeliculaYFunciones(peliculaId);
+      await this.cargarResenas(peliculaId);
+
+      // 3. Validar edad si hay perfil cargado
+      if (perfil) {
+        await this.validarEdadUsuario();
+      }
+    } catch (err) {
+      console.error('Error al inicializar la vista de entradas:', err);
+    }
   }
 
   private async cargarPeliculaYFunciones(peliculaId: string) {
-    // 1. Obtener Película
-    const { data: p } = await this.supabaseService.client
+    // 1. Obtener Película con .maybeSingle() para evitar el HTTP 406
+    const { data: p, error: errorPeli } = await this.supabaseService.client
       .from('peliculas')
       .select('*')
       .eq('id', peliculaId)
-      .single();
+      .maybeSingle();
+
+    if (errorPeli || !p) {
+      console.error('No se pudo encontrar la película:', errorPeli);
+      alert('La película seleccionada no está disponible.');
+      this.router.navigate(['/cartelera']);
+      return;
+    }
+
     this.pelicula.set(p);
 
     // 2. Obtener Funciones disponibles
-    const { data: fList } = await this.supabaseService.client
+    const { data: fList, error: errorFunc } = await this.supabaseService.client
       .from('funciones')
       .select('*, salas(nombre)')
       .eq('pelicula_id', peliculaId)
       .order('horario_inicio', { ascending: true });
 
-    if (fList && fList.length > 0) {
+    if (!errorFunc && fList && fList.length > 0) {
       this.funciones.set(fList);
       this.seleccionarFuncion(fList[0]);
     }
