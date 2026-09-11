@@ -1,0 +1,65 @@
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-dark text-white py-5">
+  <div class="card bg-dark-card border-danger shadow-lg p-4" style="max-width: 420px; width: 100%;">
+    
+    <div class="text-center mb-4">
+      <h3 class="text-danger fw-bold mb-1"><i class="bi bi-shield-lock me-2"></i>Acceso Staff</h3>
+      <p class="text-secondary small">Portal exclusivo para Gerencia y Empleados de Cine UTN</p>
+    </div>
+
+    @if (errorMensaje()) {
+      <div class="alert alert-danger py-2 small fw-bold mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMensaje() }}
+      </div>
+    }
+
+    <form (ngSubmit)="iniciarSesionStaff()">
+      <div class="mb-3">
+        <label class="form-label small text-secondary fw-bold">Correo Institucional</label>
+        <div class="input-group">
+          <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-envelope"></i></span>
+          <input 
+            type="email" 
+            class="form-control bg-dark text-white border-secondary" 
+            placeholder="usuario@cineutn.com"
+            [ngModel]="email()"
+            (ngModelChange)="email.set($event)"
+            name="email"
+            required>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label small text-secondary fw-bold">Contraseña</label>
+        <div class="input-group">
+          <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-key"></i></span>
+          <input 
+            type="password" 
+            class="form-control bg-dark text-white border-secondary" 
+            placeholder="••••••••"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+            name="password"
+            required>
+        </div>
+      </div>
+
+      <button 
+        type="submit" 
+        class="btn btn-danger-custom btn-lg w-100 mb-3 shadow" 
+        [disabled]="cargando() || !email() || !password()">
+        @if (cargando()) {
+          <span class="spinner-border spinner-border-sm me-2"></span> Autenticando...
+        } @else {
+          <i class="bi bi-box-arrow-in-right me-2"></i> Ingresar al Portal
+        }
+      </button>
+
+      <button 
+        type="button" 
+        class="btn btn-outline-secondary btn-sm w-100" 
+        (click)="volverAlLoginCliente()">
+        <i class="bi bi-arrow-left me-1"></i> Volver a la Vista de Clientes
+      </button>
+    </form>
+  </div>
+</div>
