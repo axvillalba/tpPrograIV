@@ -52,16 +52,41 @@
           <input type="text" class="form-control bg-dark text-white border-secondary btn-sm"
             [(ngModel)]="nuevaPelicula().titulo">
         </div>
+
+        <!-- SELECCIÓN MÚLTIPLE DE GÉNEROS -->
         <div class="mb-2">
-          <label class="form-label small">Género</label>
-          <input type="text" class="form-control bg-dark text-white border-secondary btn-sm"
-            [(ngModel)]="nuevaPelicula().genero">
+          <label class="form-label small d-block">Género(s)</label>
+          <div class="row g-2 p-2 bg-dark rounded border border-secondary" style="max-height: 120px; overflow-y: auto;">
+            @for (gen of generosDisponibles; track gen) {
+              <div class="col-6">
+                <div class="form-check">
+                  <input 
+                    class="form-check-input" 
+                    type="checkbox" 
+                    [id]="'gen-' + gen"
+                    [checked]="generosSeleccionados().includes(gen)"
+                    (change)="toggleGenero(gen)">
+                  <label class="form-check-label small text-white" [for]="'gen-' + gen">
+                    {{ gen }}
+                  </label>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- AFICHE: Subida desde dispositivo O URL -->
+        <div class="mb-2">
+          <label class="form-label small">Subir Afiche desde el dispositivo</label>
+          <input type="file" class="form-control bg-dark text-white border-secondary btn-sm"
+            accept="image/*" (change)="onArchivoSeleccionado($event)">
         </div>
         <div class="mb-2">
-          <label class="form-label small">URL Poster</label>
+          <label class="form-label small">O pegar URL de imagen</label>
           <input type="text" class="form-control bg-dark text-white border-secondary btn-sm"
-            [(ngModel)]="nuevaPelicula().poster_url">
+            placeholder="https://..." [(ngModel)]="nuevaPelicula().poster_url">
         </div>
+
         <div class="row mb-2">
           <div class="col-6">
             <label class="form-label small">Duración (min)</label>
@@ -74,7 +99,6 @@
               [(ngModel)]="nuevaPelicula().clasificacion">
               <option value="ATP">ATP</option>
               <option value="+13">+13</option>
-              <option value="+16">+16</option>
               <option value="+18">+18</option>
             </select>
           </div>
@@ -85,46 +109,55 @@
             [(ngModel)]="nuevaPelicula().sinopsis"></textarea>
         </div>
 
-        <button class="btn btn-danger w-100 btn-sm mb-2" (click)="guardarPelicula()">
-          <i class="bi bi-save me-1"></i> {{ idPeliculaEditando() ? 'Actualizar' : 'Guardar Película' }}
+        <button class="btn btn-danger w-100 btn-sm mb-2" [disabled]="subiendoImagen()" (click)="guardarPelicula()">
+          <i class="bi bi-save me-1"></i> 
+          {{ subiendoImagen() ? 'Subiendo imagen...' : (idPeliculaEditando() ? 'Actualizar' : 'Guardar Película') }}
         </button>
 
         @if (idPeliculaEditando()) {
-        <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionPelicula()">Cancelar
-          Edición</button>
+        <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionPelicula()">Cancelar Edición</button>
         }
       </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-dark table-hover align-middle">
-        <thead>
-          <tr>
-            <th>Poster</th>
-            <th>Título</th>
-            <th>Género</th>
-            <th>Clasificación</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (peli of peliculas(); track peli.id) {
-          <tr>
-            <td><img [src]="peli.poster_url" style="width: 35px; height: 50px; object-fit: cover;" class="rounded"
-                alt="poster"></td>
-            <td class="fw-bold">{{ peli.titulo }}</td>
-            <td>{{ peli.genero }}</td>
-            <td><span class="badge bg-danger">{{ peli.clasificacion }}</span></td>
-            <td>
-              <button class="btn btn-outline-warning btn-sm me-1" (click)="editarPelicula(peli)"><i
-                  class="bi bi-pencil"></i></button>
-              <button class="btn btn-outline-danger btn-sm" (click)="eliminarPelicula(peli.id)"><i
-                  class="bi bi-trash"></i></button>
-            </td>
-          </tr>
-          }
-        </tbody>
-      </table>
+    <div class="col-md-8">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Poster</th>
+              <th>Título</th>
+              <th>Género</th>
+              <th>Clasificación</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (peli of peliculas(); track peli.id) {
+            <tr>
+              <td>
+                <img [src]="peli.imagen_url || peli.poster_url" style="width: 35px; height: 50px; object-fit: cover;" class="rounded" alt="poster">
+              </td>
+              <td class="fw-bold">{{ peli.titulo }}</td>
+              <td>
+                <span class="badge bg-secondary">
+                  {{ obtenerGenerosFormateados(peli.generos || peli.genero) }}
+                </span>
+              </td>
+              <td><span class="badge bg-danger">{{ peli.clasificacion_edad || peli.clasificacion }}</span></td>
+              <td>
+                <button class="btn btn-outline-warning btn-sm me-1" (click)="editarPelicula(peli)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" (click)="eliminarPelicula(peli.id)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   }
@@ -159,32 +192,36 @@
       </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-dark table-hover align-middle">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Categoría</th>
-            <th>Precio</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (prod of productosCandy(); track prod.id) {
-          <tr>
-            <td>{{ prod.nombre }}</td>
-            <td><span class="badge bg-secondary">{{ prod.categoria }}</span></td>
-            <td class="text-success fw-bold">${{ prod.precio }}</td>
-            <td>
-              <button class="btn btn-outline-warning btn-sm me-1" (click)="editarCandy(prod)"><i
-                  class="bi bi-pencil"></i></button>
-              <button class="btn btn-outline-danger btn-sm" (click)="eliminarCandy(prod.id)"><i
-                  class="bi bi-trash"></i></button>
-            </td>
-          </tr>
-          }
-        </tbody>
-      </table>
+    <div class="col-md-8">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Precio</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (prod of productosCandy(); track prod.id) {
+            <tr>
+              <td>{{ prod.nombre }}</td>
+              <td><span class="badge bg-secondary">{{ prod.categoria }}</span></td>
+              <td class="text-success fw-bold">${{ prod.precio }}</td>
+              <td>
+                <button class="btn btn-outline-warning btn-sm me-1" (click)="editarCandy(prod)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" (click)="eliminarCandy(prod.id)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   }
@@ -221,38 +258,45 @@
       </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-dark table-hover align-middle">
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Descuento</th>
-            <th>Reglas</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (cup of cupones(); track cup.id) {
-          <tr>
-            <td class="fw-bold text-warning">{{ cup.codigo }}</td>
-            <td>{{ cup.porcentaje_descuento }}%</td>
-            <td class="small text-secondary">
-              {{ cup.solo_mayores_50 ? '>50 años ' : '' }}
-              {{ cup.es_primera_compra ? '1ra Compra' : 'General' }}
-            </td>
-            <td><span class="badge" [class.bg-success]="cup.activo" [class.bg-danger]="!cup.activo">{{ cup.activo ?
-                'Activo' : 'Inactivo' }}</span></td>
-            <td>
-              <button class="btn btn-outline-warning btn-sm me-1" (click)="editarCupon(cup)"><i
-                  class="bi bi-pencil"></i></button>
-              <button class="btn btn-outline-danger btn-sm" (click)="eliminarCupon(cup.id)"><i
-                  class="bi bi-trash"></i></button>
-            </td>
-          </tr>
-          }
-        </tbody>
-      </table>
+    <div class="col-md-8">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descuento</th>
+              <th>Reglas</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (cup of cupones(); track cup.id) {
+            <tr>
+              <td class="fw-bold text-warning">{{ cup.codigo }}</td>
+              <td>{{ cup.porcentaje_descuento }}%</td>
+              <td class="small text-secondary">
+                {{ cup.solo_mayores_50 ? '>50 años ' : '' }}
+                {{ cup.es_primera_compra ? '1ra Compra' : 'General' }}
+              </td>
+              <td>
+                <span class="badge" [class.bg-success]="cup.activo" [class.bg-danger]="!cup.activo">
+                  {{ cup.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-outline-warning btn-sm me-1" (click)="editarCupon(cup)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" (click)="eliminarCupon(cup.id)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   }
@@ -299,27 +343,29 @@
       </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-dark table-hover align-middle">
-        <thead>
-          <tr>
-            <th>Película</th>
-            <th>Sala Asignada</th>
-            <th>Horario</th>
-            <th>Formato</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (func of funciones(); track func.id) {
-          <tr>
-            <td class="fw-bold">{{ func.peliculas?.titulo || 'N/A' }}</td>
-            <td><span class="badge bg-primary">{{ func.salas?.nombre || 'Sala 1' }}</span></td>
-            <td>{{ func.fecha_hora | date:'short' }}</td>
-            <td><span class="badge bg-secondary">{{ func.formato }}</span></td>
-          </tr>
-          }
-        </tbody>
-      </table>
+    <div class="col-md-8">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Película</th>
+              <th>Sala Asignada</th>
+              <th>Horario</th>
+              <th>Formato</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (func of funciones(); track func.id) {
+            <tr>
+              <td class="fw-bold">{{ func.peliculas?.titulo || 'N/A' }}</td>
+              <td><span class="badge bg-primary">{{ func.salas?.nombre || 'Sala 1' }}</span></td>
+              <td>{{ func.fecha_hora | date:'short' }}</td>
+              <td><span class="badge bg-secondary">{{ func.formato }}</span></td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   }

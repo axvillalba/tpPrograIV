@@ -1,10 +1,11 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase';
 import { AuthService } from '../../services/auth';
 import { NavbarComponent } from '../../components/navbar/navbar';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface Butaca {
   fila: string;
@@ -31,17 +32,20 @@ interface Resena {
   templateUrl: './seleccion-entradas.html',
   styleUrl: './seleccion-entradas.css'
 })
-export class SeleccionEntradasComponent implements OnInit {
+export class SeleccionEntradasComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private supabaseService = inject(SupabaseService);
   private authService = inject(AuthService);
+
+  private canalRealtime: RealtimeChannel | null = null;
 
   pelicula = signal<any>(null);
   funciones = signal<any[]>([]);
   funcionSeleccionada = signal<any>(null);
   mapaButacas = signal<Butaca[]>([]);
   advertenciaEdad = signal<string | null>(null);
+  usuarioActual = signal<any>(null);
 
   // Estados de Reseñas y Puntuaciones
   resenas = signal<Resena[]>([]);
@@ -52,67 +56,52 @@ export class SeleccionEntradasComponent implements OnInit {
     return (suma / list.length).toFixed(1);
   });
 
-  // Formulario nueva reseña + Mensaje de éxito
   nuevaCalificacion = signal<number>(5);
   nuevoComentario = signal<string>('');
   mensajeExitoResena = signal<boolean>(false);
-  usuarioActual = signal<any>(null);
 
-  filas = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'];
+  filas = ['A','B','C','D','E','F','G','H','I','DISC','L','M','N','O','P','Q','R','S','T'];
 
   butacasSeleccionadas = computed(() => this.mapaButacas().filter(b => b.seleccionada));
   montoTotal = computed(() => this.butacasSeleccionadas().reduce((acc, curr) => acc + curr.precio, 0));
 
-async ngOnInit() {
+  async ngOnInit() {
     try {
       const peliculaId = this.route.snapshot.paramMap.get('id');
-      if (!peliculaId) {
-        this.router.navigate(['/cartelera']);
-        return;
-      }
+      if (!peliculaId) return;
 
-      // 1. Obtener perfil sin congelar la app si es nulo
       const perfil = await this.authService.getPerfilActual();
       this.usuarioActual.set(perfil);
 
-      // 2. Cargar película, funciones y reseñas
       await this.cargarPeliculaYFunciones(peliculaId);
       await this.cargarResenas(peliculaId);
-
-      // 3. Validar edad si hay perfil cargado
-      if (perfil) {
-        await this.validarEdadUsuario();
-      }
     } catch (err) {
-      console.error('Error al inicializar la vista de entradas:', err);
+      console.error('Error al inicializar:', err);
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.canalRealtime) {
+      this.supabaseService.client.removeChannel(this.canalRealtime);
     }
   }
 
   private async cargarPeliculaYFunciones(peliculaId: string) {
-    // 1. Obtener Película con .maybeSingle() para evitar el HTTP 406
-    const { data: p, error: errorPeli } = await this.supabaseService.client
+    const { data: p } = await this.supabaseService.client
       .from('peliculas')
       .select('*')
       .eq('id', peliculaId)
       .maybeSingle();
 
-    if (errorPeli || !p) {
-      console.error('No se pudo encontrar la película:', errorPeli);
-      alert('La película seleccionada no está disponible.');
-      this.router.navigate(['/cartelera']);
-      return;
-    }
+    if (p) this.pelicula.set(p);
 
-    this.pelicula.set(p);
-
-    // 2. Obtener Funciones disponibles
-    const { data: fList, error: errorFunc } = await this.supabaseService.client
+    const { data: fList } = await this.supabaseService.client
       .from('funciones')
       .select('*, salas(nombre)')
       .eq('pelicula_id', peliculaId)
       .order('horario_inicio', { ascending: true });
 
-    if (!errorFunc && fList && fList.length > 0) {
+    if (fList && fList.length > 0) {
       this.funciones.set(fList);
       this.seleccionarFuncion(fList[0]);
     }
@@ -122,7 +111,52 @@ async ngOnInit() {
     this.funcionSeleccionada.set(f);
     this.generarMapaSalas();
     await this.cargarButacasOcupadas(f.id);
+    this.suscribirAOcumpacionEnTiempoReal(f.id);
   }
+
+private generarMapaSalas() {
+  const precioBase = this.funcionSeleccionada()?.precio_base || 5000;
+  const listado: Butaca[] = [];
+
+  this.filas.forEach(fila => {
+    const esDiscapacidad = fila === 'DISC';
+    const esVip = fila === 'R' || fila === 'S' || fila === 'T';
+    
+    let tipo: 'estandar' | 'discapacidad' | 'vip' = 'estandar';
+    let precio = precioBase;
+
+    if (esDiscapacidad) {
+      tipo = 'discapacidad';
+    } else if (esVip) {
+      tipo = 'vip';
+      precio = precioBase * 1.35;
+    }
+
+    // Configuración exacta:
+    // Filas Estándar/VIP: 4 (Izq) - 20 (Centro) - 4 (Der) = 28 butacas
+    // Fila Única DISC:    2 (Izq) - 10 (Centro) - 2 (Der) = 14 butacas
+    const cantIzq = esDiscapacidad ? 2 : 4;
+    const cantCentro = esDiscapacidad ? 10 : 20;
+    const cantDer = esDiscapacidad ? 2 : 4;
+
+    let numeroAsiento = 1;
+
+    // Bloque 1 (Izquierda)
+    for (let c = 1; c <= cantIzq; c++) {
+      listado.push({ fila, columna: numeroAsiento++, bloque: 1, tipo, ocupada: false, seleccionada: false, precio });
+    }
+    // Bloque 2 (Centro)
+    for (let c = 1; c <= cantCentro; c++) {
+      listado.push({ fila, columna: numeroAsiento++, bloque: 2, tipo, ocupada: false, seleccionada: false, precio });
+    }
+    // Bloque 3 (Derecha)
+    for (let c = 1; c <= cantDer; c++) {
+      listado.push({ fila, columna: numeroAsiento++, bloque: 3, tipo, ocupada: false, seleccionada: false, precio });
+    }
+  });
+
+  this.mapaButacas.set(listado);
+}
 
   private async cargarButacasOcupadas(funcionId: string) {
     const { data: ventasExistentes } = await this.supabaseService.client
@@ -134,8 +168,9 @@ async ngOnInit() {
       const asientosCompradosSet = new Set<string>();
 
       ventasExistentes.forEach((v: any) => {
-        if (v.detalle_butacas && Array.isArray(v.detalle_butacas)) {
-          v.detalle_butacas.forEach((b: any) => {
+        const detalle = v['detalle_butacas'];
+        if (detalle && Array.isArray(detalle)) {
+          detalle.forEach((b: any) => {
             asientosCompradosSet.add(`${b.fila}-${b.columna}`);
           });
         }
@@ -145,65 +180,45 @@ async ngOnInit() {
         asientos.map(b => ({
           ...b,
           ocupada: asientosCompradosSet.has(`${b.fila}-${b.columna}`),
-          seleccionada: false
+          seleccionada: asientosCompradosSet.has(`${b.fila}-${b.columna}`) ? false : b.seleccionada
         }))
       );
     }
   }
 
-  private async validarEdadUsuario() {
-    const perfil = await this.authService.getPerfilActual();
-    const pelicula = this.pelicula();
-
-    if (perfil && pelicula) {
-      const fechaNac = new Date(perfil.fecha_nacimiento);
-      const edad = new Date().getFullYear() - fechaNac.getFullYear();
-
-      if (pelicula.clasificacion_edad === '+18' && edad < 18) {
-        alert('Esta película es exclusiva para mayores de 18 años.');
-        this.router.navigate(['/cartelera']);
-      } else if (pelicula.clasificacion_edad === '+13' && edad < 18) {
-        this.advertenciaEdad.set('Atención: Al ser menor de 18 años, deberás asistir acompañado por un adulto.');
-      }
+  private suscribirAOcumpacionEnTiempoReal(funcionId: string) {
+    if (this.canalRealtime) {
+      this.supabaseService.client.removeChannel(this.canalRealtime);
     }
-  }
 
-  private generarMapaSalas() {
-    const precioBase = this.funcionSeleccionada()?.precio_base || 5000;
-    const listado: Butaca[] = [];
+    this.canalRealtime = this.supabaseService.client
+      .channel(`ventas-funcion-${funcionId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ventas', filter: `funcion_id=eq.${funcionId}` },
+        (payload) => {
+          const nuevaVenta = payload.new as Record<string, any>;
+          const detalleButacas = nuevaVenta ? nuevaVenta['detalle_butacas'] : null;
 
-    this.filas.forEach(fila => {
-      const esDiscapacidad = fila === 'J' || fila === 'K';
-      const esVip = fila === 'R' || fila === 'S' || fila === 'T';
-      
-      let tipo: 'estandar' | 'discapacidad' | 'vip' = 'estandar';
-      let precio = precioBase;
+          if (detalleButacas && Array.isArray(detalleButacas)) {
+            const nuevasOcupadas = new Set<string>();
+            detalleButacas.forEach((b: any) => {
+              nuevasOcupadas.add(`${b.fila}-${b.columna}`);
+            });
 
-      if (esDiscapacidad) {
-        tipo = 'discapacidad';
-      } else if (esVip) {
-        tipo = 'vip';
-        precio = precioBase * 1.35;
-      }
-
-      const cantIzq = esDiscapacidad ? 2 : 4;
-      const cantCentro = esDiscapacidad ? 10 : 20;
-      const cantDer = esDiscapacidad ? 2 : 4;
-
-      let numeroAsiento = 1;
-
-      for (let c = 1; c <= cantIzq; c++) {
-        listado.push({ fila, columna: numeroAsiento++, bloque: 1, tipo, ocupada: false, seleccionada: false, precio });
-      }
-      for (let c = 1; c <= cantCentro; c++) {
-        listado.push({ fila, columna: numeroAsiento++, bloque: 2, tipo, ocupada: false, seleccionada: false, precio });
-      }
-      for (let c = 1; c <= cantDer; c++) {
-        listado.push({ fila, columna: numeroAsiento++, bloque: 3, tipo, ocupada: false, seleccionada: false, precio });
-      }
-    });
-
-    this.mapaButacas.set(listado);
+            this.mapaButacas.update(asientos =>
+              asientos.map(b => {
+                const clave = `${b.fila}-${b.columna}`;
+                if (nuevasOcupadas.has(clave)) {
+                  return { ...b, ocupada: true, seleccionada: false };
+                }
+                return b;
+              })
+            );
+          }
+        }
+      )
+      .subscribe();
   }
 
   toggleButaca(b: Butaca) {
@@ -230,7 +245,7 @@ async ngOnInit() {
     this.router.navigate(['/candy']);
   }
 
-  // Lógica de Reseñas
+  // --- LÓGICA DE RESEÑAS ---
   async cargarResenas(peliculaId: string) {
     const { data } = await this.supabaseService.client
       .from('resenas')
@@ -267,7 +282,6 @@ async ngOnInit() {
       this.mensajeExitoResena.set(true);
       await this.cargarResenas(peliculaId);
 
-      // Ocultar mensaje tras 4 segundos
       setTimeout(() => {
         this.mensajeExitoResena.set(false);
       }, 4000);

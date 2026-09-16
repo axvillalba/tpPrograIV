@@ -1,212 +1,202 @@
 <app-navbar></app-navbar>
 
-<div class="container py-4 text-white">
+<div class="container my-4 text-white">
+  <!-- Cabecera de Película y Selección de Función -->
   @if (pelicula()) {
-    <!-- ENCABEZADO DE LA PELÍCULA CON PUNTUACIÓN PROMEDIO Y TOTAL -->
-    <div class="bg-dark-card p-4 rounded-3 border border-secondary mb-4 text-white shadow-sm">
-      <div class="row align-items-center">
-        <div class="col-md-8">
-          <h2 class="text-danger fw-bold mb-1">{{ pelicula().titulo }}</h2>
-          
-          <div class="d-flex align-items-center gap-3 my-2">
-            <span class="badge bg-danger me-1">{{ pelicula().clasificacion_edad }}</span>
-            <span class="badge bg-dark border me-1">{{ funcionSeleccionada()?.formato }}</span>
-            <span class="badge bg-dark border me-1">{{ funcionSeleccionada()?.idioma }}</span>
-
-            <!-- Promedio de Calificación con Estrellas -->
-            <div class="d-flex align-items-center text-warning fw-bold fs-6">
-              <i class="bi bi-star-fill me-1"></i>
-              <span>{{ promedioCalificacion() }}</span>
-              <span class="text-secondary small ms-1">({{ resenas().length }} opiniones)</span>
-            </div>
+    <div class="card bg-dark text-white border-secondary p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <h2 class="text-danger fw-bold m-0">{{ pelicula()?.titulo }}</h2>
+          <div class="d-flex align-items-center gap-2 my-2">
+            <span class="badge bg-danger">{{ pelicula()?.clasificacion || 'ATP' }}</span>
+            <span class="badge bg-secondary">{{ funcionSeleccionada()?.formato || '2D' }}</span>
+            <span class="badge bg-secondary">{{ funcionSeleccionada()?.idioma || 'Castellano' }}</span>
+            <span class="text-warning small ms-2">
+              <i class="bi bi-star-fill"></i> {{ promedioCalificacion() }} ({{ resenas().length }} opiniones)
+            </span>
           </div>
-
-          <p class="text-secondary small mb-2">{{ pelicula().sinopsis }}</p>
-
-          @if (advertenciaEdad()) {
-            <div class="alert alert-warning py-2 mb-0 mt-2 small fw-bold">
-              <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ advertenciaEdad() }}
-            </div>
-          }
+          <p class="text-secondary small mb-0" style="max-width: 600px;">
+            {{ pelicula()?.sinopsis }}
+          </p>
         </div>
 
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-          <h4 class="text-light mb-0">Total: <span class="text-success fw-bold">${{ montoTotal() }}</span></h4>
+        <div class="text-end">
+          <h3 class="text-success fw-bold m-0">Total: ${{ montoTotal() }}</h3>
           <small class="text-secondary">{{ butacasSeleccionadas().length }} entradas seleccionadas</small>
         </div>
       </div>
 
-      <!-- SELECTOR DE HORARIOS Y FUNCIONES -->
-      <div class="mt-4 border-top border-secondary pt-3">
-        <h6 class="text-secondary fw-bold mb-3"><i class="bi bi-clock me-2"></i>Seleccionar Función / Horario:</h6>
-        <div class="d-flex flex-wrap gap-2">
+      <hr class="border-secondary my-3">
+
+      <!-- Selección de Horario -->
+      <div>
+        <span class="text-secondary small d-block mb-2">
+          <i class="bi bi-clock me-1"></i> Seleccionar Función / Horario:
+        </span>
+        <div class="d-flex gap-2 flex-wrap">
           @for (f of funciones(); track f.id) {
             <button 
-              class="btn btn-outline-light d-flex flex-column align-items-center p-2 px-3 rounded shadow-sm"
+              type="button" 
+              class="btn btn-outline-light text-start p-2"
               [class.active]="funcionSeleccionada()?.id === f.id"
               [class.btn-danger]="funcionSeleccionada()?.id === f.id"
               (click)="seleccionarFuncion(f)">
-              <span class="fw-bold fs-6">{{ f.horario_inicio | date:'HH:mm' }} hs</span>
-              <small class="small text-uppercase opacity-75">{{ f.salas?.nombre || 'Sala' }} | {{ f.formato }}</small>
+              <div class="fw-bold">{{ (f.fecha_hora || f.horario_inicio) | date:'HH:mm' }} hs</div>
+              <small class="d-block text-opacity-75" style="font-size: 0.75rem;">
+                {{ f.salas?.nombre || 'SALA 1' }} - {{ f.formato }}
+              </small>
             </button>
           }
         </div>
       </div>
-    </div>
-
-    <!-- SECCIÓN DE RESEÑAS Y OPINIONES -->
-    <div class="bg-dark-card p-4 rounded-3 border border-secondary mb-4 text-white shadow-sm">
-      <h5 class="text-danger fw-bold mb-3"><i class="bi bi-chat-square-heart me-2"></i>Reseñas de la Comunidad</h5>
-
-      <!-- Formulario para Publicar Reseña -->
-      <div class="bg-dark p-3 rounded mb-3 border border-secondary">
-        <h6 class="text-light fw-bold mb-2">¡Dejá tu opinión sobre esta película!</h6>
-        
-        @if (mensajeExitoResena()) {
-          <div class="alert alert-success py-2 mb-3 small fw-bold d-flex align-items-center">
-            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
-            ¡Muchas gracias! Comentario publicado con éxito.
-          </div>
-        }
-
-        <div class="row g-2 align-items-center">
-          <div class="col-md-3">
-            <label class="small text-secondary">Calificación:</label>
-            <select class="form-select bg-dark-card text-warning border-secondary fw-bold" [ngModel]="nuevaCalificacion()" (ngModelChange)="nuevaCalificacion.set($event)">
-              <option [value]="5">⭐⭐⭐⭐⭐ (5/5)</option>
-              <option [value]="4">⭐⭐⭐⭐ (4/5)</option>
-              <option [value]="3">⭐⭐⭐ (3/5)</option>
-              <option [value]="2">⭐⭐ (2/5)</option>
-              <option [value]="1">⭐ (1/5)</option>
-            </select>
-          </div>
-          <div class="col-md-7">
-            <label class="small text-secondary">Comentario corto:</label>
-            <input type="text" class="form-control bg-dark-card text-white border-secondary" placeholder="Escribí qué te pareció..." [ngModel]="nuevoComentario()" (ngModelChange)="nuevoComentario.set($event)">
-          </div>
-          <div class="col-md-2 mt-auto">
-            <button class="btn btn-danger w-100 fw-bold" [disabled]="!nuevoComentario().trim()" (click)="agregarResena()">
-              Publicar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Lista de Comentarios Publicados -->
-      @if (resenas().length > 0) {
-        <div class="d-flex flex-column gap-2" style="max-height: 220px; overflow-y: auto;">
-          @for (r of resenas(); track r.id) {
-            <div class="p-3 bg-dark rounded border border-secondary">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="fw-bold text-light">{{ r.nombre_usuario }}</span>
-                <span class="text-warning small">
-                  @for (s of [1,2,3,4,5]; track s) {
-                    <i class="bi" [class.bi-star-fill]="s <= r.calificacion" [class.bi-star]="s > r.calificacion"></i>
-                  }
-                </span>
-              </div>
-              <p class="mb-0 text-secondary small">{{ r.comentario }}</p>
-            </div>
-          }
-        </div>
-      } @else {
-        <p class="text-secondary small mb-0">Todavía no hay comentarios para esta película. ¡Sé el primero en calificarla!</p>
-      }
-    </div>
-
-    <!-- REFERENCIAS DE COLORES PARA BUTACAS -->
-    <div class="d-flex flex-wrap justify-content-center gap-3 mb-4 bg-black p-3 rounded border border-secondary small text-white">
-      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-secondary"></span> Estándar ($5000)</div>
-      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-info"></span> Adaptada Discapacidad (J, K)</div>
-      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-warning text-dark"></span> VIP (R, S, T) ($6750)</div>
-      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-success"></span> Seleccionada</div>
-      <div class="d-flex align-items-center gap-2"><span class="seat-sample bg-danger"></span> Ocupada</div>
-    </div>
-
-    <!-- PANTALLA DEL CINE -->
-    <div class="pantalla-cine text-center py-2 mb-5 rounded fw-bold text-uppercase border border-secondary">
-      🎬 P A N T A L L A
-    </div>
-
-    <!-- MAPA INTERACTIVO DE BUTACAS -->
-    <div class="sala-scroll-container mb-4">
-      <div class="d-flex flex-column gap-2 min-w-sala">
-        @for (f of filas; track f) {
-          <div class="d-flex align-items-center justify-content-center gap-3">
-            <span class="fw-bold text-danger row-label">{{ f }}</span>
-
-            <!-- Bloque Izquierdo -->
-            <div class="d-flex gap-1">
-              @for (b of getButacasPorFilaYBloque(f, 1); track b.columna) {
-                <button 
-                  class="btn-seat"
-                  [disabled]="b.ocupada"
-                  [ngClass]="{
-                    'seat-ocupada': b.ocupada,
-                    'seat-discapacidad': b.tipo === 'discapacidad' && !b.ocupada,
-                    'seat-vip': b.tipo === 'vip' && !b.ocupada,
-                    'seat-selected': b.seleccionada
-                  }"
-                  (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
-            </div>
-
-            <div class="pasillo"></div>
-
-            <!-- Bloque Central -->
-            <div class="d-flex gap-1">
-              @for (b of getButacasPorFilaYBloque(f, 2); track b.columna) {
-                <button 
-                  class="btn-seat"
-                  [disabled]="b.ocupada"
-                  [ngClass]="{
-                    'seat-ocupada': b.ocupada,
-                    'seat-discapacidad': b.tipo === 'discapacidad' && !b.ocupada,
-                    'seat-vip': b.tipo === 'vip' && !b.ocupada,
-                    'seat-selected': b.seleccionada
-                  }"
-                  (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
-            </div>
-
-            <div class="pasillo"></div>
-
-            <!-- Bloque Derecho -->
-            <div class="d-flex gap-1">
-              @for (b of getButacasPorFilaYBloque(f, 3); track b.columna) {
-                <button 
-                  class="btn-seat"
-                  [disabled]="b.ocupada"
-                  [ngClass]="{
-                    'seat-ocupada': b.ocupada,
-                    'seat-discapacidad': b.tipo === 'discapacidad' && !b.ocupada,
-                    'seat-vip': b.tipo === 'vip' && !b.ocupada,
-                    'seat-selected': b.seleccionada
-                  }"
-                  (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
-            </div>
-
-            <span class="fw-bold text-danger row-label">{{ f }}</span>
-          </div>
-        }
-      </div>
-    </div>
-
-    <!-- BOTÓN DE CONFIRMACIÓN -->
-    <div class="text-center mt-4">
-      <button 
-        class="btn btn-danger-custom btn-lg px-5 shadow" 
-        [disabled]="montoTotal() === 0" 
-        (click)="continuarAlCandy()">
-        Confirmar Selección y Continuar <i class="bi bi-arrow-right ms-2"></i>
-      </button>
     </div>
   }
+
+  <!-- LEYENDA CON COLORES DE BUTACAS -->
+  <div class="card bg-dark text-white border-secondary p-3 mb-4">
+    <div class="d-flex justify-content-center align-items-center flex-wrap gap-4 small">
+      <div class="d-flex align-items-center gap-2">
+        <span class="butaca-referencia estandar"></span>
+        <span>Estándar (${{ funcionSeleccionada()?.precio_base || 4500 }})</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="butaca-referencia discapacidad"></span>
+        <span>Adaptada Discapacidad (Fila DISC)</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="butaca-referencia vip"></span>
+        <span>VIP (R, S, T) (${{ (funcionSeleccionada()?.precio_base || 4500) * 1.35 }})</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="butaca-referencia seleccionada"></span>
+        <span>Seleccionada</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="butaca-referencia ocupada"></span>
+        <span>Ocupada</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAPA DE BUTACAS DE LA SALA -->
+  <div class="mapa-sala-container text-center my-4 overflow-auto">
+    <div class="pantalla-cine mb-4 mx-auto p-2 rounded text-uppercase fw-bold text-secondary border border-secondary" style="max-width: 600px; background: #18181b;">
+      <i class="bi bi-projector me-2"></i> P A N T A L L A
+    </div>
+
+    <div class="d-inline-block text-nowrap">
+      @for (fila of filas; track fila) {
+        <div class="d-flex align-items-center justify-content-center mb-1">
+          <!-- Etiqueta de Fila (Izquierda) -->
+          <span class="fw-bold text-danger me-3 text-end" style="width: 35px;">{{ fila }}</span>
+
+          @if (fila === 'DISC') {
+            <!-- FILA ESPECIAL ACCESIBLE ALINEADA A LA GRILLA DE 28 COLUMNAS -->
+            
+            <!-- Bloque 1 (Izquierda): 2 Asientos + 2 Huecos invisibles = 4 Columnas -->
+            <div class="d-flex me-3">
+              @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
+                <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+            </div>
+
+            <!-- Bloque 2 (Centro): 5 Huecos + 10 Asientos + 5 Huecos = 20 Columnas -->
+            <div class="d-flex me-3">
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+
+              @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
+                <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+            </div>
+
+            <!-- Bloque 3 (Derecha): 2 Huecos + 2 Asientos = 4 Columnas -->
+            <div class="d-flex">
+              <div class="butaca-hueco"></div>
+              <div class="butaca-hueco"></div>
+              @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
+                <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+            </div>
+          } @else {
+            <!-- FILAS ESTÁNDAR Y VIP -->
+            <div class="d-flex me-3">
+              @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
+                <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+            </div>
+
+            <div class="d-flex me-3">
+              @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
+                <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+            </div>
+
+            <div class="d-flex">
+              @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
+                <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                  {{ b.columna }}
+                </button>
+              }
+            </div>
+          }
+
+          <!-- Etiqueta de Fila (Derecha) -->
+          <span class="fw-bold text-danger ms-3 text-start" style="width: 35px;">{{ fila }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- BOTÓN DE CONFIRMACIÓN -->
+  <div class="text-center my-4">
+    <button 
+      class="btn btn-danger btn-lg px-5 py-3 fw-bold"
+      [disabled]="butacasSeleccionadas().length === 0"
+      (click)="continuarAlCandy()">
+      Confirmar Selección y Continuar <i class="bi bi-arrow-right ms-2"></i>
+    </button>
+  </div>
+
+  <!-- RESEÑAS DE LA COMUNIDAD -->
+  <div class="card bg-dark text-white border-secondary p-4 mt-5">
+    <h4 class="text-danger mb-3"><i class="bi bi-chat-square-text me-2"></i>Reseñas de la Comunidad</h4>
+
+    @if (resenas().length === 0) {
+      <p class="text-secondary mb-0">Todavía no hay comentarios para esta película.</p>
+    } @else {
+      <div class="d-flex flex-column gap-3">
+        @for (r of resenas(); track r.id) {
+          <div class="border-bottom border-secondary pb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="fw-bold text-light">{{ r.nombre_usuario }}</span>
+              <span class="text-warning small"><i class="bi bi-star-fill me-1"></i>{{ r.calificacion }}/5</span>
+            </div>
+            <p class="text-secondary small mb-0">{{ r.comentario }}</p>
+          </div>
+        }
+      </div>
+    }
+  </div>
 </div>

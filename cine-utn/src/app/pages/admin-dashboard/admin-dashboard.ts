@@ -19,6 +19,17 @@ export class AdminDashboardComponent implements OnInit {
 
   pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones'>('peliculas');
   cargando = signal<boolean>(false);
+  subiendoImagen = signal<boolean>(false);
+
+  generosDisponibles: string[] = [
+  'Acción', 'Aventura', 'Animación', 'Ciencia Ficción', 
+  'Comedia', 'Drama', 'Fantasía', 'Terror', 'Romance', 'Suspenso'
+];
+
+generosSeleccionados = signal<string[]>([]);
+
+  // Archivo local seleccionado
+  archivoPosterSeleccionado: File | null = null;
 
   // Datos
   peliculas = signal<any[]>([]);
@@ -79,46 +90,141 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  // --- PELÍCULAS ---
-  async guardarPelicula() {
-    const peli = this.nuevaPelicula();
-    if (!peli.titulo || !peli.genero) return alert('Completá título y género');
-
-    if (this.idPeliculaEditando()) {
-      const { error } = await this.supabaseService.client
-        .from('peliculas')
-        .update(peli)
-        .eq('id', this.idPeliculaEditando());
-      if (error) alert('Error al actualizar: ' + error.message);
-      else this.cancelarEdicionPelicula();
-    } else {
-      const { error } = await this.supabaseService.client.from('peliculas').insert(peli);
-      if (error) alert('Error al crear: ' + error.message);
-      else this.resetFormPelicula();
+  // --- SUBIDA DE IMÁGENES A SUPABASE STORAGE ---
+  onArchivoSeleccionado(event: any) {
+    const file: File = event.target.files[0];
+    if (file) {
+      this.archivoPosterSeleccionado = file;
     }
-    await this.cargarDatos();
   }
 
-  editarPelicula(peli: any) {
-    this.idPeliculaEditando.set(peli.id);
-    this.nuevaPelicula.set({
-      titulo: peli.titulo,
-      sinopsis: peli.sinopsis || '',
-      genero: peli.genero,
-      duracion_minutos: peli.duracion_minutos,
-      clasificacion: peli.clasificacion,
-      poster_url: peli.poster_url || ''
-    });
+  private async subirPosterASupabase(file: File): Promise<string | null> {
+    try {
+      this.subiendoImagen.set(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `posters/${fileName}`;
+
+      const { error: uploadError } = await this.supabaseService.client.storage
+        .from('posters')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        alert('Error al subir imagen: ' + uploadError.message);
+        return null;
+      }
+
+      const { data } = this.supabaseService.client.storage
+        .from('posters')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (err: any) {
+      alert('Excepción al subir imagen: ' + err.message);
+      return null;
+    } finally {
+      this.subiendoImagen.set(false);
+    }
   }
+
+  // --- PELÍCULAS ---
+async guardarPelicula() {
+  const peli = { ...this.nuevaPelicula() };
+  if (!peli.titulo) return alert('Completá el título');
+
+  const listaGeneros = this.generosSeleccionados();
+  if (listaGeneros.length === 0) return alert('Seleccioná al menos un género');
+
+  // Subida de afiche desde archivo local a Supabase Storage
+  let urlImagen = peli.poster_url;
+  if (this.archivoPosterSeleccionado) {
+    const urlSubida = await this.subirPosterASupabase(this.archivoPosterSeleccionado);
+    if (urlSubida) {
+      urlImagen = urlSubida;
+    } else {
+      return; // Detener si falla la subida
+    }
+  }
+
+  // Mapeo exacto con los nombres de columna en public.peliculas
+  const payload = {
+    titulo: peli.titulo,
+    sinopsis: peli.sinopsis,
+    duracion_minutos: peli.duracion_minutos,
+    imagen_url: urlImagen,
+    clasificacion_edad: peli.clasificacion,
+    generos: listaGeneros // Se guarda directamente como Array de Postgres text[]
+  };
+
+  if (this.idPeliculaEditando()) {
+    const { error } = await this.supabaseService.client
+      .from('peliculas')
+      .update(payload)
+      .eq('id', this.idPeliculaEditando());
+
+    if (error) {
+      alert('Error al actualizar: ' + error.message);
+    } else {
+      this.cancelarEdicionPelicula();
+    }
+  } else {
+    const { error } = await this.supabaseService.client
+      .from('peliculas')
+      .insert([payload]);
+
+    if (error) {
+      alert('Error al crear: ' + error.message);
+    } else {
+      this.resetFormPelicula();
+    }
+  }
+
+  await this.cargarDatos();
+}
+
+editarPelicula(peli: any) {
+  this.idPeliculaEditando.set(peli.id);
+  this.archivoPosterSeleccionado = null;
+
+  // Cargar array de géneros seleccionados
+  const generosCargados = Array.isArray(peli.generos) 
+    ? peli.generos 
+    : (typeof peli.generos === 'string' ? peli.generos.split(',').map((g: string) => g.trim()) : []);
+
+  this.generosSeleccionados.set(generosCargados);
+
+  this.nuevaPelicula.set({
+    titulo: peli.titulo,
+    sinopsis: peli.sinopsis || '',
+    genero: '',
+    duracion_minutos: peli.duracion_minutos,
+    clasificacion: peli.clasificacion_edad || 'ATP',
+    poster_url: peli.imagen_url || ''
+  });
+}
+
+
 
   cancelarEdicionPelicula() {
     this.idPeliculaEditando.set(null);
     this.resetFormPelicula();
   }
+resetFormPelicula() {
+  this.archivoPosterSeleccionado = null;
+  this.generosSeleccionados.set([]);
+  this.nuevaPelicula.set({ titulo: '', sinopsis: '', genero: '', duracion_minutos: 120, clasificacion: 'ATP', poster_url: '' });
+}
 
-  resetFormPelicula() {
-    this.nuevaPelicula.set({ titulo: '', sinopsis: '', genero: '', duracion_minutos: 120, clasificacion: 'ATP', poster_url: '' });
+// Función helper para visualizar géneros en la tabla de películas
+obtenerGenerosFormateados(generosData: any): string {
+  if (Array.isArray(generosData)) {
+    return generosData.join(', ');
   }
+  if (typeof generosData === 'string') {
+    return generosData;
+  }
+  return 'Sin género';
+}
 
   async eliminarPelicula(id: string) {
     if (!confirm('¿Eliminar esta película?')) return;
@@ -190,13 +296,11 @@ export class AdminDashboardComponent implements OnInit {
     const f = this.nuevaFuncion();
     if (!f.pelicula_id || !f.fecha_hora) return alert('Seleccioná película y horario');
 
-    // Buscar sala disponible que no tenga conflicto de horario
     const fechaInicio = new Date(f.fecha_hora);
     const peli = this.peliculas().find(p => p.id === f.pelicula_id);
-    const duracionMs = ((peli?.duracion_minutos || 120) + 30) * 60 * 1000; // Duración + 30m de limpieza
+    const duracionMs = ((peli?.duracion_minutos || 120) + 30) * 60 * 1000;
     const fechaFin = new Date(fechaInicio.getTime() + duracionMs);
 
-    // Filtrar salas disponibles
     let salaAsignadaId = null;
     for (const sala of this.salas()) {
       const { data: conflictos } = await this.supabaseService.client
@@ -213,7 +317,7 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     if (!salaAsignadaId && this.salas().length > 0) {
-      salaAsignadaId = this.salas()[0].id; // Fallback a Sala 1 si no hay conflicto estricto
+      salaAsignadaId = this.salas()[0].id;
     }
 
     const { error } = await this.supabaseService.client.from('funciones').insert({
@@ -231,6 +335,17 @@ export class AdminDashboardComponent implements OnInit {
       await this.cargarDatos();
     }
   }
+  // Alternar selección de un género
+toggleGenero(genero: string) {
+  const actuales = [...this.generosSeleccionados()];
+  const index = actuales.indexOf(genero);
+  if (index > -1) {
+    actuales.splice(index, 1);
+  } else {
+    actuales.push(genero);
+  }
+  this.generosSeleccionados.set(actuales);
+}
 
   async cerrarSesion() {
     await this.authService.logout();

@@ -62,17 +62,26 @@ export class AuthService {
     if (error) throw error;
   }
 
-  async getPerfilActual() {
-    const user = this.currentUser();
-    if (!user) return null;
+async getPerfilActual() {
+  const { data: { user } } = await this.supabaseService.client.auth.getUser();
+  if (!user) return null;
 
-    const { data, error } = await this.supabaseService.client
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+  // 1. Probar en la tabla del personal (perfiles)
+  const { data: perfilStaff } = await this.supabaseService.client
+    .from('perfiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
 
-    if (error) throw error;
-    return data;
-  }
+  if (perfilStaff) return perfilStaff;
+
+  // 2. Si no está en perfiles, probar en profiles
+  const { data: perfilCliente } = await this.supabaseService.client
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  return perfilCliente;
+}
 }
