@@ -96,7 +96,7 @@
   </div>
   } @else if (compraFinalizada()) {
   <!-- Ticket / Comprobante de Compra Imprimible -->
-  <div class="text-center py-4">
+<div class="text-center py-4">
     <div #ticketContainer
       class="bg-white text-dark p-4 rounded max-w-card mx-auto shadow-lg mb-4 text-start border border-secondary">
 
@@ -106,13 +106,22 @@
         <small class="text-muted">Av. Mitre 750, Avellaneda - CUIT: 30-12345678-9</small>
         <div class="fw-bold mt-1 text-uppercase small">Comprobante de Compra</div>
       </div>
-
-      <!-- Datos de la Función -->
+      
+<!-- Datos de la Función -->
       <div class="mb-3 small">
         <p class="mb-1"><strong>Película:</strong> {{ infoEntradas()?.pelicula?.titulo }}</p>
-        <p class="mb-1"><strong>Formato / Idioma:</strong> {{ infoEntradas()?.funcion?.formato }} ({{
-          infoEntradas()?.funcion?.idioma }})</p>
-        <p class="mb-1"><strong>Fecha de Compra:</strong> {{ fechaActual | date:'dd/MM/yyyy HH:mm' }}</p>
+        <p class="mb-1">
+          <strong>Sala / Formato:</strong> 
+          {{ infoEntradas()?.funcion?.salas?.nombre || 'SALA 1' }} - {{ infoEntradas()?.funcion?.formato }} ({{ infoEntradas()?.funcion?.idioma }})
+        </p>
+        <!-- FECHA Y HORA DE LA FUNCIÓN -->
+        <p class="mb-1 text-danger fw-bold">
+          📅 <strong>Fecha de la Función:</strong> 
+          {{ formatearFechaFuncion(infoEntradas()?.funcion?.fecha_hora || infoEntradas()?.funcion?.horario_inicio) }}
+        </p>
+        <p class="mb-1 text-muted">
+          <strong>Fecha de Compra:</strong> {{ fechaActual | date:'dd/MM/yyyy HH:mm' }}
+        </p>
       </div>
 
       <!-- Detalle Ítem por Ítem -->

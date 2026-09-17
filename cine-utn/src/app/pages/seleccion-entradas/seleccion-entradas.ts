@@ -41,10 +41,8 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
   private canalRealtime: RealtimeChannel | null = null;
 
   pelicula = signal<any>(null);
-  funciones = signal<any[]>([]);
   funcionSeleccionada = signal<any>(null);
   mapaButacas = signal<Butaca[]>([]);
-  advertenciaEdad = signal<string | null>(null);
   usuarioActual = signal<any>(null);
 
   // Estados de Reseñas y Puntuaciones
@@ -67,14 +65,14 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     try {
-      const peliculaId = this.route.snapshot.paramMap.get('id');
-      if (!peliculaId) return;
+      // 1. El ID recibido en la URL corresponde a la FUNCION elegida en el paso anterior
+      const funcionId = this.route.snapshot.paramMap.get('id');
+      if (!funcionId) return;
 
       const perfil = await this.authService.getPerfilActual();
       this.usuarioActual.set(perfil);
 
-      await this.cargarPeliculaYFunciones(peliculaId);
-      await this.cargarResenas(peliculaId);
+      await this.cargarFuncionYPelicula(funcionId);
     } catch (err) {
       console.error('Error al inicializar:', err);
     }
@@ -86,77 +84,67 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async cargarPeliculaYFunciones(peliculaId: string) {
-    const { data: p } = await this.supabaseService.client
-      .from('peliculas')
-      .select('*')
-      .eq('id', peliculaId)
+  private async cargarFuncionYPelicula(funcionId: string) {
+    // Cargar la función con los datos vinculados de película y sala
+    const { data: f, error } = await this.supabaseService.client
+      .from('funciones')
+      .select('*, peliculas(*), salas(*)')
+      .eq('id', funcionId)
       .maybeSingle();
 
-    if (p) this.pelicula.set(p);
-
-    const { data: fList } = await this.supabaseService.client
-      .from('funciones')
-      .select('*, salas(nombre)')
-      .eq('pelicula_id', peliculaId)
-      .order('horario_inicio', { ascending: true });
-
-    if (fList && fList.length > 0) {
-      this.funciones.set(fList);
-      this.seleccionarFuncion(fList[0]);
+    if (error || !f) {
+      console.error('Error al cargar la función:', error);
+      return;
     }
-  }
 
-  async seleccionarFuncion(f: any) {
     this.funcionSeleccionada.set(f);
+    if (f.peliculas) {
+      this.pelicula.set(f.peliculas);
+      await this.cargarResenas(f.peliculas.id);
+    }
+
     this.generarMapaSalas();
-    await this.cargarButacasOcupadas(f.id);
-    this.suscribirAOcumpacionEnTiempoReal(f.id);
+    await this.cargarButacasOcupadas(funcionId);
+    this.suscribirAOcumpacionEnTiempoReal(funcionId);
   }
 
-private generarMapaSalas() {
-  const precioBase = this.funcionSeleccionada()?.precio_base || 5000;
-  const listado: Butaca[] = [];
+  private generarMapaSalas() {
+    const precioBase = this.funcionSeleccionada()?.precio_base || 4500;
+    const listado: Butaca[] = [];
 
-  this.filas.forEach(fila => {
-    const esDiscapacidad = fila === 'DISC';
-    const esVip = fila === 'R' || fila === 'S' || fila === 'T';
-    
-    let tipo: 'estandar' | 'discapacidad' | 'vip' = 'estandar';
-    let precio = precioBase;
+    this.filas.forEach(fila => {
+      const esDiscapacidad = fila === 'DISC';
+      const esVip = fila === 'R' || fila === 'S' || fila === 'T';
+      
+      let tipo: 'estandar' | 'discapacidad' | 'vip' = 'estandar';
+      let precio = precioBase;
 
-    if (esDiscapacidad) {
-      tipo = 'discapacidad';
-    } else if (esVip) {
-      tipo = 'vip';
-      precio = precioBase * 1.35;
-    }
+      if (esDiscapacidad) {
+        tipo = 'discapacidad';
+      } else if (esVip) {
+        tipo = 'vip';
+        precio = precioBase * 1.35;
+      }
 
-    // Configuración exacta:
-    // Filas Estándar/VIP: 4 (Izq) - 20 (Centro) - 4 (Der) = 28 butacas
-    // Fila Única DISC:    2 (Izq) - 10 (Centro) - 2 (Der) = 14 butacas
-    const cantIzq = esDiscapacidad ? 2 : 4;
-    const cantCentro = esDiscapacidad ? 10 : 20;
-    const cantDer = esDiscapacidad ? 2 : 4;
+      const cantIzq = esDiscapacidad ? 2 : 4;
+      const cantCentro = esDiscapacidad ? 10 : 20;
+      const cantDer = esDiscapacidad ? 2 : 4;
 
-    let numeroAsiento = 1;
+      let numeroAsiento = 1;
 
-    // Bloque 1 (Izquierda)
-    for (let c = 1; c <= cantIzq; c++) {
-      listado.push({ fila, columna: numeroAsiento++, bloque: 1, tipo, ocupada: false, seleccionada: false, precio });
-    }
-    // Bloque 2 (Centro)
-    for (let c = 1; c <= cantCentro; c++) {
-      listado.push({ fila, columna: numeroAsiento++, bloque: 2, tipo, ocupada: false, seleccionada: false, precio });
-    }
-    // Bloque 3 (Derecha)
-    for (let c = 1; c <= cantDer; c++) {
-      listado.push({ fila, columna: numeroAsiento++, bloque: 3, tipo, ocupada: false, seleccionada: false, precio });
-    }
-  });
+      for (let c = 1; c <= cantIzq; c++) {
+        listado.push({ fila, columna: numeroAsiento++, bloque: 1, tipo, ocupada: false, seleccionada: false, precio });
+      }
+      for (let c = 1; c <= cantCentro; c++) {
+        listado.push({ fila, columna: numeroAsiento++, bloque: 2, tipo, ocupada: false, seleccionada: false, precio });
+      }
+      for (let c = 1; c <= cantDer; c++) {
+        listado.push({ fila, columna: numeroAsiento++, bloque: 3, tipo, ocupada: false, seleccionada: false, precio });
+      }
+    });
 
-  this.mapaButacas.set(listado);
-}
+    this.mapaButacas.set(listado);
+  }
 
   private async cargarButacasOcupadas(funcionId: string) {
     const { data: ventasExistentes } = await this.supabaseService.client

@@ -93,7 +93,6 @@ seleccionarPelicula(peliculaId: string) {
     console.error('No se proporcionó un ID de película válido');
     return;
   }
-  // Navegación explícita
-  this.router.navigate(['/seleccion-entradas', peliculaId]);
+  this.router.navigate(['/pelicula', peliculaId]);
 }
 }

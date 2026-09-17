@@ -225,4 +225,19 @@ async aplicarCupon() {
   volverACartelera() {
     this.router.navigate(['/cartelera']);
   }
+
+  // Método formateador para mostrar día, fecha y hora en español
+  formatearFechaFuncion(fechaRaw: string): string {
+    if (!fechaRaw) return 'N/A';
+    const fecha = new Date(fechaRaw);
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const diaNombre = dias[fecha.getDay()];
+    const diaNum = String(fecha.getDate()).padStart(2, '0');
+    const mesNum = String(fecha.getMonth() + 1).padStart(2, '0');
+    const horas = String(fecha.getHours()).padStart(2, '0');
+    const minutos = String(fecha.getMinutes()).padStart(2, '0');
+    return `${diaNombre} ${diaNum}/${mesNum} - ${horas}:${minutos} hs`;
+  }
+
+
 }

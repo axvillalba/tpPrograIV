@@ -1,16 +1,22 @@
 <app-navbar></app-navbar>
 
 <div class="container my-4 text-white">
-  <!-- Cabecera de Película y Selección de Función -->
+  <!-- Cabecera de Película y Función Seleccionada -->
   @if (pelicula()) {
     <div class="card bg-dark text-white border-secondary p-4 mb-4">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
           <h2 class="text-danger fw-bold m-0">{{ pelicula()?.titulo }}</h2>
-          <div class="d-flex align-items-center gap-2 my-2">
-            <span class="badge bg-danger">{{ pelicula()?.clasificacion || 'ATP' }}</span>
+          <div class="d-flex align-items-center flex-wrap gap-2 my-2">
+            <span class="badge bg-danger">{{ pelicula()?.clasificacion_edad || pelicula()?.clasificacion || 'ATP' }}</span>
             <span class="badge bg-secondary">{{ funcionSeleccionada()?.formato || '2D' }}</span>
             <span class="badge bg-secondary">{{ funcionSeleccionada()?.idioma || 'Castellano' }}</span>
+            <span class="badge bg-primary">
+              <i class="bi bi-door-closed me-1"></i>{{ funcionSeleccionada()?.salas?.nombre || 'SALA 1' }}
+            </span>
+            <span class="badge bg-success">
+              <i class="bi bi-clock me-1"></i>{{ (funcionSeleccionada()?.fecha_hora || funcionSeleccionada()?.horario_inicio) | date:'EEEE dd/MM - HH:mm' }} hs
+            </span>
             <span class="text-warning small ms-2">
               <i class="bi bi-star-fill"></i> {{ promedioCalificacion() }} ({{ resenas().length }} opiniones)
             </span>
@@ -23,30 +29,6 @@
         <div class="text-end">
           <h3 class="text-success fw-bold m-0">Total: ${{ montoTotal() }}</h3>
           <small class="text-secondary">{{ butacasSeleccionadas().length }} entradas seleccionadas</small>
-        </div>
-      </div>
-
-      <hr class="border-secondary my-3">
-
-      <!-- Selección de Horario -->
-      <div>
-        <span class="text-secondary small d-block mb-2">
-          <i class="bi bi-clock me-1"></i> Seleccionar Función / Horario:
-        </span>
-        <div class="d-flex gap-2 flex-wrap">
-          @for (f of funciones(); track f.id) {
-            <button 
-              type="button" 
-              class="btn btn-outline-light text-start p-2"
-              [class.active]="funcionSeleccionada()?.id === f.id"
-              [class.btn-danger]="funcionSeleccionada()?.id === f.id"
-              (click)="seleccionarFuncion(f)">
-              <div class="fw-bold">{{ (f.fecha_hora || f.horario_inicio) | date:'HH:mm' }} hs</div>
-              <small class="d-block text-opacity-75" style="font-size: 0.75rem;">
-                {{ f.salas?.nombre || 'SALA 1' }} - {{ f.formato }}
-              </small>
-            </button>
-          }
         </div>
       </div>
     </div>
@@ -87,13 +69,10 @@
     <div class="d-inline-block text-nowrap">
       @for (fila of filas; track fila) {
         <div class="d-flex align-items-center justify-content-center mb-1">
-          <!-- Etiqueta de Fila (Izquierda) -->
           <span class="fw-bold text-danger me-3 text-end" style="width: 35px;">{{ fila }}</span>
 
           @if (fila === 'DISC') {
-            <!-- FILA ESPECIAL ACCESIBLE ALINEADA A LA GRILLA DE 28 COLUMNAS -->
-            
-            <!-- Bloque 1 (Izquierda): 2 Asientos + 2 Huecos invisibles = 4 Columnas -->
+            <!-- FILA ESPECIAL ACCESIBLE -->
             <div class="d-flex me-3">
               @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
                 <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
@@ -104,7 +83,6 @@
               <div class="butaca-hueco"></div>
             </div>
 
-            <!-- Bloque 2 (Centro): 5 Huecos + 10 Asientos + 5 Huecos = 20 Columnas -->
             <div class="d-flex me-3">
               <div class="butaca-hueco"></div>
               <div class="butaca-hueco"></div>
@@ -125,7 +103,6 @@
               <div class="butaca-hueco"></div>
             </div>
 
-            <!-- Bloque 3 (Derecha): 2 Huecos + 2 Asientos = 4 Columnas -->
             <div class="d-flex">
               <div class="butaca-hueco"></div>
               <div class="butaca-hueco"></div>
@@ -162,7 +139,6 @@
             </div>
           }
 
-          <!-- Etiqueta de Fila (Derecha) -->
           <span class="fw-bold text-danger ms-3 text-start" style="width: 35px;">{{ fila }}</span>
         </div>
       }

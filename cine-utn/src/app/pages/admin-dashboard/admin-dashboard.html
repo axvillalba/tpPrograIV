@@ -78,7 +78,7 @@
         <!-- AFICHE: Subida desde dispositivo O URL -->
         <div class="mb-2">
           <label class="form-label small">Subir Afiche desde el dispositivo</label>
-          <input type="file" class="form-control bg-dark text-white border-secondary btn-sm"
+          <input #fileInput type="file" class="form-control bg-dark text-white border-secondary btn-sm"
             accept="image/*" (change)="onArchivoSeleccionado($event)">
         </div>
         <div class="mb-2">
@@ -297,31 +297,48 @@
           </tbody>
         </table>
       </div>
-    </div>
+    </div>  
   </div>
   }
 
-  <!-- TAB FUNCIONES (Programación y Asignación Automática de Sala) -->
+  <!-- TAB FUNCIONES -->
   @if (pestanaActiva() === 'funciones') {
   <div class="row">
     <div class="col-md-4 mb-4">
       <div class="card bg-secondary bg-opacity-10 border-secondary text-white p-3">
-        <h5 class="text-danger mb-3"><i class="bi bi-magic me-1"></i> Asignación Automática</h5>
+        <h5 class="text-danger mb-3">
+          <i class="bi bi-magic me-1"></i> 
+          {{ idFuncionEditando() ? 'Editar Función' : 'Programar Función' }}
+        </h5>
+        
         <div class="mb-2">
           <label class="form-label small">Película</label>
           <select class="form-select bg-dark text-white border-secondary btn-sm"
             [(ngModel)]="nuevaFuncion().pelicula_id">
-            <option value="">Seleccionar...</option>
+            <option value="">Seleccionar Película...</option>
             @for (peli of peliculas(); track peli.id) {
             <option [value]="peli.id">{{ peli.titulo }}</option>
             }
           </select>
         </div>
+
         <div class="mb-2">
-          <label class="form-label small">Fecha y Hora</label>
+          <label class="form-label small">Sala</label>
+          <select class="form-select bg-dark text-white border-secondary btn-sm"
+            [(ngModel)]="nuevaFuncion().sala_id">
+            <option value="">Seleccionar Sala...</option>
+            @for (sala of salas(); track sala.id) {
+            <option [value]="sala.id">{{ sala.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label small">Fecha y Hora de Inicio</label>
           <input type="datetime-local" class="form-control bg-dark text-white border-secondary btn-sm"
             [(ngModel)]="nuevaFuncion().fecha_hora">
         </div>
+
         <div class="row mb-3">
           <div class="col-6">
             <label class="form-label small">Formato</label>
@@ -339,7 +356,14 @@
             </select>
           </div>
         </div>
-        <button class="btn btn-danger w-100 btn-sm" (click)="crearFuncionAutomatica()">Programar y Asignar Sala</button>
+
+        <button class="btn btn-danger w-100 btn-sm mb-2" (click)="crearFuncionAutomatica()">
+          {{ idFuncionEditando() ? 'Actualizar Función' : 'Programar y Validar Horario' }}
+        </button>
+
+        @if (idFuncionEditando()) {
+          <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionFuncion()">Cancelar</button>
+        }
       </div>
     </div>
 
@@ -349,9 +373,10 @@
           <thead>
             <tr>
               <th>Película</th>
-              <th>Sala Asignada</th>
-              <th>Horario</th>
-              <th>Formato</th>
+              <th>Sala</th>
+              <th>Horario Proyección</th>
+              <th>Formato / Idioma</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -359,8 +384,24 @@
             <tr>
               <td class="fw-bold">{{ func.peliculas?.titulo || 'N/A' }}</td>
               <td><span class="badge bg-primary">{{ func.salas?.nombre || 'Sala 1' }}</span></td>
-              <td>{{ func.fecha_hora | date:'short' }}</td>
-              <td><span class="badge bg-secondary">{{ func.formato }}</span></td>
+              <td>
+                <div class="fw-bold">{{ func.fecha_hora | date:'EEEE dd/MM':'':'es' | titlecase }}</div>
+                <small class="text-secondary">
+                  {{ func.fecha_hora | date:'HH:mm' }} hs - {{ (func.horario_fin || func.fecha_hora) | date:'HH:mm' }} hs
+                </small>
+              </td>
+              <td>
+                <span class="badge bg-secondary me-1">{{ func.formato }}</span>
+                <span class="badge bg-outline-light border">{{ func.idioma }}</span>
+              </td>
+              <td>
+                <button class="btn btn-outline-warning btn-sm me-1" (click)="editarFuncion(func)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" (click)="eliminarFuncion(func.id)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
             </tr>
             }
           </tbody>
@@ -368,5 +409,5 @@
       </div>
     </div>
   </div>
-  }
+  }   
 </div>

@@ -8,9 +8,9 @@ export interface RegistroUsuario {
   nombre: string;
   apellido: string;
   fechaNacimiento: string;
-  tipoSangre: string;
-  colorOjos: string;
-  diasVacaciones: number;
+  tipoSangre?: string;
+  colorOjos?: string;
+  diasVacaciones?: number;
 }
 
 @Injectable({
@@ -20,14 +20,24 @@ export class AuthService {
   currentUser = signal<User | null>(null);
 
   constructor(private supabaseService: SupabaseService) {
-    this.supabaseService.client.auth.onAuthStateChange((event, session) => {
+    this.supabaseService.client.auth.onAuthStateChange((_event, session) => {
       this.currentUser.set(session?.user ?? null);
     });
   }
 
   async registrarUsuario(datos: RegistroUsuario) {
-    const { email, password, nombre, apellido, fechaNacimiento, tipoSangre, colorOjos, diasVacaciones } = datos;
+    const { 
+      email, 
+      password, 
+      nombre, 
+      apellido, 
+      fechaNacimiento, 
+      tipoSangre, 
+      colorOjos, 
+      diasVacaciones 
+    } = datos;
 
+    // Enviar metadatos completos para que el Trigger de Postgres arme el perfil en 'perfiles'
     const { data, error } = await this.supabaseService.client.auth.signUp({
       email,
       password,
@@ -36,9 +46,10 @@ export class AuthService {
           nombre,
           apellido,
           fecha_nacimiento: fechaNacimiento,
-          tipo_sangre: tipoSangre,
-          color_ojos: colorOjos,
-          dias_vacaciones: diasVacaciones
+          tipo_sangre: tipoSangre || 'O+',
+          color_ojos: colorOjos || '',
+          dias_vacaciones: diasVacaciones || 14,
+          rol: 'cliente'
         }
       }
     });
@@ -62,26 +73,22 @@ export class AuthService {
     if (error) throw error;
   }
 
-async getPerfilActual() {
-  const { data: { user } } = await this.supabaseService.client.auth.getUser();
-  if (!user) return null;
+  async getPerfilActual() {
+    const { data: { user } } = await this.supabaseService.client.auth.getUser();
+    if (!user) return null;
 
-  // 1. Probar en la tabla del personal (perfiles)
-  const { data: perfilStaff } = await this.supabaseService.client
-    .from('perfiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
+    // Consulta directa y limpia a la tabla unificada 'perfiles'
+    const { data: perfil, error } = await this.supabaseService.client
+      .from('perfiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
 
-  if (perfilStaff) return perfilStaff;
+    if (error) {
+      console.error('Error al obtener el perfil unificado:', error);
+      return null;
+    }
 
-  // 2. Si no está en perfiles, probar en profiles
-  const { data: perfilCliente } = await this.supabaseService.client
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  return perfilCliente;
-}
+    return perfil;
+  }
 }
