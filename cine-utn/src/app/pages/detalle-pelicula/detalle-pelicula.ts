@@ -4,15 +4,18 @@ import localeEs from '@angular/common/locales/es';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase';
 
-// Registrar datos de idioma español para los Pipes de fecha
 registerLocaleData(localeEs, 'es');
 
 interface Resena {
   id?: string;
-  nombre_usuario: string;
+  nombre_usuario?: string;
   calificacion: number;
   comentario: string;
   created_at?: string;
+  perfiles?: {
+    nombre?: string;
+    apellido?: string;
+  };
 }
 
 @Component({
@@ -57,8 +60,6 @@ export class DetallePeliculaComponent implements OnInit {
     }
     
     this.cargando.set(false);
-    
-    // Forzar renderizado inmediato de la vista en Angular
     this.cdr.detectChanges();
   }
 
@@ -104,13 +105,52 @@ export class DetallePeliculaComponent implements OnInit {
   }
 
   async cargarResenas(peliculaId: string) {
-    const { data } = await this.supabaseService.client
+    // 1. Cargar las reseñas de la película
+    const { data: resenasData, error } = await this.supabaseService.client
       .from('resenas')
       .select('*')
       .eq('pelicula_id', peliculaId)
       .order('created_at', { ascending: false });
 
-    if (data) this.resenas.set(data);
+    if (error || !resenasData) {
+      this.resenas.set([]);
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // 2. Extraer los usuario_id para buscar sus nombres en perfiles
+    const usuarioIds = resenasData
+      .map((r: any) => r.usuario_id)
+      .filter((id: any) => id !== null && id !== undefined);
+
+    let perfilesMap = new Map<string, any>();
+
+    if (usuarioIds.length > 0) {
+      const { data: perfilesData } = await this.supabaseService.client
+        .from('perfiles')
+        .select('id, nombre, apellido')
+        .in('id', usuarioIds);
+
+      if (perfilesData) {
+        perfilesData.forEach((p: any) => perfilesMap.set(p.id, p));
+      }
+    }
+
+    // 3. Formatear la lista para la vista
+    const resenasProcesadas: Resena[] = resenasData.map((r: any) => {
+      const perfil = perfilesMap.get(r.usuario_id);
+      const nombreDinamico = perfil 
+        ? `${perfil.nombre || ''} ${perfil.apellido || ''}`.trim()
+        : null;
+
+      return {
+        ...r,
+        nombre_usuario: nombreDinamico || r.nombre_usuario || 'Cliente Cine UTN'
+      };
+    });
+
+    this.resenas.set(resenasProcesadas);
+    this.cdr.detectChanges();
   }
 
   funcionesDelDia() {
@@ -130,7 +170,7 @@ export class DetallePeliculaComponent implements OnInit {
     lista.forEach(fn => {
       const formato = fn.formato || '2D';
       const idioma = (fn.idioma || 'CASTELLANO').toUpperCase();
-      const clave = `${formato} - ${idioma}`;
+      const clave = `${formato} ${idioma}`;
 
       if (!grupos[clave]) grupos[clave] = [];
       grupos[clave].push(fn);
@@ -178,7 +218,7 @@ export class DetallePeliculaComponent implements OnInit {
   }
 
   obtenerNombreDiaEspanol(fecha: Date): string {
-  const dias = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
-  return dias[fecha.getDay()];
-}
+    const dias = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+    return dias[fecha.getDay()];
+  }
 }

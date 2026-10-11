@@ -1,0 +1,148 @@
+<app-navbar></app-navbar>
+
+<div class="container py-4 text-white">
+  @if (cargando) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-danger" role="status">
+        <span class="visually-hidden">Cargando perfil...</span>
+      </div>
+    </div>
+  } @else if (perfilUsuario) {
+    <!-- ENCABEZADO DEL PERFIL -->
+    <div class="card bg-dark text-white border-secondary p-4 mb-4 shadow">
+      <div class="d-flex align-items-center gap-3">
+        <div class="bg-danger text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+          <i class="bi bi-person-fill fs-2"></i>
+        </div>
+        <div>
+          <h2 class="m-0 fw-bold">{{ perfilUsuario.nombre }} {{ perfilUsuario.apellido }}</h2>
+          <span class="badge bg-secondary me-2">{{ perfilUsuario.rol | uppercase }}</span>
+          <small class="text-secondary"><i class="bi bi-envelope me-1"></i>{{ perfilUsuario.email }}</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      
+      <!-- COLUMNA IZQUIERDA: PELÍCULAS VISTAS Y DEJAR RESEÑA -->
+      <div class="col-lg-5">
+        <div class="card bg-dark text-white border-secondary p-4 shadow mb-4">
+          <h4 class="text-danger fw-bold mb-3"><i class="bi bi-star-fill me-2"></i>Calificar Películas Vistas</h4>
+          <p class="small text-secondary mb-3">
+            Solo podés dejar una opinión sobre aquellas películas cuyas entradas hayas adquirido previamente.
+          </p>
+
+          @if (peliculasCompradas.length === 0) {
+            <div class="alert alert-dark border-secondary text-secondary small">
+              Aún no compraste entradas para ninguna película.
+            </div>
+          } @else {
+            <div class="d-flex flex-column gap-3">
+              @for (peli of peliculasCompradas; track peli.id) {
+                <div class="p-3 rounded bg-secondary bg-opacity-10 border border-secondary d-flex align-items-center justify-content-between">
+                  <div>
+                    <h6 class="fw-bold m-0 text-white">{{ peli.titulo }}</h6>
+                    @if (yaTieneResena(peli.id)) {
+                      <span class="badge bg-success mt-1"><i class="bi bi-check-circle me-1"></i>Ya opinaste</span>
+                    } @else {
+                      <span class="badge bg-warning text-dark mt-1">Pendiente de opinión</span>
+                    }
+                  </div>
+
+                  @if (!yaTieneResena(peli.id)) {
+                    <button class="btn btn-outline-danger btn-sm fw-bold" (click)="abrirFormularioResena(peli)">
+                      Opinar
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- FORMULARIO DE RESEÑA -->
+        @if (peliculaParaResenar) {
+          <div class="card bg-dark text-white border-danger p-4 shadow">
+            <h5 class="text-warning fw-bold mb-2">
+              Opinar sobre: {{ peliculaParaResenar.titulo }}
+            </h5>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary">Puntuación</label>
+              <select class="form-select bg-secondary text-white border-secondary btn-sm" [(ngModel)]="calificacionSeleccionada">
+                <option [value]="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                <option [value]="4">⭐⭐⭐⭐ (4/5)</option>
+                <option [value]="3">⭐⭐⭐ (3/5)</option>
+                <option [value]="2">⭐⭐ (2/5)</option>
+                <option [value]="1">⭐ (1/5)</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary">Tu comentario</label>
+              <textarea class="form-control bg-secondary text-white border-secondary btn-sm" rows="3"
+                        placeholder="Contanos qué te pareció..."
+                        [(ngModel)]="comentarioInput"></textarea>
+            </div>
+
+            @if (mensajeExito) {
+              <div class="alert alert-success small py-2 mb-3">
+                {{ mensajeExito }}
+              </div>
+            }
+
+            <div class="d-flex gap-2 justify-content-end">
+              <button class="btn btn-outline-secondary btn-sm" (click)="cancelarResena()">Cancelar</button>
+              <button class="btn btn-danger btn-sm fw-bold" [disabled]="enviandoResena" (click)="enviarResena()">
+                {{ enviandoResena ? 'Guardando...' : 'Publicar Reseña' }}
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- COLUMNA DERECHA: HISTORIAL DE COMPRAS -->
+      <div class="col-lg-7">
+        <div class="card bg-dark text-white border-secondary p-4 shadow">
+          <h4 class="text-danger fw-bold mb-3"><i class="bi bi-receipt me-2"></i>Mis Entradas Compradas</h4>
+
+          @if (ventas.length === 0) {
+            <div class="alert alert-dark border-secondary text-secondary">
+              No tenés compras registradas en tu historial.
+            </div>
+          } @else {
+            <div class="d-flex flex-column gap-3">
+              @for (v of ventas; track v.id) {
+                <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary">
+                  <div class="d-flex justify-content-between align-items-start flex-wrap mb-2">
+                    <div>
+                      <h5 class="fw-bold text-danger m-0">{{ v.funcion?.peliculas?.titulo || 'Cine UTN Ticket' }}</h5>
+                      <small class="text-secondary">Comprado el: {{ formatearFecha(v.created_at) }}</small>
+                    </div>
+                    <span class="badge bg-success fs-6">${{ v.monto_total }}</span>
+                  </div>
+
+                  @if (v.funcion) {
+                    <div class="small text-white-50 mb-2">
+                      <span class="me-3">📅 <strong>Función:</strong> {{ formatearFecha(v.funcion.fecha_hora) }}</span>
+                      <span>🎬 <strong>Formato:</strong> {{ v.funcion.formato }} ({{ v.funcion.idioma }})</span>
+                    </div>
+                  }
+
+                  <div class="d-flex flex-wrap gap-1 mt-2">
+                    @for (b of v.detalle_butacas; track b.fila + b.columna) {
+                      <span class="badge bg-dark border border-secondary text-light">
+                        Fila {{ b.fila }} - Asiento {{ b.columna }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+    </div>
+  }
+</div>

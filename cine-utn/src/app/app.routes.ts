@@ -35,6 +35,15 @@ export const routes: Routes = [
     path: 'admin/dashboard', 
     loadComponent: () => import('./pages/admin-dashboard/admin-dashboard').then(m => m.AdminDashboardComponent) 
   },
+
+  { 
+    path: 'perfil', 
+    loadComponent: () => import('./pages/perfil/perfil').then(m => m.PerfilComponent) 
+  },
+  { 
+    path: 'empleado/validador', 
+    loadComponent: () => import('./pages/validador-qr/validador-qr').then(m => m.ValidadorQrComponent) 
+  },
   /* 
   { 
     path: 'empleado/validador', 

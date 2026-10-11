@@ -1,0 +1,123 @@
+<div class="min-vh-100 bg-dark text-white p-4">
+  <header class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+    <div>
+      <h2 class="text-danger fw-bold m-0"><i class="bi bi-qr-code-scan me-2"></i>Control y Validador de Accesos</h2>
+      <small class="text-secondary">Cine UTN - Módulo exclusivo para Staff / Empleados</small>
+    </div>
+    <button class="btn btn-outline-light btn-sm" (click)="volverACartelera()">
+      <i class="bi bi-arrow-left me-1"></i> Volver
+    </button>
+  </header>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      
+      <!-- BUSCADOR DE CÓDIGO QR / RESERVA -->
+      <div class="card bg-secondary bg-opacity-10 border-secondary text-white p-4 mb-4 shadow">
+        <h5 class="text-danger fw-bold mb-3"><i class="bi bi-search me-2"></i>Escanear o Ingresar Código de Reserva</h5>
+        
+        <div class="input-group input-group-lg mb-2">
+          <input type="text" class="form-control bg-dark text-white border-secondary"
+                 placeholder="Ej. CINE-UTN-3fad1658-552a-41fa-978d-178ca658a421"
+                 [(ngModel)]="codigoQrInput"
+                 (keyup.enter)="buscarVentaPorCodigo()">
+          <button class="btn btn-danger fw-bold px-4" (click)="buscarVentaPorCodigo()" [disabled]="cargando">
+            <i class="bi bi-search me-1"></i> Consultar
+          </button>
+        </div>
+        <small class="text-secondary">Podés escanear el código QR impreso/digital con un lector o pegarlo manualmente.</small>
+      </div>
+
+      <!-- ALERTA DE ESTADO -->
+      @if (mensajeEstado) {
+        <div class="alert alert-{{ mensajeEstado.tipo }} fw-bold text-center fs-5 shadow mb-4">
+          {{ mensajeEstado.texto }}
+        </div>
+      }
+
+      <!-- DETALLE DE LA RESERVA HALLADA -->
+      @if (ventaEncontrada) {
+        <div class="card bg-dark text-white border-secondary p-4 shadow mb-4">
+          <div class="d-flex justify-content-between align-items-start border-bottom border-secondary pb-3 mb-3">
+            <div>
+              <h3 class="fw-bold text-danger m-0">{{ ventaEncontrada.funciones?.peliculas?.titulo || 'Ticket Cine UTN' }}</h3>
+              <small class="text-secondary">Reserva: {{ ventaEncontrada.codigo_qr }}</small>
+            </div>
+            <span class="badge bg-outline-light border fs-6">
+              Estado: {{ ventaEncontrada.estado_qr | uppercase }}
+            </span>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary">
+                <h6 class="text-warning fw-bold mb-2"><i class="bi bi-film me-2"></i>Detalle de Función</h6>
+                <div><strong>Sala:</strong> {{ ventaEncontrada.funciones?.salas?.nombre || 'Sala 1' }}</div>
+                <div><strong>Horario:</strong> {{ formatearFecha(ventaEncontrada.funciones?.fecha_hora) }}</div>
+                <div><strong>Formato / Idioma:</strong> {{ ventaEncontrada.funciones?.formato }} ({{ ventaEncontrada.funciones?.idioma }})</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary">
+                <h6 class="text-warning fw-bold mb-2"><i class="bi bi-ticket-perforated me-2"></i>Butacas Seleccionadas</h6>
+                <div class="d-flex flex-wrap gap-1">
+                  @for (b of ventaEncontrada.detalle_butacas; track b.fila + b.columna) {
+                    <span class="badge bg-danger">Fila {{ b.fila }} - Asiento {{ b.columna }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DETALLE CANDY BAR SI EXISTE -->
+          @if (ventaEncontrada.detalle_candy && ventaEncontrada.detalle_candy.length > 0) {
+            <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary mb-4">
+              <h6 class="text-warning fw-bold mb-2"><i class="bi bi-cup-straw me-2"></i>Productos de Candy Bar a Entregar</h6>
+              <ul class="list-unstyled m-0">
+                @for (p of ventaEncontrada.detalle_candy; track p.id) {
+                  <li class="small py-1 border-bottom border-dark">
+                    <strong>{{ p.cantidad }}x</strong> {{ p.nombre }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          <!-- BOTONES DE ACCIÓN STAFF -->
+          <div class="row g-2">
+            <div class="col-md-6">
+              <button class="btn btn-lg w-100 fw-bold"
+                      [class.btn-success]="!ventaEncontrada.entradas_validadas"
+                      [class.btn-secondary]="ventaEncontrada.entradas_validadas"
+                      [disabled]="ventaEncontrada.entradas_validadas || cargando"
+                      (click)="validarIngresoCine()">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                {{ ventaEncontrada.entradas_validadas ? '✔️ Entradas Ya Validadas' : 'Validar Ingreso a Sala' }}
+              </button>
+            </div>
+
+            <div class="col-md-6">
+              <button class="btn btn-lg w-100 fw-bold"
+                      [class.btn-warning]="!ventaEncontrada.candy_entregado"
+                      [class.btn-secondary]="ventaEncontrada.candy_entregado"
+                      [disabled]="ventaEncontrada.candy_entregado || !ventaEncontrada.detalle_candy?.length || cargando"
+                      (click)="entregarCandyBar()">
+                <i class="bi bi-box-seam me-2"></i>
+                {{ ventaEncontrada.candy_entregado ? '✔️ Candy Ya Entregado' : (ventaEncontrada.detalle_candy?.length ? 'Registrar Entrega Candy' : 'Sin Candy Bar') }}
+              </button>
+            </div>
+          </div>
+
+          <div class="text-center mt-3">
+            <button class="btn btn-outline-light btn-sm" (click)="limpiarFormulario()">
+              Limpiar / Consultar Otro Código
+            </button>
+          </div>
+
+        </div>
+      }
+
+    </div>
+  </div>
+</div>

@@ -12,7 +12,7 @@ import { NavbarComponent } from '../../components/navbar/navbar';
   standalone: true,
   imports: [CommonModule, FormsModule, NavbarComponent],
   templateUrl: './checkout.html',
-  styleUrl: './checkout.css'
+  styleUrl: './checkout.css',
 })
 export class CheckoutComponent implements OnInit {
   @ViewChild('canvasQR') canvasQR!: ElementRef<HTMLCanvasElement>;
@@ -87,74 +87,75 @@ export class CheckoutComponent implements OnInit {
     }
   }
 
-async aplicarCupon() {
-  const codigoInput = this.codigoCuponInput().trim().toUpperCase();
-  if (!codigoInput) return;
+  async aplicarCupon() {
+    const codigoInput = this.codigoCuponInput().trim().toUpperCase();
+    if (!codigoInput) return;
 
-  try {
-    // 1. Consulta directa con coincidencia exacta limpia (.eq)
-    const { data, error } = await this.supabaseService.client
-      .from('cupones')
-      .select('*')
-      .eq('codigo', codigoInput)
-      .eq('activo', true);
+    try {
+      // 1. Consulta directa con coincidencia exacta limpia (.eq)
+      const { data, error } = await this.supabaseService.client
+        .from('cupones')
+        .select('*')
+        .eq('codigo', codigoInput)
+        .eq('activo', true);
 
-    // Logging de depuración en consola
-    console.log('Respuesta de Supabase Cupones:', { data, error, buscando: codigoInput });
+      // Logging de depuración en consola
+      console.log('Respuesta de Supabase Cupones:', { data, error, buscando: codigoInput });
 
-    if (error) {
-      console.error('Error al consultar Supabase:', error);
-      alert('Error de conexión con la base de datos de cupones.');
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      alert('El código de cupón ingresado no existe o no está activo.');
-      return;
-    }
-
-    const cupon = data[0];
-    const perfil = await this.authService.getPerfilActual();
-
-    // 2. Validar restricción para mayores de 50 años
-    if (cupon.solo_mayores_50) {
-      if (!perfil || !perfil.fecha_nacimiento) {
-        alert('Este cupón es exclusivo para usuarios registrados mayores de 50 años.');
+      if (error) {
+        console.error('Error al consultar Supabase:', error);
+        alert('Error de conexión con la base de datos de cupones.');
         return;
       }
 
-      const fechaNac = new Date(perfil.fecha_nacimiento);
-      const edad = new Date().getFullYear() - fechaNac.getFullYear();
-
-      if (edad < 50) {
-        alert('Este cupón es exclusivo para clientes mayores de 50 años.');
+      if (!data || data.length === 0) {
+        alert('El código de cupón ingresado no existe o no está activo.');
         return;
       }
-    }
 
-    // 3. Validar restricción de primera compra
-    if (cupon.es_primera_compra && perfil) {
-      const { data: ventas } = await this.supabaseService.client
-        .from('ventas')
-        .select('id')
-        .eq('user_id', perfil.id);
+      const cupon = data[0];
+      const perfil = await this.authService.getPerfilActual();
 
-      if (ventas && ventas.length > 0) {
-        alert('El cupón de primera compra solo es válido para tu primer pedido.');
-        return;
+      // 2. Validar restricción para mayores de 50 años
+      if (cupon.solo_mayores_50) {
+        if (!perfil || !perfil.fecha_nacimiento) {
+          alert('Este cupón es exclusivo para usuarios registrados mayores de 50 años.');
+          return;
+        }
+
+        const fechaNac = new Date(perfil.fecha_nacimiento);
+        const edad = new Date().getFullYear() - fechaNac.getFullYear();
+
+        if (edad < 50) {
+          alert('Este cupón es exclusivo para clientes mayores de 50 años.');
+          return;
+        }
       }
-    }
 
-    // 4. Aplicar porcentaje exitosamente
-    const porcentajeDec = Number(cupon.porcentaje_descuento) / 100;
-    this.porcentajeDescuento.set(porcentajeDec);
-    this.cuponAplicado.set(true);
-    this.nombreCuponAplicado.set(cupon.codigo);
-  } catch (err) {
-    console.error('Error en aplicarCupon:', err);
-    alert('Ocurrió un error inesperado al validar el cupón.');
+      // 3. Validar restricción de primera compra
+      if (cupon.es_primera_compra && perfil) {
+        const { data: ventas } = await this.supabaseService.client
+          .from('ventas')
+          .select('id')
+          .eq('user_id', perfil.id);
+
+        if (ventas && ventas.length > 0) {
+          alert('El cupón de primera compra solo es válido para tu primer pedido.');
+          return;
+        }
+      }
+
+      // 4. Aplicar porcentaje exitosamente
+      const porcentajeDec = Number(cupon.porcentaje_descuento) / 100;
+      this.porcentajeDescuento.set(porcentajeDec);
+      this.cuponAplicado.set(true);
+      this.nombreCuponAplicado.set(cupon.codigo);
+    } catch (err) {
+      console.error('Error en aplicarCupon:', err);
+      alert('Ocurrió un error inesperado al validar el cupón.');
+    }
   }
-}
+
   async procesarPago() {
     this.cargando.set(true);
     try {
@@ -165,18 +166,16 @@ async aplicarCupon() {
       const funcionObj = this.infoEntradas()?.funcion;
       const funcionId = funcionObj?.id || null;
 
-      const { error } = await this.supabaseService.client
-        .from('ventas')
-        .insert({
-          id: uuidVenta,
-          user_id: user ? user.id : null,
-          funcion_id: funcionId,
-          monto_total: this.totalPagar(),
-          descuento_aplicado: this.montoDescuento(),
-          detalle_butacas: this.infoEntradas()?.butacas || [],
-          detalle_candy: this.infoCandy()?.productos || [],
-          codigo_qr: tokenQR
-        });
+      const { error } = await this.supabaseService.client.from('ventas').insert({
+        id: uuidVenta,
+        user_id: user ? user.id : null,
+        funcion_id: funcionId,
+        monto_total: this.totalPagar(),
+        descuento_aplicado: this.montoDescuento(),
+        detalle_butacas: this.infoEntradas()?.butacas || [],
+        detalle_candy: this.infoCandy()?.productos || [],
+        codigo_qr: tokenQR,
+      });
 
       if (error) throw error;
 
@@ -213,7 +212,7 @@ async aplicarCupon() {
       filename: `Ticket-CineUTN-${this.codigoQR()}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     };
     (html2pdf as any)().set(opciones).from(elemento).save();
   }
@@ -238,6 +237,4 @@ async aplicarCupon() {
     const minutos = String(fecha.getMinutes()).padStart(2, '0');
     return `${diaNombre} ${diaNum}/${mesNum} - ${horas}:${minutos} hs`;
   }
-
-
 }
