@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { SupabaseService } from '../../services/supabase';
+import { CandyService } from '../../services/candy';
+import { CuponesService } from '../../services/cupones';
+
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -17,7 +20,12 @@ export class AdminDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
 
+  // Nuevos servicios inyectados
+  private candyService = inject(CandyService);
+  private cuponesService = inject(CuponesService);
+
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('fileInputCandy') fileInputCandy!: ElementRef<HTMLInputElement>;
 
   pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones'>('peliculas');
 
@@ -32,27 +40,19 @@ export class AdminDashboardComponent implements OnInit {
   idPeliculaEditando = signal<string | null>(null);
   idCandyEditando = signal<string | null>(null);
   idCuponEditando = signal<string | null>(null);
+  idFuncionEditando = signal<string | null>(null);
 
   // Archivo local seleccionado
   archivoPosterSeleccionado: File | null = null;
 
   // Géneros disponibles para los checkboxes
   generosDisponibles: string[] = [
-    'Acción',
-    'Aventura',
-    'Animación',
-    'Ciencia Ficción',
-    'Comedia',
-    'Drama',
-    'Fantasía',
-    'Terror',
-    'Romance',
-    'Suspenso',
-    'Anime',
+    'Acción', 'Aventura', 'Animación', 'Ciencia Ficción',
+    'Comedia', 'Drama', 'Fantasía', 'Terror',
+    'Romance', 'Suspenso', 'Anime'
   ];
 
   generosSeleccionados = signal<string[]>([]);
-  idFuncionEditando = signal<string | null>(null);
 
   // Formulario Película
   nuevaPelicula = signal<any>({
@@ -64,11 +64,15 @@ export class AdminDashboardComponent implements OnInit {
     poster_url: '',
   });
 
+
+  //Variable para el archivo del Candy
+  archivoCandySeleccionado: File | null = null;
   // Formulario Candy
   nuevoCandy = signal<any>({
     nombre: '',
     categoria: 'Pochoclos',
     precio: 0,
+    imagen_url: '',
   });
 
   // Formulario Cupones
@@ -98,19 +102,24 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async cargarDatos() {
-    const { data: pelis } = await this.supabaseService.client.from('peliculas').select('*');
-    if (pelis) this.peliculas.set(pelis);
+    // 1. Ocultar funciones pasadas: Tomamos la fecha actual en formato ISO
+    const hoy = new Date().toISOString();
 
-    const { data: candy } = await this.supabaseService.client.from('candy_bar').select('*');
-    if (candy) this.productosCandy.set(candy);
+    const [resPelis, resCandy, resCups, resFuncs] = await Promise.all([
+      this.supabaseService.client.from('peliculas').select('*'),
+      this.candyService.getProductos(),
+      this.cuponesService.getCupones(),
+      // FILTRO APLICADO: .gte('horario_fin', hoy) trae solo funciones de hoy a futuro. .order para ordenarlas.
+      this.supabaseService.client.from('funciones')
+        .select('*, peliculas(titulo), salas(nombre)')
+        .gte('horario_fin', hoy)
+        .order('fecha_hora', { ascending: true })
+    ]);
 
-    const { data: cups } = await this.supabaseService.client.from('cupones').select('*');
-    if (cups) this.cupones.set(cups);
-
-    const { data: funcs } = await this.supabaseService.client
-      .from('funciones')
-      .select('*, peliculas(titulo), salas(nombre)');
-    if (funcs) this.funciones.set(funcs);
+    if (resPelis.data) this.peliculas.set(resPelis.data);
+    if (resCandy.data) this.productosCandy.set(resCandy.data);
+    if (resCups.data) this.cupones.set(resCups.data);
+    if (resFuncs.data) this.funciones.set(resFuncs.data);
   }
 
   async cerrarSesion() {
@@ -281,46 +290,120 @@ export class AdminDashboardComponent implements OnInit {
   // --- CRUD CANDY BAR ---
   async guardarCandy() {
     const prod = { ...this.nuevoCandy() };
-    if (!prod.nombre) return alert('Completá el nombre del producto');
+
+    // VALIDACIÓN ESTRICTA CANDY BAR
+    if (!prod.nombre) return alert('Completá el nombre del producto.');
+    if (prod.precio <= 0 || prod.precio > 999999) {
+      return alert('El precio debe ser mayor a $0 y menor a $999.999.');
+    }
+
+    let urlImagen = prod.imagen_url;
+    if (this.archivoCandySeleccionado) {
+      const urlSubida = await this.subirImagenCandyASupabase(this.archivoCandySeleccionado);
+      if (urlSubida) {
+        urlImagen = urlSubida;
+      } else {
+        return;
+      }
+    }
+    prod.imagen_url = urlImagen;
 
     if (this.idCandyEditando()) {
-      await this.supabaseService.client
-        .from('candy_bar')
-        .update(prod)
-        .eq('id', this.idCandyEditando());
-      this.idCandyEditando.set(null);
+      const { error } = await this.candyService.actualizarProducto(this.idCandyEditando()!, prod);
+      if (error) alert('Error al actualizar: ' + error.message);
+      else this.cancelarEdicionCandy();
     } else {
-      await this.supabaseService.client.from('candy_bar').insert([prod]);
+      const { error } = await this.candyService.crearProducto(prod);
+      if (error) alert('Error al crear: ' + error.message);
+      else this.cancelarEdicionCandy();
     }
-    this.nuevoCandy.set({ nombre: '', categoria: 'Pochoclos', precio: 0 });
+
     await this.cargarDatos();
   }
 
   editarCandy(prod: any) {
     this.idCandyEditando.set(prod.id);
-    this.nuevoCandy.set({ nombre: prod.nombre, categoria: prod.categoria, precio: prod.precio });
+    this.archivoCandySeleccionado = null; // Limpiar selección previa
+    this.nuevoCandy.set({
+      nombre: prod.nombre,
+      categoria: prod.categoria,
+      precio: prod.precio,
+      imagen_url: prod.imagen_url || ''
+    });
   }
 
   async eliminarCandy(id: string) {
     if (!confirm('¿Eliminar producto?')) return;
-    await this.supabaseService.client.from('candy_bar').delete().eq('id', id);
-    await this.cargarDatos();
+    const { error } = await this.candyService.eliminarProducto(id);
+    if (error) alert('Error al eliminar: ' + error.message);
+    else await this.cargarDatos();
+  }
+
+  cancelarEdicionCandy() {
+    this.idCandyEditando.set(null);
+    this.archivoCandySeleccionado = null;
+
+    if (this.fileInputCandy && this.fileInputCandy.nativeElement) {
+      this.fileInputCandy.nativeElement.value = '';
+    }
+
+    this.nuevoCandy.set({ nombre: '', categoria: 'Pochoclos', precio: 0, imagen_url: '' });
+  }
+
+  // --- MÉTODOS PARA SUBIR IMAGEN CANDY ---
+  onArchivoCandySeleccionado(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.archivoCandySeleccionado = file;
+    }
+  }
+
+  async subirImagenCandyASupabase(file: File): Promise<string | null> {
+    try {
+      this.subiendoImagen.set(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `candy_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `candy/${fileName}`; // Se guarda en la carpeta candy dentro del bucket posters
+
+      // Reutilizamos el bucket 'posters' que ya tenés público y funcionando
+      const { error: uploadError } = await this.supabaseService.client.storage
+        .from('posters')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        alert('Error al subir imagen a Storage: ' + uploadError.message);
+        return null;
+      }
+
+      const { data } = this.supabaseService.client.storage.from('posters').getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (err: any) {
+      alert('Error inesperado subiendo la imagen');
+      return null;
+    } finally {
+      this.subiendoImagen.set(false);
+    }
   }
 
   // --- CRUD CUPONES ---
   async guardarCupon() {
     const cup = { ...this.nuevoCupon() };
-    if (!cup.codigo) return alert('Completá el código');
+    if (!cup.codigo || cup.porcentaje_descuento <= 0 || cup.porcentaje_descuento > 100) {
+      return alert('Por favor, ingresá un código y un descuento válido entre 1 y 100.');
+    }
+
+    // Aseguramos mayúsculas
+    cup.codigo = cup.codigo.toUpperCase().trim();
 
     if (this.idCuponEditando()) {
-      await this.supabaseService.client
-        .from('cupones')
-        .update(cup)
-        .eq('id', this.idCuponEditando());
-      this.idCuponEditando.set(null);
+      const { error } = await this.cuponesService.actualizarCupon(this.idCuponEditando()!, cup);
+      if (error) alert('Error al actualizar: ' + error.message);
+      else this.idCuponEditando.set(null);
     } else {
-      await this.supabaseService.client.from('cupones').insert([cup]);
+      const { error } = await this.cuponesService.crearCupon(cup);
+      if (error) alert('Error al crear: ' + error.message);
     }
+
     this.nuevoCupon.set({
       codigo: '',
       porcentaje_descuento: 10,
@@ -338,70 +421,72 @@ export class AdminDashboardComponent implements OnInit {
 
   async eliminarCupon(id: string) {
     if (!confirm('¿Eliminar cupón?')) return;
-    await this.supabaseService.client.from('cupones').delete().eq('id', id);
+    const { error } = await this.cuponesService.eliminarCupon(id);
+    if (error) alert('Error al eliminar: ' + error.message);
+    else await this.cargarDatos();
+  }
+
+// --- PROGRAMACIÓN DE FUNCIONES ---
+  async crearFuncionAutomatica() {
+    const fn = { ...this.nuevaFuncion() };
+    
+    if (!fn.pelicula_id || !fn.fecha_hora || !fn.sala_id) {
+      return alert('Por favor seleccioná Película, Sala y Fecha/Hora.');
+    }
+
+    const fechaInicio = new Date(fn.fecha_hora);
+    const ahora = new Date();
+
+    if (fechaInicio < ahora && !this.idFuncionEditando()) {
+      return alert('Error: No podés programar una nueva función en un horario pasado.');
+    }
+    
+    const peliElegida = this.peliculas().find(p => p.id === fn.pelicula_id);
+    const duracionMinutos = peliElegida?.duracion_minutos || 120;
+    
+    const fechaFinConLimpieza = new Date(fechaInicio.getTime() + ((duracionMinutos + 30) * 60000));
+    
+    const haySolapamiento = this.funciones().some(existente => {
+      if (this.idFuncionEditando() && existente.id === this.idFuncionEditando()) return false;
+      if (existente.sala_id !== fn.sala_id) return false;
+
+      const inicioExistente = new Date(existente.fecha_hora);
+      const duracionExistente = existente.peliculas?.duracion_minutos || 120;
+      const finExistenteConLimpieza = new Date(inicioExistente.getTime() + ((duracionExistente + 30) * 60000));
+
+      return (fechaInicio < finExistenteConLimpieza && fechaFinConLimpieza > inicioExistente);
+    });
+
+    if (haySolapamiento) {
+      return alert('⚠️ CONFLICTO DE SALA:\n\nLa sala seleccionada está ocupada en ese horario o no se respeta el margen obligatorio de 30 minutos de limpieza entre funciones.');
+    }
+
+    // CORRECCIÓN CLAVE: Transformamos la fecha local a formato UTC (ISO) estricto antes de enviarla
+    const payload = {
+      pelicula_id: fn.pelicula_id,
+      sala_id: fn.sala_id,
+      fecha_hora: fechaInicio.toISOString(), 
+      horario_inicio: fechaInicio.toISOString(),
+      horario_fin: new Date(fechaInicio.getTime() + (duracionMinutos * 60000)).toISOString(),
+      formato: fn.formato,
+      idioma: fn.idioma,
+      precio_base: 4500
+    };
+
+    if (this.idFuncionEditando()) {
+      const { error } = await this.supabaseService.client.from('funciones').update(payload).eq('id', this.idFuncionEditando());
+      if (error) alert('Error al actualizar: ' + error.message);
+      else this.cancelarEdicionFuncion();
+    } else {
+      const { error } = await this.supabaseService.client.from('funciones').insert([payload]);
+      if (error) alert('Error al programar: ' + error.message);
+      else this.cancelarEdicionFuncion();
+    }
+
     await this.cargarDatos();
   }
 
-  // --- PROGRAMACIÓN DE FUNCIONES ---
- async crearFuncionAutomatica() {
-  const fn = { ...this.nuevaFuncion() };
-  if (!fn.pelicula_id || !fn.fecha_hora || !fn.sala_id) {
-    return alert('Por favor seleccioná Película, Sala y Fecha/Hora.');
-  }
 
-  const fechaInicio = new Date(fn.fecha_hora);
-  
-  // Obtener duración de la película elegida para calcular fin + 30 min de limpieza
-  const peliElegida = this.peliculas().find(p => p.id === fn.pelicula_id);
-  const duracionMinutos = peliElegida?.duracion_minutos || 120;
-  
-  const fechaFinConLimpieza = new Date(fechaInicio.getTime() + (duracionMinutos + 30) * 60000);
-
-  // Validar solapamiento en la misma sala
-  const haySolapamiento = this.funciones().some(existente => {
-    // Si estamos editando, ignorar la misma función
-    if (this.idFuncionEditando() && existente.id === this.idFuncionEditando()) return false;
-    if (existente.sala_id !== fn.sala_id) return false;
-
-    const inicioExistente = new Date(existente.fecha_hora);
-    const duracionExistente = existente.peliculas?.duracion_minutos || 120;
-    const finExistenteConLimpieza = new Date(inicioExistente.getTime() + (duracionExistente + 30) * 60000);
-
-    // Regla de intercepción de intervalos: (StartA < EndB) y (EndA > StartB)
-    return (fechaInicio < finExistenteConLimpieza && fechaFinConLimpieza > inicioExistente);
-  });
-
-  if (haySolapamiento) {
-    return alert('⚠️ Conflicto de horario: La sala ya está ocupada o no cumple los 30 min de tiempo de espera y limpieza entre funciones.');
-  }
-
-  const payload = {
-    pelicula_id: fn.pelicula_id,
-    sala_id: fn.sala_id,
-    fecha_hora: fn.fecha_hora,
-    horario_inicio: fn.fecha_hora,
-    horario_fin: new Date(fechaInicio.getTime() + duracionMinutos * 60000).toISOString(),
-    formato: fn.formato,
-    idioma: fn.idioma,
-    precio_base: 4500
-  };
-
-  if (this.idFuncionEditando()) {
-    const { error } = await this.supabaseService.client
-      .from('funciones')
-      .update(payload)
-      .eq('id', this.idFuncionEditando());
-      
-    if (error) alert('Error al actualizar: ' + error.message);
-    else this.cancelarEdicionFuncion();
-  } else {
-    const { error } = await this.supabaseService.client.from('funciones').insert([payload]);
-    if (error) alert('Error al programar: ' + error.message);
-    else this.cancelarEdicionFuncion();
-  }
-
-  await this.cargarDatos();
-}
 
   cancelarEdicionFuncion() {
     this.idFuncionEditando.set(null);
@@ -412,41 +497,47 @@ export class AdminDashboardComponent implements OnInit {
       idioma: 'Subtitulada',
     });
   }
-// Método para cargar los datos de la función en el formulario
+
 editarFuncion(func: any) {
-  this.idFuncionEditando.set(func.id);
-  this.nuevaFuncion.set({
-    pelicula_id: func.pelicula_id,
-    fecha_hora: func.fecha_hora ? new Date(func.fecha_hora).toISOString().slice(0, 16) : '',
-    formato: func.formato || '2D',
-    idioma: func.idioma || 'Castellano'
-  });
-}
+    let fechaFormateada = '';
+    
+    if (func.fecha_hora) {
+      // Convertimos el UTC de Supabase a la hora local para que el <input> lo lea bien
+      const dateObj = new Date(func.fecha_hora);
+      const localDate = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
+      fechaFormateada = localDate.toISOString().slice(0, 16);
+    }
 
-// Método para eliminar la función programada
-async eliminarFuncion(id: string) {
-  if (!confirm('¿Seguro que deseas eliminar esta función programada?')) return;
-  
-  const { error } = await this.supabaseService.client
-    .from('funciones')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    alert('Error al eliminar función: ' + error.message);
-  } else {
-    await this.cargarDatos();
+    this.idFuncionEditando.set(func.id);
+    this.nuevaFuncion.set({
+      pelicula_id: func.pelicula_id,
+      sala_id: func.sala_id, // Ahora la sala también se selecciona al editar
+      fecha_hora: fechaFormateada,
+      formato: func.formato || '2D',
+      idioma: func.idioma || 'Castellano'
+    });
   }
-}
 
-async cargarSalas() {
-  const { data, error } = await this.supabaseService.client
-    .from('salas')
-    .select('*')
-    .order('nombre', { ascending: true });
+  async eliminarFuncion(id: string) {
+    if (!confirm('¿Seguro que deseas eliminar esta función programada?')) return;
 
-  if (!error && data) {
-    this.salas.set(data);
+    const { error } = await this.supabaseService.client
+      .from('funciones')
+      .delete()
+      .eq('id', id);
+
+    if (error) alert('Error al eliminar función: ' + error.message);
+    else await this.cargarDatos();
   }
-}
+
+  async cargarSalas() {
+    const { data, error } = await this.supabaseService.client
+      .from('salas')
+      .select('*')
+      .order('nombre', { ascending: true });
+
+    if (!error && data) {
+      this.salas.set(data);
+    }
+  }
 }

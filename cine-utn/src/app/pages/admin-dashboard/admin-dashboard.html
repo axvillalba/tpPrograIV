@@ -58,19 +58,15 @@
           <label class="form-label small d-block">Género(s)</label>
           <div class="row g-2 p-2 bg-dark rounded border border-secondary" style="max-height: 120px; overflow-y: auto;">
             @for (gen of generosDisponibles; track gen) {
-              <div class="col-6">
-                <div class="form-check">
-                  <input 
-                    class="form-check-input" 
-                    type="checkbox" 
-                    [id]="'gen-' + gen"
-                    [checked]="generosSeleccionados().includes(gen)"
-                    (change)="toggleGenero(gen)">
-                  <label class="form-check-label small text-white" [for]="'gen-' + gen">
-                    {{ gen }}
-                  </label>
-                </div>
+            <div class="col-6">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'gen-' + gen"
+                  [checked]="generosSeleccionados().includes(gen)" (change)="toggleGenero(gen)">
+                <label class="form-check-label small text-white" [for]="'gen-' + gen">
+                  {{ gen }}
+                </label>
               </div>
+            </div>
             }
           </div>
         </div>
@@ -78,13 +74,13 @@
         <!-- AFICHE: Subida desde dispositivo O URL -->
         <div class="mb-2">
           <label class="form-label small">Subir Afiche desde el dispositivo</label>
-          <input #fileInput type="file" class="form-control bg-dark text-white border-secondary btn-sm"
-            accept="image/*" (change)="onArchivoSeleccionado($event)">
+          <input #fileInput type="file" class="form-control bg-dark text-white border-secondary btn-sm" accept="image/*"
+            (change)="onArchivoSeleccionado($event)">
         </div>
         <div class="mb-2">
           <label class="form-label small">O pegar URL de imagen</label>
-          <input type="text" class="form-control bg-dark text-white border-secondary btn-sm"
-            placeholder="https://..." [(ngModel)]="nuevaPelicula().poster_url">
+          <input type="text" class="form-control bg-dark text-white border-secondary btn-sm" placeholder="https://..."
+            [(ngModel)]="nuevaPelicula().poster_url">
         </div>
 
         <div class="row mb-2">
@@ -110,12 +106,13 @@
         </div>
 
         <button class="btn btn-danger w-100 btn-sm mb-2" [disabled]="subiendoImagen()" (click)="guardarPelicula()">
-          <i class="bi bi-save me-1"></i> 
+          <i class="bi bi-save me-1"></i>
           {{ subiendoImagen() ? 'Subiendo imagen...' : (idPeliculaEditando() ? 'Actualizar' : 'Guardar Película') }}
         </button>
 
         @if (idPeliculaEditando()) {
-        <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionPelicula()">Cancelar Edición</button>
+        <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionPelicula()">Cancelar
+          Edición</button>
         }
       </div>
     </div>
@@ -124,19 +121,20 @@
       <div class="table-responsive">
         <table class="table table-dark table-hover align-middle">
           <thead>
-            <tr>
+            <tr class="text-white-50 small text-uppercase">
               <th>Poster</th>
               <th>Título</th>
               <th>Género</th>
               <th>Clasificación</th>
-              <th>Acciones</th>
+              <th class="text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
             @for (peli of peliculas(); track peli.id) {
             <tr>
               <td>
-                <img [src]="peli.imagen_url || peli.poster_url" style="width: 35px; height: 50px; object-fit: cover;" class="rounded" alt="poster">
+                <img [src]="peli.imagen_url || peli.poster_url" style="width: 35px; height: 50px; object-fit: cover;"
+                  class="rounded" alt="poster">
               </td>
               <td class="fw-bold">{{ peli.titulo }}</td>
               <td>
@@ -145,7 +143,7 @@
                 </span>
               </td>
               <td><span class="badge bg-danger">{{ peli.clasificacion_edad || peli.clasificacion }}</span></td>
-              <td>
+              <td class="text-end">
                 <button class="btn btn-outline-warning btn-sm me-1" (click)="editarPelicula(peli)">
                   <i class="bi bi-pencil"></i>
                 </button>
@@ -167,49 +165,90 @@
   <div class="row">
     <div class="col-md-4 mb-4">
       <div class="card bg-secondary bg-opacity-10 border-secondary text-white p-3">
-        <h5 class="text-danger mb-3">{{ idCandyEditando() ? 'Editar Producto' : 'Nuevo Producto' }}</h5>
+        <h5 class="text-danger mb-3">
+          <i class="bi bi-cup-straw me-1"></i>
+          {{ idCandyEditando() ? 'Editar Producto' : 'Nuevo Producto' }}
+        </h5>
+
         <div class="mb-2">
           <label class="form-label small">Nombre</label>
           <input type="text" class="form-control bg-dark text-white border-secondary btn-sm"
             [(ngModel)]="nuevoCandy().nombre">
         </div>
+
         <div class="mb-2">
           <label class="form-label small">Categoría</label>
           <select class="form-select bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevoCandy().categoria">
             <option value="Pochoclos">Pochoclos</option>
             <option value="Bebidas">Bebidas</option>
-            <option value="Combos">Combos</option>
             <option value="Snacks">Snacks</option>
             <option value="Golosinas">Golosinas</option>
+            <option value="Combos">Combos</option>
           </select>
         </div>
-        <div class="mb-3">
+
+        <div class="mb-2">
           <label class="form-label small">Precio ($)</label>
           <input type="number" class="form-control bg-dark text-white border-secondary btn-sm"
-            [(ngModel)]="nuevoCandy().precio">
+            [(ngModel)]="nuevoCandy().precio" min="1" max="999999" step="100">
         </div>
-        <button class="btn btn-danger w-100 btn-sm" (click)="guardarCandy()">Guardar Producto</button>
+
+        <!-- IMAGEN DEL CANDY: Subida o URL -->
+        <div class="mb-2">
+          <label class="form-label small">Subir Foto (Dispositivo)</label>
+          <input #fileInputCandy type="file" class="form-control bg-dark text-white border-secondary btn-sm"
+            accept="image/*" (change)="onArchivoCandySeleccionado($event)">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small">O pegar URL de imagen</label>
+          <input type="text" class="form-control bg-dark text-white border-secondary btn-sm" placeholder="https://..."
+            [(ngModel)]="nuevoCandy().imagen_url">
+        </div>
+
+        <button class="btn btn-danger w-100 btn-sm mb-2" [disabled]="subiendoImagen()" (click)="guardarCandy()">
+          <i class="bi bi-save me-1"></i>
+          {{ subiendoImagen() ? 'Subiendo imagen...' : (idCandyEditando() ? 'Actualizar Producto' : 'Guardar Producto')
+          }}
+        </button>
+
+        @if (idCandyEditando()) {
+        <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionCandy()">Cancelar
+          Edición</button>
+        }
       </div>
     </div>
 
     <div class="col-md-8">
       <div class="table-responsive">
-        <table class="table table-dark table-hover align-middle">
+        <table class="table table-dark table-hover align-middle border-secondary">
           <thead>
-            <tr>
+            <tr class="text-white-50 small text-uppercase">
+              <th>Imagen</th>
               <th>Producto</th>
               <th>Categoría</th>
               <th>Precio</th>
-              <th>Acciones</th>
+              <th class="text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
             @for (prod of productosCandy(); track prod.id) {
             <tr>
-              <td>{{ prod.nombre }}</td>
-              <td><span class="badge bg-secondary">{{ prod.categoria }}</span></td>
-              <td class="text-success fw-bold">${{ prod.precio }}</td>
               <td>
+                <!-- Previsualización de la imagen -->
+                @if (prod.imagen_url) {
+                <img [src]="prod.imagen_url" style="width: 40px; height: 40px; object-fit: cover;"
+                  class="rounded border border-secondary" alt="producto">
+                } @else {
+                <div class="bg-secondary rounded d-flex align-items-center justify-content-center"
+                  style="width: 40px; height: 40px;">
+                  <i class="bi bi-image text-white-50"></i>
+                </div>
+                }
+              </td>
+              <td class="fw-bold">{{ prod.nombre }}</td>
+              <td><span class="badge border border-secondary text-light">{{ prod.categoria }}</span></td>
+              <td class="text-success fw-bold">${{ prod.precio }}</td>
+              <td class="text-end">
                 <button class="btn btn-outline-warning btn-sm me-1" (click)="editarCandy(prod)">
                   <i class="bi bi-pencil"></i>
                 </button>
@@ -217,6 +256,10 @@
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="5" class="text-center text-secondary py-5">No hay productos cargados</td>
             </tr>
             }
           </tbody>
@@ -231,60 +274,79 @@
   <div class="row">
     <div class="col-md-4 mb-4">
       <div class="card bg-secondary bg-opacity-10 border-secondary text-white p-3">
-        <h5 class="text-danger mb-3">{{ idCuponEditando() ? 'Editar Cupón' : 'Nuevo Cupón' }}</h5>
+        <h5 class="text-danger mb-3">
+          <i class="bi bi-ticket-perforated me-1"></i>
+          {{ idCuponEditando() ? 'Editar Cupón' : 'Nuevo Cupón' }}
+        </h5>
+
         <div class="mb-2">
           <label class="form-label small">Código</label>
           <input type="text" class="form-control bg-dark text-white border-secondary btn-sm text-uppercase"
-            [(ngModel)]="nuevoCupon().codigo">
+            [(ngModel)]="nuevoCupon().codigo" placeholder="EJ: DESCUENTO20">
         </div>
+
         <div class="mb-2">
           <label class="form-label small">Porcentaje Descuento (%)</label>
           <input type="number" class="form-control bg-dark text-white border-secondary btn-sm"
-            [(ngModel)]="nuevoCupon().porcentaje_descuento">
+            [(ngModel)]="nuevoCupon().porcentaje_descuento" min="1" max="100">
         </div>
+
         <div class="form-check mb-2">
-          <input type="checkbox" class="form-check-input" id="c1" [(ngModel)]="nuevoCupon().solo_mayores_50">
-          <label class="form-check-label small" for="c1">Exclusivo >50 años</label>
+          <input type="checkbox" class="form-check-input bg-dark border-secondary" id="c1"
+            [(ngModel)]="nuevoCupon().solo_mayores_50">
+          <label class="form-check-label small text-light" for="c1">Exclusivo >50 años</label>
         </div>
+
         <div class="form-check mb-2">
-          <input type="checkbox" class="form-check-input" id="c2" [(ngModel)]="nuevoCupon().es_primera_compra">
-          <label class="form-check-label small" for="c2">Solo 1ra Compra</label>
+          <input type="checkbox" class="form-check-input bg-dark border-secondary" id="c2"
+            [(ngModel)]="nuevoCupon().es_primera_compra">
+          <label class="form-check-label small text-light" for="c2">Solo 1ra Compra</label>
         </div>
+
         <div class="form-check mb-3">
-          <input type="checkbox" class="form-check-input" id="c3" [(ngModel)]="nuevoCupon().activo">
-          <label class="form-check-label small" for="c3">Cupón Activo</label>
+          <input type="checkbox" class="form-check-input bg-dark border-secondary" id="c3"
+            [(ngModel)]="nuevoCupon().activo">
+          <label class="form-check-label small text-light" for="c3">Cupón Activo</label>
         </div>
-        <button class="btn btn-danger w-100 btn-sm" (click)="guardarCupon()">Guardar Cupón</button>
+
+        <button class="btn btn-danger w-100 btn-sm" (click)="guardarCupon()">
+          <i class="bi bi-save me-1"></i>
+          {{ idCuponEditando() ? 'Actualizar Cupón' : 'Guardar Cupón' }}
+        </button>
       </div>
     </div>
 
     <div class="col-md-8">
       <div class="table-responsive">
-        <table class="table table-dark table-hover align-middle">
+        <table class="table table-dark table-hover align-middle border-secondary">
           <thead>
-            <tr>
+            <tr class="text-white-50 small text-uppercase">
               <th>Código</th>
               <th>Descuento</th>
               <th>Reglas</th>
               <th>Estado</th>
-              <th>Acciones</th>
+              <th class="text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
             @for (cup of cupones(); track cup.id) {
             <tr>
-              <td class="fw-bold text-warning">{{ cup.codigo }}</td>
-              <td>{{ cup.porcentaje_descuento }}%</td>
-              <td class="small text-secondary">
-                {{ cup.solo_mayores_50 ? '>50 años ' : '' }}
-                {{ cup.es_primera_compra ? '1ra Compra' : 'General' }}
+              <td class="fw-bold text-uppercase text-warning">{{ cup.codigo }}</td>
+              <td class="fw-bold">{{ cup.porcentaje_descuento }}%</td>
+              <td class="small">
+                @if (cup.solo_mayores_50) { <span class="badge border border-secondary text-secondary me-1">>50
+                  años</span> }
+                @if (cup.es_primera_compra) { <span class="badge border border-secondary text-secondary">1ra
+                  Compra</span> }
+                @if (!cup.solo_mayores_50 && !cup.es_primera_compra) { <span class="text-muted">Ninguna</span> }
               </td>
               <td>
-                <span class="badge" [class.bg-success]="cup.activo" [class.bg-danger]="!cup.activo">
+                <span class="badge" [class.bg-success]="cup.activo" [class.bg-danger]="!cup.activo"
+                  [class.text-dark]="cup.activo">
                   {{ cup.activo ? 'Activo' : 'Inactivo' }}
                 </span>
               </td>
-              <td>
+              <td class="text-end">
                 <button class="btn btn-outline-warning btn-sm me-1" (click)="editarCupon(cup)">
                   <i class="bi bi-pencil"></i>
                 </button>
@@ -293,24 +355,35 @@
                 </button>
               </td>
             </tr>
+            } @empty {
+            <tr>
+              <td colspan="5" class="text-center text-secondary py-5">No hay cupones cargados</td>
+            </tr>
             }
           </tbody>
         </table>
       </div>
-    </div>  
+    </div>
   </div>
   }
 
   <!-- TAB FUNCIONES -->
   @if (pestanaActiva() === 'funciones') {
-  <div class="row">
+  <div class="row mt-4">
+    <!-- Formulario Programar Función -->
     <div class="col-md-4 mb-4">
       <div class="card bg-secondary bg-opacity-10 border-secondary text-white p-3">
         <h5 class="text-danger mb-3">
-          <i class="bi bi-magic me-1"></i> 
+          <i class="bi bi-magic me-1"></i>
           {{ idFuncionEditando() ? 'Editar Función' : 'Programar Función' }}
         </h5>
-        
+
+        <!-- AVISO DE REGLA DE NEGOCIO -->
+        <div class="alert alert-dark border-secondary text-light py-2 px-3 small mb-3">
+          <i class="bi bi-info-circle text-warning me-1"></i>
+          <b>Regla obligatoria:</b> Debe existir un bloque de <b>30 minutos libres</b> entre el final de una película y
+          el inicio de la siguiente en la misma sala para limpieza.
+        </div>
         <div class="mb-2">
           <label class="form-label small">Película</label>
           <select class="form-select bg-dark text-white border-secondary btn-sm"
@@ -324,8 +397,7 @@
 
         <div class="mb-2">
           <label class="form-label small">Sala</label>
-          <select class="form-select bg-dark text-white border-secondary btn-sm"
-            [(ngModel)]="nuevaFuncion().sala_id">
+          <select class="form-select bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevaFuncion().sala_id">
             <option value="">Seleccionar Sala...</option>
             @for (sala of salas(); track sala.id) {
             <option [value]="sala.id">{{ sala.nombre }}</option>
@@ -358,49 +430,73 @@
         </div>
 
         <button class="btn btn-danger w-100 btn-sm mb-2" (click)="crearFuncionAutomatica()">
+          <i class="bi bi-calendar-check me-1"></i>
           {{ idFuncionEditando() ? 'Actualizar Función' : 'Programar y Validar Horario' }}
         </button>
 
         @if (idFuncionEditando()) {
-          <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionFuncion()">Cancelar</button>
+        <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionFuncion()">Cancelar
+          Edición</button>
         }
       </div>
     </div>
 
+    <!-- Tabla de Funciones -->
     <div class="col-md-8">
       <div class="table-responsive">
-        <table class="table table-dark table-hover align-middle">
+        <table class="table table-dark table-hover align-middle border-secondary">
           <thead>
-            <tr>
+            <tr class="text-white-50 small text-uppercase">
               <th>Película</th>
               <th>Sala</th>
               <th>Horario Proyección</th>
               <th>Formato / Idioma</th>
-              <th>Acciones</th>
+              <th class="text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
             @for (func of funciones(); track func.id) {
             <tr>
-              <td class="fw-bold">{{ func.peliculas?.titulo || 'N/A' }}</td>
-              <td><span class="badge bg-primary">{{ func.salas?.nombre || 'Sala 1' }}</span></td>
+              <td class="fw-bold">{{ func.peliculas?.titulo || 'Sin Título' }}</td>
+              <td><span class="badge bg-primary">{{ func.salas?.nombre || '?' }}</span></td>
+
+              <!-- ACÁ ESTÁ EL ARREGLO DE FECHAS Y HORARIOS -->
               <td>
-                <div class="fw-bold">{{ func.fecha_hora | date:'EEEE dd/MM':'':'es' | titlecase }}</div>
-                <small class="text-secondary">
-                  {{ func.fecha_hora | date:'HH:mm' }} hs - {{ (func.horario_fin || func.fecha_hora) | date:'HH:mm' }} hs
+                @if (func.fecha_hora) {
+                <!-- Formato de fecha estándar (Ej: 24/10/2026) -->
+                <div class="fw-bold text-warning mb-1" style="font-size: 0.95rem;">
+                  <i class="bi bi-calendar-event me-1"></i>
+                  {{ func.fecha_hora | date:'dd/MM/yyyy' }}
+                </div>
+                <!-- Horarios (Ej: 22:15 hs - 00:35 hs) -->
+                <small class="text-info bg-dark border border-info rounded px-2 py-1">
+                  <i class="bi bi-clock me-1"></i>
+                  {{ func.fecha_hora | date:'HH:mm' }} hs -
+                  {{ (func.horario_fin || func.fecha_hora) | date:'HH:mm' }} hs
                 </small>
+                } @else {
+                <span class="text-muted small">Sin fecha asignada</span>
+                }
               </td>
+
               <td>
-                <span class="badge bg-secondary me-1">{{ func.formato }}</span>
-                <span class="badge bg-outline-light border">{{ func.idioma }}</span>
+                <span class="badge border border-secondary text-secondary me-1">{{ func.formato || '2D' }}</span>
+                <span class="badge bg-light text-dark">{{ func.idioma || 'Castellano' }}</span>
               </td>
-              <td>
-                <button class="btn btn-outline-warning btn-sm me-1" (click)="editarFuncion(func)">
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-warning btn-sm me-1" (click)="editarFuncion(func)">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-outline-danger btn-sm" (click)="eliminarFuncion(func.id)">
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="eliminarFuncion(func.id)">
                   <i class="bi bi-trash"></i>
                 </button>
+              </td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="5" class="text-center text-secondary py-5">
+                <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
+                No hay funciones programadas para hoy ni a futuro.
               </td>
             </tr>
             }
@@ -409,5 +505,5 @@
       </div>
     </div>
   </div>
-  }   
+  }
 </div>
