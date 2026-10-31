@@ -1,51 +1,57 @@
-# Cine UTN · Documento Funcional
+# Cine UTN · Documento funcional
 
-Detalle funcional de la aplicación **Cine UTN**: roles, requerimientos de negocio, flujos de usuario y estado de avance.
+Qué hace la aplicación **Cine UTN**, para quién y con qué reglas de negocio.
+La parte técnica (instalación, arquitectura y modelo DDL) está detallada en `TECNICO.md`.
+
+## Índice
+
+1. [Qué es Cine UTN](#1-qué-es-cine-utn)
+2. [Roles y Permisos](#2-roles-y-permisos)
+3. [Pantallas y Flujos Principales](#3-pantallas-y-flujos-principales)
+4. [Flujo de Compra y Validación](#4-flujo-de-compra-y-validación)
+5. [Reglas de Negocio Estrictas](#5-reglas-de-negocio-estrictas)
+6. [Próximos Hitos (Fidelización)](#6-próximos-hitos-fidelización)
 
 ---
 
-## 1. Visión General
-Cine UTN permite a los usuarios consultar la cartelera del cine, ver el detalle de las películas con sus reseñas comunitarias, seleccionar funciones disponibles, realizar compras de entradas/candy bar y acceder a su perfil personal. 
+## 1. Qué es Cine UTN
 
-Por otro lado, el personal del cine (empleados y administradores) cuenta con herramientas para validar el acceso en sala y la entrega de combos de Candy Bar mediante escaneo/validación de códigos QR.
+Una plataforma web integral para la gestión completa de un complejo de cines. Permite al cliente final consultar la cartelera, comprar entradas y productos del Candy Bar, y administrar su perfil. Paralelamente, provee a la empresa herramientas de gestión administrativa (Panel de Gerencia) y operativas (Validador QR en puerta).
 
----
+## 2. Roles y Permisos
 
-## 2. Roles de Usuario
-
-| Rol | Descripción | Permisos y Accesos |
+| Rol | Quién es | Qué puede hacer |
 |---|---|---|
-| **Invitado / Visitante** | Usuario no autenticado | Navegar por la cartelera, ver detalles de películas, horarios y reseñas comunitarias. |
-| **Cliente Registrado** | Usuario con cuenta autenticada | Todo lo anterior, más acceso a `/perfil`, historial de compras, generación de entradas y capacidad de publicar reseñas sobre películas compradas. |
-| **Empleado** | Personal de puerta y Candy Bar | Acceso al validador QR (`/empleado/validador`) para registrar ingreso a salas y entrega de productos. |
-| **Administrador** | Personal administrativo | Gestión integral de la programación (películas, salas, funciones), roles y reportes. |
+| **Visitante** | Usuario anónimo | Ver cartelera, top de películas, detalle, horarios y reseñas. |
+| **Cliente** | Usuario registrado | Comprar entradas, adquirir productos de Candy Bar, aplicar cupones, acceder a `/perfil`, ver historial y publicar reseñas. |
+| **Empleado** | Staff operativo | Acceso exclusivo al **Validador QR** (`/empleado/validador`) para registrar el ingreso a sala y la entrega física de combos en el Candy Bar. |
+| **Administrador** | Gerencia | Acceso al **Panel de Gerencia** (`/admin/dashboard`). Control total sobre el catálogo de películas, programación automática de funciones, catálogo de Candy Bar y creación de Cupones de descuento. |
 
----
+## 3. Pantallas y Flujos Principales
 
-## 3. Flujos de Pantallas
+*   **Cartelera:** Visualización destacada y listado filtrable.
+*   **Detalle de Película:** Ficha técnica, selector de funciones agrupadas por formato y reseñas relacionales.
+*   **Checkout:** Selección de butacas, agregado de Candy Bar y procesamiento de pago con generación de comprobante PDF y código QR.
+*   **Panel de Gerencia (ABM):** Interfaz modular con pestañas para gestionar Películas, Candy Bar, Cupones y Funciones. Incluye subida de afiches e imágenes a la nube.
 
-1. **Cartelera (`/cartelera`)**:
-   - Muestra el Top 3 de películas más vendidas.
-   - Listado completo con buscador en tiempo real y filtro por géneros.
-2. **Detalle de Película (`/peliculas/:id`)**:
-   - Información técnica (sinopsis, clasificación, duración, géneros).
-   - Promedio de estrellas de la comunidad y listado de reseñas con nombre del autor.
-   - Selector de días y horarios agrupados por formato (`2D`/`3D`) e idioma (`Castellano`/`Subtitulada`).
-3. **Perfil de Usuario (`/perfil`)**:
-   - Datos personales y rol del usuario logueado.
-   - Historial de compras registradas vinculadas por `user_id`.
-   - Módulo interactivo "Calificar Películas Vistas" habilitado únicamente para películas adquiridas.
-4. **Validador QR (`/empleado/validador`)**:
-   - Búsqueda manual o escaneo de `codigo_qr`.
-   - Control de estados: `valido`, `usado_cine`, `usado_candy`, `usado_total` o `cancelado`.
-   - Botones para registrar ingreso a sala o entrega de Candy Bar.
+## 4. Flujo de Compra y Validación
 
----
+1.  El cliente selecciona película, horario, butacas y opcionalmente productos de Candy Bar.
+2.  Al abonar, el sistema genera una venta con un `codigo_qr` único.
+3.  En el cine, el **Empleado** escanea el QR. El sistema posee un estado doble de validación:
+    *   `usado_cine`: Si el cliente entra a la sala.
+    *   `usado_candy`: Si el cliente retira su comida.
+    *   `usado_total`: Si ambas acciones fueron concretadas.
 
-## 4. Reglas de Negocio Implementadas
+## 5. Reglas de Negocio Estrictas
 
-- **Limpieza de Salas**: Entre la hora de finalización de una función (`horario_fin`) y el inicio de la siguiente (`horario_inicio`) en la misma sala, se exige un buffer automático de **al menos 30 minutos**.
-- **Integridad de Reseñas**: Las reseñas se asocian de forma relacional al `usuario_id` (FK a `perfiles`). Si el usuario actualiza sus datos en su perfil, la autoría de la reseña se refleja dinámicamente.
-- **Validación Única de QR**: Un ticket QR no puede ser reutilizado para el ingreso a la sala o la entrega de Candy Bar más de una vez.
-- **Formato e Idioma**: Se valida mediante restricciones `CHECK` en base de datos que el formato sea exclusivamente `2D`, `3D`, `4D` o `5D`, y el idioma `Castellano` o `Subtitulada`.
-- **Restricción de Calificación**: Las calificaciones de reseñas deben ser valores enteros estrictos del `1` al `5`.
+*   **Tiempo de Limpieza (Hard-Rule):** El sistema administrativo **bloquea** la programación de una función si no existe un margen libre y obligatorio de **al menos 30 minutos** entre el final de una película y el inicio de la siguiente en la misma sala.
+*   **Incompatibilidad Temporal:** Validación matemática que impide el solapamiento de horarios en la misma sala.
+*   **Límites Comerciales:** Los cupones de descuento tienen un tope lógico (1% a 100%). Los productos del Candy Bar no admiten precios negativos ni superiores a seis cifras ($999.999).
+*   **Reseñas Verificadas:** Un usuario solo puede reseñar una película si tiene una compra registrada de la misma. Al cambiar su nombre en el perfil, la reseña se actualiza automáticamente (sistema relacional).
+
+## 6. Próximos Hitos (Fidelización)
+En desarrollo actual para cumplir con los requerimientos de inversores:
+*   Sistema de acumulación de puntos (1 punto = $1).
+*   Catálogo de recompensas canjeables configurables por gerencia.
+*   Dashboard financiero y de ventas.

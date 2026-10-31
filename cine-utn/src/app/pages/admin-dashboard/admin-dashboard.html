@@ -35,6 +35,13 @@
         <i class="bi bi-calendar-event me-1"></i> Funciones & Salas
       </button>
     </li>
+    <li class="nav-item">
+      <button class="nav-link text-white me-2" [class.active]="pestanaActiva() === 'recompensas'"
+        (click)="pestanaActiva.set('recompensas')">
+        <i class="bi bi-star-fill text-warning me-1"></i> Fidelización
+      </button>
+    </li>
+
   </ul>
 
   <!-- TAB PELÍCULAS -->
@@ -504,6 +511,119 @@
         </table>
       </div>
     </div>
+<!-- TAB FIDELIZACIÓN (RECOMPENSAS Y COMBOS) -->
+  @if (pestanaActiva() === 'recompensas') {
+  <div class="row mt-4">
+    <div class="col-md-4 mb-4">
+      <div class="card bg-secondary bg-opacity-10 border-secondary text-white p-3">
+        <h5 class="text-danger mb-3">
+          <i class="bi bi-star-fill text-warning me-1"></i>
+          {{ idRecompensaEditando() ? 'Editar Recompensa' : 'Nueva Recompensa' }}
+        </h5>
+        
+        <div class="alert alert-dark border-secondary text-light py-2 px-3 small mb-3">
+          Configurá los premios canjeables por puntos. Los "Combos Especiales" se destacarán en el checkout.
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label small">Nombre del Premio / Combo</label>
+          <input type="text" class="form-control bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevaRecompensa().nombre">
+        </div>
+
+        <div class="row mb-2">
+          <div class="col-6">
+            <label class="form-label small">Tipo</label>
+            <select class="form-select bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevaRecompensa().tipo">
+              <option value="Entrada">Entrada Gratis</option>
+              <option value="Candy">Producto Candy</option>
+              <option value="Combo Especial">Combo Especial</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small">Costo (Puntos)</label>
+            <input type="number" class="form-control bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevaRecompensa().costo_puntos" min="1">
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label small">Descripción (Opcional)</label>
+          <textarea class="form-control bg-dark text-white border-secondary btn-sm" rows="2" [(ngModel)]="nuevaRecompensa().descripcion" placeholder="Ej: 2 Entradas + 1 Pochoclo XL..."></textarea>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label small">Subir Foto (Dispositivo)</label>
+          <input #fileInputRecompensa type="file" class="form-control bg-dark text-white border-secondary btn-sm" accept="image/*" (change)="onArchivoRecompensaSeleccionado($event)">
+        </div>
+        
+        <div class="form-check mb-3 mt-3">
+          <input type="checkbox" class="form-check-input bg-dark border-secondary" id="recActiva" [(ngModel)]="nuevaRecompensa().activo">
+          <label class="form-check-label small text-light" for="recActiva">Visible para canje</label>
+        </div>
+        
+        <button class="btn btn-danger w-100 btn-sm mb-2" [disabled]="subiendoImagen()" (click)="guardarRecompensa()">
+          {{ subiendoImagen() ? 'Subiendo...' : (idRecompensaEditando() ? 'Actualizar Recompensa' : 'Guardar Recompensa') }}
+        </button>
+
+        @if (idRecompensaEditando()) {
+          <button class="btn btn-outline-secondary w-100 btn-sm" (click)="cancelarEdicionRecompensa()">Cancelar</button>
+        }
+      </div>
+    </div>
+
+    <div class="col-md-8">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle border-secondary">
+          <thead>
+            <tr class="text-white-50 small text-uppercase">
+              <th>Imagen</th>
+              <th>Premio / Combo</th>
+              <th>Tipo</th>
+              <th>Costo Puntos</th>
+              <th>Estado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (rec of recompensas(); track rec.id) {
+            <tr>
+              <td>
+                @if (rec.imagen_url) {
+                  <img [src]="rec.imagen_url" style="width: 40px; height: 40px; object-fit: cover;" class="rounded border border-secondary" alt="premio">
+                } @else {
+                  <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="bi bi-gift text-white-50"></i></div>
+                }
+              </td>
+              <td>
+                <div class="fw-bold">{{ rec.nombre }}</div>
+                <small class="text-secondary" style="font-size: 0.75rem;">{{ rec.descripcion }}</small>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="{'bg-primary': rec.tipo === 'Entrada', 'bg-info text-dark': rec.tipo === 'Candy', 'bg-warning text-dark': rec.tipo === 'Combo Especial'}">
+                  {{ rec.tipo }}
+                </span>
+              </td>
+              <td class="text-warning fw-bold"><i class="bi bi-star-fill small me-1"></i>{{ rec.costo_puntos }}</td>
+              <td>
+                <span class="badge" [class.bg-success]="rec.activo" [class.bg-danger]="!rec.activo">{{ rec.activo ? 'Activo' : 'Inactivo' }}</span>
+              </td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-warning btn-sm me-1" (click)="editarRecompensa(rec)"><i class="bi bi-pencil"></i></button>
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="eliminarRecompensa(rec.id)"><i class="bi bi-trash"></i></button>
+              </td>
+            </tr>
+            } @empty {
+              <tr><td colspan="6" class="text-center text-secondary py-5">No hay recompensas configuradas.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  }
+
+
+
+
   </div>
   }
 </div>
