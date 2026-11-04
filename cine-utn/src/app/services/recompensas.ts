@@ -26,12 +26,18 @@ export class RecompensasService {
   }
 
   async crearRecompensa(recompensa: Recompensa) {
+    // Forzar la validación del token de sesión antes del insert
+    await this.supabase.client.auth.getSession();
+
     return await this.supabase.client
       .from('recompensas')
       .insert([recompensa]);
   }
 
   async actualizarRecompensa(id: string, recompensa: Partial<Recompensa>) {
+    // Forzar la validación del token de sesión antes del update
+    await this.supabase.client.auth.getSession();
+
     return await this.supabase.client
       .from('recompensas')
       .update(recompensa)
@@ -39,6 +45,9 @@ export class RecompensasService {
   }
 
   async eliminarRecompensa(id: string) {
+    // Forzar la validación del token de sesión antes del delete
+    await this.supabase.client.auth.getSession();
+
     return await this.supabase.client
       .from('recompensas')
       .delete()

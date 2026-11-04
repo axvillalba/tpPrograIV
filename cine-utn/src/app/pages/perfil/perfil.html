@@ -101,9 +101,91 @@
         }
       </div>
 
-      <!-- COLUMNA DERECHA: HISTORIAL DE COMPRAS -->
+      <!-- COLUMNA DERECHA: HISTORIAL, PUNTOS Y RECOMPENSAS -->
       <div class="col-lg-7">
-        <div class="card bg-dark text-white border-secondary p-4 shadow">
+        
+        <!-- PROGRAMA DE FIDELIZACIÓN (PUNTOS Y SALDO) -->
+        <div class="card bg-dark border-warning text-white mb-4 shadow">
+          <div class="card-header border-warning d-flex justify-content-between align-items-center p-3">
+            <h5 class="m-0 text-warning fw-bold"><i class="bi bi-star-fill me-2"></i>Programa de Fidelización</h5>
+            <h3 class="m-0 fw-bold">{{ saldoPuntos }} <small class="fs-6 text-white-50">Pts</small></h3>
+          </div>
+          
+          <div class="card-body bg-secondary bg-opacity-10 p-0">
+            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+              <table class="table table-dark table-hover table-sm m-0">
+                <thead class="position-sticky top-0 shadow-sm">
+                  <tr class="text-white-50 small">
+                    <th class="ps-3 py-2 border-secondary">Fecha</th>
+                    <th class="py-2 border-secondary">Detalle de Operación</th>
+                    <th class="text-end pe-3 py-2 border-secondary">Puntos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (mov of historialPuntos; track mov.id) {
+                    <tr>
+                      <td class="ps-3 text-secondary small align-middle border-secondary">{{ mov.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+                      <td class="align-middle border-secondary">{{ mov.motivo }}</td>
+                      <td class="text-end pe-3 fw-bold align-middle border-secondary" [ngClass]="mov.cantidad > 0 ? 'text-success' : 'text-danger'">
+                        {{ mov.cantidad > 0 ? '+' : '' }}{{ mov.cantidad }}
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="3" class="text-center text-secondary py-4 small border-secondary">
+                        Aún no tenés movimientos. ¡Tus compras sumarán puntos automáticamente!
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- CATÁLOGO DE RECOMPENSAS Y PREMIOS CANJEABLES -->
+        <div class="card bg-dark border-warning text-white p-4 shadow mb-4">
+          <h4 class="text-warning fw-bold mb-3"><i class="bi bi-gift-fill me-2"></i>Premios y Beneficios Canjeables</h4>
+          
+          <div class="row g-3">
+            @for (rec of recompensasDisponibles; track rec.id) {
+              <div class="col-md-6">
+                <div class="card bg-secondary bg-opacity-10 border-secondary text-white h-100 p-3 d-flex flex-column justify-content-between">
+                  <div>
+                    @if (rec.imagen_url) {
+                      <img [src]="rec.imagen_url" class="img-fluid rounded mb-2" style="height: 120px; object-fit: cover; width: 100%;">
+                    }
+                    <h6 class="fw-bold mb-1">{{ rec.nombre }}</h6>
+                    <p class="small text-secondary mb-2">{{ rec.descripcion || 'Sin descripción' }}</p>
+                  </div>
+
+                  <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="badge bg-warning text-dark">{{ rec.tipo }}</span>
+                      <span class="fw-bold text-warning"><i class="bi bi-star-fill me-1"></i>{{ rec.costo_puntos }} pts</span>
+                    </div>
+                    
+                    <button 
+                      class="btn btn-sm w-100 fw-bold" 
+                      [class.btn-outline-warning]="saldoPuntos >= rec.costo_puntos"
+                      [class.btn-outline-secondary]="saldoPuntos < rec.costo_puntos"
+                      [disabled]="saldoPuntos < rec.costo_puntos"
+                      (click)="canjearRecompensa(rec)">
+                      {{ saldoPuntos >= rec.costo_puntos ? 'Canjear Premio' : 'Puntos Insuficientes' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <div class="col-12 text-center text-secondary py-3 small">
+                No hay premios o combos activos disponibles en este momento.
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- HISTORIAL DE COMPRAS -->
+        <div class="card bg-dark text-white border-secondary p-4 shadow mb-4">
           <h4 class="text-danger fw-bold mb-3"><i class="bi bi-receipt me-2"></i>Mis Entradas Compradas</h4>
 
           @if (ventas.length === 0) {
@@ -141,8 +223,8 @@
             </div>
           }
         </div>
-      </div>
 
+      </div>
     </div>
   }
 </div>

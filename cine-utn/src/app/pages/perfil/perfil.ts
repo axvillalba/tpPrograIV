@@ -19,12 +19,17 @@ export class PerfilComponent implements OnInit {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
-  // Variables de clase tradicionales (sin señales para evitar inferencias estrictas)
+  // Variables de clase
   perfilUsuario: any = null;
   ventas: any[] = [];
   resenasDelUsuario: any[] = [];
   peliculasCompradas: any[] = [];
   cargando: boolean = true;
+
+  // Fidelización (Puntos)
+  historialPuntos: any[] = [];
+  saldoPuntos: number = 0;
+  recompensasDisponibles: any[] = []; // <-- AGREGADO
 
   // Estado del formulario de reseña
   peliculaParaResenar: any = null;
@@ -38,10 +43,9 @@ export class PerfilComponent implements OnInit {
       // 1. Verificar si hay un usuario logueado en Supabase Auth
       const user = this.authService.currentUser();
 
-      // 2. Intentar obtener el perfil detallado de 'perfiles'
+      // 2. Obtener el perfil detallado de 'perfiles'
       let perfil = await this.authService.getPerfilActual();
 
-      // Si hay usuario en Auth pero no en la tabla perfiles, armamos un objeto temporal con su email
       if (!perfil && user) {
         perfil = {
           id: user.id,
@@ -49,10 +53,10 @@ export class PerfilComponent implements OnInit {
           nombre: user.user_metadata?.['nombre'] || 'Usuario',
           apellido: user.user_metadata?.['apellido'] || '',
           rol: user.user_metadata?.['rol'] || 'cliente',
+          puntos_fidelidad: 0
         };
       }
 
-      // 3. Si definitivamente no hay sesión activa en Auth, redirigir a Login
       if (!user && !perfil) {
         this.router.navigate(['/login']);
         return;
@@ -60,11 +64,12 @@ export class PerfilComponent implements OnInit {
 
       this.perfilUsuario = perfil;
 
-      // Cargar historial si tenemos ID válido
       if (perfil?.id) {
         await Promise.all([
           this.cargarHistorialVentas(perfil.id),
           this.cargarResenasDelUsuario(perfil.id),
+          this.cargarMovimientosPuntos(perfil.id),
+          this.cargarRecompensasDisponibles() // <-- 1. LLAMADA AGREGADA AQUÍ
         ]);
         this.procesarPeliculasCompradas();
       }
@@ -76,9 +81,99 @@ export class PerfilComponent implements OnInit {
     }
   }
 
+  // --- FIDELIZACIÓN: MÉTODOS DE PUNTOS Y RECOMPENSAS ---
+
+  // Carga el historial y calcula el saldo sumando todas las transacciones
+  async cargarMovimientosPuntos(userId: string) {
+    try {
+      const { data, error } = await this.supabaseService.client
+        .from('movimientos_puntos')
+        .select('*')
+        .eq('usuario_id', userId)
+        .order('fecha', { ascending: false });
+
+      if (error) {
+        console.error('Error cargando historial de puntos:', error);
+        return;
+      }
+
+      if (data) {
+        this.historialPuntos = data;
+        // Sumamos todos los movimientos (acumulaciones positivas y canjes negativos)
+        this.saldoPuntos = data.reduce((acc: number, mov: any) => acc + (mov.cantidad || 0), 0);
+      }
+    } catch (err) {
+      console.error('Excepción al cargar puntos:', err);
+    }
+  }
+
+  // <-- 2. MÉTODO NUEVO: Cargar los premios activos desde Supabase
+  async cargarRecompensasDisponibles() {
+    try {
+      const { data, error } = await this.supabaseService.client
+        .from('recompensas')
+        .select('*')
+        .eq('activo', true)
+        .order('costo_puntos', { ascending: true });
+
+      if (error) {
+        console.error('Error al cargar recompensas:', error);
+        return;
+      }
+
+      if (data) {
+        this.recompensasDisponibles = data;
+      }
+    } catch (err) {
+      console.error('Excepción al cargar catálogo de recompensas:', err);
+    }
+  }
+
+async canjearRecompensa(recompensa: any) {
+    if (this.saldoPuntos < recompensa.costo_puntos) {
+      return alert(`No tenés puntos suficientes. Necesitás ${recompensa.costo_puntos} pts y tenés ${this.saldoPuntos} pts.`);
+    }
+
+    if (!confirm(`¿Deseás canjear "${recompensa.nombre}" por ${recompensa.costo_puntos} puntos?`)) return;
+
+    const userId = this.perfilUsuario?.id;
+    if (!userId) return;
+
+    // 1. Descontar puntos en la BD
+    const { error } = await this.supabaseService.client
+      .from('movimientos_puntos')
+      .insert([{
+        usuario_id: userId,
+        cantidad: -recompensa.costo_puntos,
+        motivo: `Canje de premio: ${recompensa.nombre}`,
+        fecha: new Date().toISOString()
+      }]);
+
+    if (error) {
+      alert('Error al procesar el canje: ' + error.message);
+    } else {
+      // 2. Guardar el premio canjeado en los beneficios disponibles del usuario
+      const beneficiosPrevios = JSON.parse(localStorage.getItem('beneficios_canjeados') || '[]');
+      beneficiosPrevios.push({
+        id: crypto.randomUUID(),
+        recompensa_id: recompensa.id,
+        nombre: recompensa.nombre,
+        tipo: recompensa.tipo, // 'Entrada Gratis', 'Producto Candy', 'Combo Especial'
+        costo_puntos: recompensa.costo_puntos
+      });
+      localStorage.setItem('beneficios_canjeados', JSON.stringify(beneficiosPrevios));
+
+      alert(`¡Canje exitoso! Tenés disponible "${recompensa.nombre}". Se aplicará en tu próximo checkout.`);
+      
+      await this.cargarMovimientosPuntos(userId);
+      this.cdr.detectChanges();
+    }
+  }
+
+  // --- RESTO DE MÉTODOS EXISTENTES ---
+
   async cargarHistorialVentas(userId: string) {
     try {
-      // 1. Consulta directa a 'ventas' por el ID de usuario sin join estricto para evitar fallos por FK
       const { data: ventasData, error: ventasError } = await this.supabaseService.client
         .from('ventas')
         .select('*')
@@ -96,7 +191,6 @@ export class PerfilComponent implements OnInit {
         return;
       }
 
-      // 2. Extraer los IDs de las funciones registradas en esas ventas
       const funcionIds = ventasData
         .map((v: any) => v.funcion_id)
         .filter((id: any) => id !== null && id !== undefined);
@@ -106,13 +200,11 @@ export class PerfilComponent implements OnInit {
         return;
       }
 
-      // 3. Traer las funciones y sus películas correspondientes
       const { data: funcionesData } = await this.supabaseService.client
         .from('funciones')
         .select('*, peliculas(*)')
         .in('id', funcionIds);
 
-      // 4. Mapear las funciones dentro de cada venta
       const funcionesMap = new Map();
       if (funcionesData) {
         funcionesData.forEach((f: any) => funcionesMap.set(f.id, f));
@@ -208,6 +300,7 @@ export class PerfilComponent implements OnInit {
       }, 2000);
     }
   }
+
   formatearFecha(fechaRaw: string): string {
     if (!fechaRaw) return 'N/A';
     const f = new Date(fechaRaw);

@@ -583,7 +583,7 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  async guardarRecompensa() {
+async guardarRecompensa() {
     const rec = { ...this.nuevaRecompensa() };
     if (!rec.nombre || rec.costo_puntos <= 0) return alert('Completá nombre y un costo válido en puntos.');
 
@@ -593,14 +593,22 @@ export class AdminDashboardComponent implements OnInit {
       if (urlSubida) urlImagen = urlSubida;
       else return;
     }
-    rec.imagen_url = urlImagen;
+
+    const payload = {
+      nombre: rec.nombre,
+      descripcion: rec.descripcion || null,
+      costo_puntos: Number(rec.costo_puntos),
+      tipo: rec.tipo,
+      imagen_url: urlImagen || null,
+      activo: rec.activo !== undefined ? rec.activo : true
+    };
 
     if (this.idRecompensaEditando()) {
-      const { error } = await this.recompensasService.actualizarRecompensa(this.idRecompensaEditando()!, rec);
+      const { error } = await this.recompensasService.actualizarRecompensa(this.idRecompensaEditando()!, payload);
       if (error) alert('Error al actualizar: ' + error.message);
       else this.cancelarEdicionRecompensa();
     } else {
-      const { error } = await this.recompensasService.crearRecompensa(rec);
+      const { error } = await this.recompensasService.crearRecompensa(payload);
       if (error) alert('Error al crear: ' + error.message);
       else this.cancelarEdicionRecompensa();
     }

@@ -47,6 +47,21 @@
           <span>${{ subtotal() }}</span>
         </div>
 
+        <!-- MÓDULO DE RECOMPENSA DE FIDELIZACIÓN CANJEADA (SI TIENE BENEFICIOS) -->
+        @if (beneficiosCanjeados().length > 0) {
+        <div class="my-3 p-3 bg-dark rounded border border-warning shadow-sm">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="fw-bold text-warning mb-1">
+                <i class="bi bi-gift-fill me-2"></i>¡Premio Canjeado Aplicado!
+              </h6>
+              <small class="text-white-50 d-block">{{ beneficioSeleccionado()?.nombre }}</small>
+            </div>
+            <span class="badge bg-warning text-dark fs-6">-${{ montoDescuentoRecompensa() }}</span>
+          </div>
+        </div>
+        }
+
         <!-- MÓDULO DE CUPÓN DE DESCUENTO CONFIGURABLE -->
         <div class="my-3 p-3 bg-dark rounded border border-secondary">
           <label class="form-label small fw-bold text-light mb-2">
@@ -70,10 +85,18 @@
           }
         </div>
 
+        <!-- DESGLOSE DE DESCUENTOS SI CORRESPONDE -->
         @if (montoDescuento() > 0) {
         <div class="d-flex justify-content-between mb-2 text-warning fw-bold">
-          <span><i class="bi bi-stars me-1"></i> Descuento Aplicado ({{ porcentajeDescuento() * 100 }}% OFF):</span>
+          <span><i class="bi bi-stars me-1"></i> Descuento Cupón ({{ porcentajeDescuento() * 100 }}% OFF):</span>
           <span>-${{ montoDescuento() }}</span>
+        </div>
+        }
+
+        @if (montoDescuentoRecompensa() > 0) {
+        <div class="d-flex justify-content-between mb-2 text-warning fw-bold">
+          <span><i class="bi bi-gift-fill me-1"></i> Beneficio Fidelización:</span>
+          <span>-${{ montoDescuentoRecompensa() }}</span>
         </div>
         }
 
@@ -96,7 +119,7 @@
   </div>
   } @else if (compraFinalizada()) {
   <!-- Ticket / Comprobante de Compra Imprimible -->
-<div class="text-center py-4">
+  <div class="text-center py-4">
     <div #ticketContainer
       class="bg-white text-dark p-4 rounded max-w-card mx-auto shadow-lg mb-4 text-start border border-secondary">
 
@@ -107,7 +130,7 @@
         <div class="fw-bold mt-1 text-uppercase small">Comprobante de Compra</div>
       </div>
       
-<!-- Datos de la Función -->
+      <!-- Datos de la Función -->
       <div class="mb-3 small">
         <p class="mb-1"><strong>Película:</strong> {{ infoEntradas()?.pelicula?.titulo }}</p>
         <p class="mb-1">
@@ -156,7 +179,7 @@
         </table>
       </div>
 
-      <!-- Desglose de Totales -->
+      <!-- Desglose de Totales en el Comprobante -->
       <div class="border-top pt-2 mb-3 small">
         <div class="d-flex justify-content-between mb-1">
           <span>Subtotal:</span>
@@ -165,8 +188,15 @@
 
         @if (montoDescuento() > 0) {
         <div class="d-flex justify-content-between mb-1 text-danger fw-bold">
-          <span>Descuento Aplicado ({{ porcentajeDescuento() * 100 }}% OFF):</span>
+          <span>Descuento Cupón ({{ porcentajeDescuento() * 100 }}% OFF):</span>
           <span>-${{ montoDescuento() }}</span>
+        </div>
+        }
+
+        @if (montoDescuentoRecompensa() > 0) {
+        <div class="d-flex justify-content-between mb-1 text-danger fw-bold">
+          <span>Descuento Premio Fidelización:</span>
+          <span>-${{ montoDescuentoRecompensa() }}</span>
         </div>
         }
 

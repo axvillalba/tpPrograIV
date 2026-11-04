@@ -32,6 +32,10 @@ export class CheckoutComponent implements OnInit {
   cuponAplicado = signal<boolean>(false);
   nombreCuponAplicado = signal<string>('');
 
+  // BENEFICIOS DE FIDELIZACIÓN (Premios Canjeados en el Perfil)
+  beneficiosCanjeados = signal<any[]>([]);
+  beneficioSeleccionado = signal<any>(null);
+
   compraFinalizada = signal<boolean>(false);
   codigoQR = signal<string>('');
   cargando = signal<boolean>(false);
@@ -40,17 +44,53 @@ export class CheckoutComponent implements OnInit {
   montoCandy = computed(() => this.infoCandy()?.totalCandy || 0);
   subtotal = computed(() => this.montoEntradas() + this.montoCandy());
 
-  // Cálculo del descuento basado en el porcentaje configurable de Supabase
+  // Descuento por código de cupón
   montoDescuento = computed(() => {
     return this.subtotal() * this.porcentajeDescuento();
   });
 
-  totalPagar = computed(() => this.subtotal() - this.montoDescuento());
+  // Descuento automático por premio canjeado con Puntos de Fidelización
+  montoDescuentoRecompensa = computed(() => {
+    const beneficio = this.beneficioSeleccionado();
+    if (!beneficio) return 0;
+
+    const tipoLower = (beneficio.tipo || '').toLowerCase();
+    const nombreLower = (beneficio.nombre || '').toLowerCase();
+
+    // Si es Entrada Gratis, bonifica el valor individual de 1 entrada
+    if (tipoLower.includes('entrada') || nombreLower.includes('entrada')) {
+      const cantButacas = this.infoEntradas()?.butacas?.length || 1;
+      const precioEntradaIndividual = this.montoEntradas() / cantButacas;
+      return precioEntradaIndividual || 0;
+    }
+
+    // Si es Combo o Producto de Candy gratis, bonifica el total acumulado en Candy
+    if (tipoLower.includes('candy') || tipoLower.includes('combo') || nombreLower.includes('combo')) {
+      return this.montoCandy();
+    }
+
+    return 0;
+  });
+
+  // Total final a pagar restando tanto cupones como recompensas aplicadas
+  totalPagar = computed(() => {
+    const total = this.subtotal() - this.montoDescuento() - this.montoDescuentoRecompensa();
+    return total > 0 ? total : 0;
+  });
 
   async ngOnInit() {
     try {
       const entradas = localStorage.getItem('entradas_seleccionadas');
       const candy = localStorage.getItem('candy_seleccionado');
+
+      // Leer premios o beneficios previamente canjeados en el perfil
+      const beneficios = JSON.parse(localStorage.getItem('beneficios_canjeados') || '[]');
+      this.beneficiosCanjeados.set(beneficios);
+
+      // Si el usuario tiene premios disponibles, auto-seleccionar el primero para bonificarlo
+      if (beneficios.length > 0) {
+        this.beneficioSeleccionado.set(beneficios[0]);
+      }
 
       if (!entradas) {
         this.router.navigate(['/cartelera']);
@@ -66,7 +106,6 @@ export class CheckoutComponent implements OnInit {
     }
   }
 
-  // Verifica si es la 1ra compra y aplica automáticamente el cupón "PRIMERACOMPRA"
   private async verificarYAutoAplicarPrimeraCompra() {
     try {
       const perfil = await this.authService.getPerfilActual();
@@ -77,7 +116,6 @@ export class CheckoutComponent implements OnInit {
           .eq('user_id', perfil.id);
 
         if (!ventas || ventas.length === 0) {
-          // Intentar aplicar cupón dinámico PRIMERACOMPRA desde Supabase
           this.codigoCuponInput.set('PRIMERACOMPRA');
           await this.aplicarCupon();
         }
@@ -92,14 +130,12 @@ export class CheckoutComponent implements OnInit {
     if (!codigoInput) return;
 
     try {
-      // 1. Consulta directa con coincidencia exacta limpia (.eq)
       const { data, error } = await this.supabaseService.client
         .from('cupones')
         .select('*')
         .eq('codigo', codigoInput)
         .eq('activo', true);
 
-      // Logging de depuración en consola
       console.log('Respuesta de Supabase Cupones:', { data, error, buscando: codigoInput });
 
       if (error) {
@@ -116,7 +152,6 @@ export class CheckoutComponent implements OnInit {
       const cupon = data[0];
       const perfil = await this.authService.getPerfilActual();
 
-      // 2. Validar restricción para mayores de 50 años
       if (cupon.solo_mayores_50) {
         if (!perfil || !perfil.fecha_nacimiento) {
           alert('Este cupón es exclusivo para usuarios registrados mayores de 50 años.');
@@ -132,7 +167,6 @@ export class CheckoutComponent implements OnInit {
         }
       }
 
-      // 3. Validar restricción de primera compra
       if (cupon.es_primera_compra && perfil) {
         const { data: ventas } = await this.supabaseService.client
           .from('ventas')
@@ -145,7 +179,6 @@ export class CheckoutComponent implements OnInit {
         }
       }
 
-      // 4. Aplicar porcentaje exitosamente
       const porcentajeDec = Number(cupon.porcentaje_descuento) / 100;
       this.porcentajeDescuento.set(porcentajeDec);
       this.cuponAplicado.set(true);
@@ -165,19 +198,60 @@ export class CheckoutComponent implements OnInit {
 
       const funcionObj = this.infoEntradas()?.funcion;
       const funcionId = funcionObj?.id || null;
+      const montoFinal = this.totalPagar();
+      const descuentoTotal = this.montoDescuento() + this.montoDescuentoRecompensa();
 
+      // 1. Guardar la Venta registrando el descuento total consolidado
       const { error } = await this.supabaseService.client.from('ventas').insert({
         id: uuidVenta,
         user_id: user ? user.id : null,
         funcion_id: funcionId,
-        monto_total: this.totalPagar(),
-        descuento_aplicado: this.montoDescuento(),
+        monto_total: montoFinal,
+        descuento_aplicado: descuentoTotal,
         detalle_butacas: this.infoEntradas()?.butacas || [],
         detalle_candy: this.infoCandy()?.productos || [],
         codigo_qr: tokenQR,
       });
 
       if (error) throw error;
+
+      // 2. Acumulación de Puntos de Fidelización según el total efectivamente abonado
+      if (user?.id) {
+        const puntosGanados = Math.floor(montoFinal);
+
+        if (puntosGanados > 0) {
+          const { data: perfilData } = await this.supabaseService.client
+            .from('perfiles')
+            .select('puntos_fidelidad')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          const saldoPrevio = perfilData?.puntos_fidelidad || 0;
+          const nuevoSaldo = saldoPrevio + puntosGanados;
+
+          await this.supabaseService.client
+            .from('perfiles')
+            .update({ puntos_fidelidad: nuevoSaldo })
+            .eq('id', user.id);
+
+          const tituloPeli = funcionObj?.peliculas?.titulo || 'Entradas y Candy';
+          await this.supabaseService.client
+            .from('movimientos_puntos')
+            .insert([{
+              usuario_id: user.id,
+              cantidad: puntosGanados,
+              motivo: `Acumulación por compra: ${tituloPeli}`,
+              fecha: new Date().toISOString()
+            }]);
+        }
+      }
+
+      // 3. Remover el beneficio canjeado utilizado del localStorage
+      if (this.beneficioSeleccionado()) {
+        const idUsado = this.beneficioSeleccionado().id;
+        const restantes = this.beneficiosCanjeados().filter((b: any) => b.id !== idUsado);
+        localStorage.setItem('beneficios_canjeados', JSON.stringify(restantes));
+      }
 
       this.codigoQR.set(tokenQR);
       this.compraFinalizada.set(true);
@@ -225,7 +299,6 @@ export class CheckoutComponent implements OnInit {
     this.router.navigate(['/cartelera']);
   }
 
-  // Método formateador para mostrar día, fecha y hora en español
   formatearFechaFuncion(fechaRaw: string): string {
     if (!fechaRaw) return 'N/A';
     const fecha = new Date(fechaRaw);
@@ -235,6 +308,6 @@ export class CheckoutComponent implements OnInit {
     const mesNum = String(fecha.getMonth() + 1).padStart(2, '0');
     const horas = String(fecha.getHours()).padStart(2, '0');
     const minutos = String(fecha.getMinutes()).padStart(2, '0');
-    return `${diaNombre} ${diaNum}/${mesNum} - ${horas}:${minutos} hs`;
+    return `${diaNombre} ${diaNum}/${mesNum} ${horas}:${minutos} hs`;
   }
 }
