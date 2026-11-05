@@ -62,7 +62,7 @@ export class AdminDashboardComponent implements OnInit {
 
   generosSeleccionados = signal<string[]>([]);
 
-  // Formulario Película
+  // Formulario Película actualizado
   nuevaPelicula = signal<any>({
     titulo: '',
     sinopsis: '',
@@ -70,6 +70,10 @@ export class AdminDashboardComponent implements OnInit {
     duracion_minutos: 120,
     clasificacion: 'ATP',
     poster_url: '',
+    es_proximamente: false,
+    fecha_estreno: '',
+    es_preventa: false,
+    precio_preventa: 0
   });
 
   // Formulario Candy
@@ -244,6 +248,10 @@ export class AdminDashboardComponent implements OnInit {
       imagen_url: urlImagen,
       clasificacion_edad: peli.clasificacion,
       generos: listaGeneros,
+      es_proximamente: peli.es_proximamente || false,
+      fecha_estreno: peli.fecha_estreno || null,
+      es_preventa: peli.es_preventa || false,
+      precio_preventa: Number(peli.precio_preventa) || 0
     };
 
     if (this.idPeliculaEditando()) {
@@ -316,7 +324,7 @@ export class AdminDashboardComponent implements OnInit {
     this.resetFormPelicula();
   }
 
- // --- CRUD CANDY BAR ---
+  // --- CRUD CANDY BAR ---
   async guardarCandy() {
     const prod = { ...this.nuevoCandy() };
 

@@ -30,9 +30,49 @@
       </div>
     </div>
 
+    <!-- SECCIÓN GALERÍA VISUAL: MIS PELÍCULAS VISTAS -->
+    <div class="card bg-dark text-white border-secondary p-4 mb-4 shadow">
+      <h4 class="text-danger fw-bold mb-3"><i class="bi bi-film me-2"></i>Mis Películas Vistas</h4>
+      
+      @if (peliculasCompradas.length === 0) {
+        <div class="alert alert-dark border-secondary text-secondary small m-0">
+          Aún no tenés películas registradas. ¡Tus entradas compradas aparecerán acá automáticamente!
+        </div>
+      } @else {
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+          @for (peli of peliculasCompradas; track peli.id) {
+            <div class="col">
+              <div class="card bg-secondary bg-opacity-10 border-secondary text-white h-100 shadow-sm overflow-hidden d-flex flex-column justify-content-between">
+                <img [src]="peli.imagen_url || 'assets/placeholder-poster.png'" 
+                     [alt]="peli.titulo" 
+                     class="card-img-top object-fit-cover" 
+                     style="height: 200px; width: 100%;">
+                
+                <div class="p-2 text-center d-flex flex-column justify-content-between flex-grow-1">
+                  <h6 class="fw-bold text-truncate small m-0 text-white" [title]="peli.titulo">{{ peli.titulo }}</h6>
+                  
+                  <div class="mt-2">
+                    @if (yaTieneResena(peli.id)) {
+                      <span class="badge bg-success w-100" style="font-size: 0.65rem;">
+                        <i class="bi bi-star-fill me-1"></i>Calificada
+                      </span>
+                    } @else {
+                      <button class="btn btn-outline-warning btn-sm w-100 py-0" style="font-size: 0.7rem;" (click)="abrirFormularioResena(peli)">
+                        Opinar
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
     <div class="row g-4">
       
-      <!-- COLUMNA IZQUIERDA: PELÍCULAS VISTAS Y DEJAR RESEÑA -->
+      <!-- COLUMNA IZQUIERDA: RESEÑAS Y OPINIONES -->
       <div class="col-lg-5">
         <div class="card bg-dark text-white border-secondary p-4 shadow mb-4">
           <h4 class="text-danger fw-bold mb-3"><i class="bi bi-star-fill me-2"></i>Calificar Películas Vistas</h4>
@@ -70,7 +110,7 @@
 
         <!-- FORMULARIO DE RESEÑA -->
         @if (peliculaParaResenar) {
-          <div class="card bg-dark text-white border-danger p-4 shadow">
+          <div class="card bg-dark text-white border-danger p-4 shadow mb-4">
             <h5 class="text-warning fw-bold mb-2">
               Opinar sobre: {{ peliculaParaResenar.titulo }}
             </h5>

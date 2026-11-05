@@ -4,45 +4,68 @@
 
   <!-- TOP 3 PELÍCULAS MÁS VENDIDAS -->
   @if (topVendidas().length > 0) {
-  <div class="mb-5">
-    <h3 class="text-danger fw-bold mb-3 d-flex align-items-center gap-2">
-      <i class="bi bi-fire text-danger"></i> Top 3 Películas Más Vendidas
-    </h3>
+    <div class="mb-5">
+      <h3 class="text-danger fw-bold mb-3 d-flex align-items-center gap-2">
+        <i class="bi bi-fire text-danger"></i> Top 3 Películas Más Vendidas
+      </h3>
 
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-      @for (p of topVendidas(); track p.id; let i = $index) {
-      <div class="col">
-        <div class="card h-100 bg-dark-card border-danger text-white shadow position-relative">
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        @for (p of topVendidas(); track p.id; let i = $index) {
+          <div class="col">
+            <div class="card h-100 bg-dark-card border-danger text-white shadow position-relative">
 
-          <span class="position-absolute top-0 start-0 badge bg-danger fs-6 m-2 p-2 rounded-circle shadow">
-            #{{ i + 1 }}
-          </span>
-
-          <img [src]="p.imagen_url" [alt]="p.titulo" class="card-img-top object-fit-cover"
-            style="height: 360px; width: 100%;">
-
-          <div class="card-body d-flex flex-column justify-content-between">
-            <div>
-              <h5 class="card-title text-light fw-bold text-truncate">{{ p.titulo }}</h5>
-              <p class="small text-secondary mb-1">{{ p.generos?.join(', ') }}</p>
-              @if (p.entradasVendidas > 0) {
-              <span class="badge bg-success mb-2">
-                <i class="bi bi-ticket-fill me-1"></i>{{ p.entradasVendidas }} entradas vendidas
+              <span class="position-absolute top-0 start-0 badge bg-danger fs-6 m-2 p-2 rounded-circle shadow">
+                #{{ i + 1 }}
               </span>
-              }
-            </div>
 
-            <!-- Dentro del @for (p of peliculasFiltradas(); track p.id) -->
-            <button class="btn btn-danger-custom w-100" (click)="seleccionarPelicula(p.id)">
-              <i class="bi bi-ticket-perforated me-1"></i> Comprar Entradas
-            </button>
+              @if (p.es_preventa) {
+                <span class="position-absolute top-0 end-0 badge bg-warning text-dark m-2 p-2 shadow fw-bold">
+                  <i class="bi bi-tag-fill me-1"></i>PREVENTA ${{ p.precio_preventa }}
+                </span>
+              }
+
+              <img [src]="p.imagen_url" [alt]="p.titulo" class="card-img-top object-fit-cover" style="height: 360px; width: 100%;">
+
+              <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                  <h5 class="card-title text-light fw-bold text-truncate">{{ p.titulo }}</h5>
+                  <p class="small text-secondary mb-1">{{ p.generos?.join(', ') }}</p>
+                  @if (p.entradasVendidas > 0) {
+                    <span class="badge bg-success mb-2">
+                      <i class="bi bi-ticket-fill me-1"></i>{{ p.entradasVendidas }} entradas vendidas
+                    </span>
+                  }
+                </div>
+
+                <button class="btn btn-danger-custom w-100 mt-2" (click)="seleccionarPelicula(p.id)">
+                  <i class="bi bi-ticket-perforated me-1"></i> Comprar Entradas
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        }
       </div>
-      }
     </div>
-  </div>
   }
+
+  <!-- SELECTOR DE PESTAÑAS (EN CARTELERA VS PRÓXIMAMENTE) -->
+  <div class="d-flex gap-2 mb-4">
+    <button 
+      class="btn btn-lg fw-bold px-4"
+      [class.btn-danger]="pestanaVista() === 'cartelera'"
+      [class.btn-outline-light]="pestanaVista() !== 'cartelera'"
+      (click)="pestanaVista.set('cartelera')">
+      <i class="bi bi-film me-2"></i>En Cartelera
+    </button>
+
+    <button 
+      class="btn btn-lg fw-bold px-4"
+      [class.btn-warning]="pestanaVista() === 'proximamente'"
+      [class.btn-outline-light]="pestanaVista() !== 'proximamente'"
+      (click)="pestanaVista.set('proximamente')">
+      <i class="bi bi-calendar-event me-2"></i>Próximamente / Estrenos
+    </button>
+  </div>
 
   <!-- BARRA DE BÚSQUEDA Y FILTROS -->
   <div class="bg-dark-card p-3 rounded-3 border border-secondary mb-4 shadow-sm">
@@ -64,7 +87,7 @@
           <select class="form-select bg-dark text-white border-secondary" [ngModel]="filtroGenero()"
             (ngModelChange)="filtroGenero.set($event)">
             @for (g of generosDisponibles; track g) {
-            <option [value]="g">{{ g | titlecase }}</option>
+              <option [value]="g">{{ g | titlecase }}</option>
             }
           </select>
         </div>
@@ -72,44 +95,72 @@
     </div>
   </div>
 
-  <!-- CARTELERA COMPLETA -->
-  <h4 class="text-light fw-bold mb-3"><i class="bi bi-film me-2"></i>Cartelera Principal</h4>
-
-  @if (peliculasFiltradas().length > 0) {
-  <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-    @for (p of peliculasFiltradas(); track p.id) {
-    <div class="col">
-      <div class="card h-100 bg-dark-card border-secondary text-white shadow-sm">
-
-        <img [src]="p.imagen_url" [alt]="p.titulo" class="card-img-top object-fit-cover"
-          style="height: 380px; width: 100%;">
-
-        <div class="card-body d-flex flex-column justify-content-between">
-          <div>
-            <h5 class="card-title text-danger fw-bold text-truncate">{{ p.titulo }}</h5>
-            <p class="card-text text-secondary small mb-2">
-              {{ p.generos?.join(', ') }}
-            </p>
-            <p class="mb-3">
-              <span class="badge bg-danger me-1">{{ p.clasificacion_edad }}</span>
-              <span class="badge bg-dark border text-light">{{ p.duracion_minutos }} min</span>
-            </p>
-          </div>
-
-          <!-- Dentro del @for (p of peliculasFiltradas(); track p.id) -->
-          <button class="btn btn-danger-custom w-100" (click)="seleccionarPelicula(p.id)">
-            <i class="bi bi-ticket-perforated me-1"></i> Comprar Entradas
-          </button>
-        </div>
-      </div>
-    </div>
+  <!-- TÍTULO DE SECCIÓN SECUNDARIO -->
+  <h4 class="text-light fw-bold mb-3">
+    @if (pestanaVista() === 'cartelera') {
+      <i class="bi bi-film me-2"></i>Cartelera Principal
+    } @else {
+      <i class="bi bi-calendar-check me-2 text-warning"></i>Próximos Estrenos
     }
-  </div>
+  </h4>
+
+  <!-- LISTADO COMPLETO DE PELÍCULAS -->
+  @if (peliculasFiltradas().length > 0) {
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+      @for (p of peliculasFiltradas(); track p.id) {
+        <div class="col">
+          <div class="card h-100 bg-dark-card border-secondary text-white shadow-sm position-relative">
+
+            <!-- BADGES FLOTANTES (PREVENTA / PRÓXIMAMENTE) -->
+            @if (p.es_preventa) {
+              <span class="position-absolute top-0 end-0 badge bg-warning text-dark m-2 p-2 shadow fw-bold">
+                <i class="bi bi-tag-fill me-1"></i>PREVENTA ${{ p.precio_preventa }}
+              </span>
+            }
+
+            <img [src]="p.imagen_url" [alt]="p.titulo" class="card-img-top object-fit-cover" style="height: 380px; width: 100%;">
+
+            <div class="card-body d-flex flex-column justify-content-between">
+              <div>
+                <h5 class="card-title text-danger fw-bold text-truncate">{{ p.titulo }}</h5>
+                <p class="card-text text-secondary small mb-2">
+                  {{ p.generos?.join(', ') }}
+                </p>
+                <div class="mb-3 d-flex flex-wrap gap-1">
+                  <span class="badge bg-danger">{{ p.clasificacion_edad || 'ATP' }}</span>
+                  <span class="badge bg-dark border text-light">{{ p.duracion_minutos }} min</span>
+                  @if (p.es_proximamente && p.fecha_estreno) {
+                    <span class="badge bg-info text-dark">Estreno: {{ p.fecha_estreno | date:'dd/MM/yyyy' }}</span>
+                  }
+                </div>
+              </div>
+
+              <!-- BOTONES DE ACCIÓN (COMPRA O ALERTA) -->
+              @if (p.es_proximamente && !p.es_preventa) {
+                <button 
+                  class="btn w-100 fw-bold"
+                  [class.btn-warning]="alertasUsuario().has(p.id)"
+                  [class.btn-outline-warning]="!alertasUsuario().has(p.id)"
+                  (click)="toggleAlertaEstreno(p.id)">
+                  <i class="bi" [class.bi-bell-fill]="alertasUsuario().has(p.id)" [class.bi-bell]="!alertasUsuario().has(p.id)"></i>
+                  {{ alertasUsuario().has(p.id) ? 'Alerta Activada' : 'Avisarme cuando estrene' }}
+                </button>
+              } @else {
+                <button class="btn btn-danger-custom w-100" (click)="seleccionarPelicula(p.id)">
+                  <i class="bi bi-ticket-perforated me-1"></i> 
+                  {{ p.es_preventa ? 'Comprar Preventa' : 'Comprar Entradas' }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
   } @else {
-  <div class="text-center py-5 bg-dark-card rounded border border-secondary">
-    <i class="bi bi-emoji-frown display-4 text-secondary mb-2 d-block"></i>
-    <h5 class="text-secondary">No se encontraron películas con los filtros seleccionados.</h5>
-  </div>
+    <div class="text-center py-5 bg-dark-card rounded border border-secondary">
+      <i class="bi bi-emoji-frown display-4 text-secondary mb-2 d-block"></i>
+      <h5 class="text-secondary">No se encontraron películas con los filtros seleccionados.</h5>
+    </div>
   }
 
 </div>
