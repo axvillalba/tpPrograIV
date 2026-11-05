@@ -1,4 +1,12 @@
-import { Component, signal, ViewChild, ElementRef, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  signal,
+  ViewChild,
+  ElementRef,
+  inject,
+  OnInit,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,6 +15,7 @@ import { SupabaseService } from '../../services/supabase';
 import { CandyService } from '../../services/candy';
 import { CuponesService } from '../../services/cupones';
 import { RecompensasService } from '../../services/recompensas';
+import { AuditoriaService } from '../../services/auditoria';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -25,12 +34,13 @@ export class AdminDashboardComponent implements OnInit {
   private candyService = inject(CandyService);
   private cuponesService = inject(CuponesService);
   private recompensasService = inject(RecompensasService);
+  private auditoriaService = inject(AuditoriaService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('fileInputCandy') fileInputCandy!: ElementRef<HTMLInputElement>;
   @ViewChild('fileInputRecompensa') fileInputRecompensa!: ElementRef<HTMLInputElement>;
 
-  pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recompensas'>('peliculas');
+pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recompensas' | 'reportes'>('peliculas')
 
   // Listas de datos
   peliculas = signal<any[]>([]);
@@ -55,9 +65,17 @@ export class AdminDashboardComponent implements OnInit {
 
   // Géneros disponibles para los checkboxes
   generosDisponibles: string[] = [
-    'Acción', 'Aventura', 'Animación', 'Ciencia Ficción',
-    'Comedia', 'Drama', 'Fantasía', 'Terror',
-    'Romance', 'Suspenso', 'Anime'
+    'Acción',
+    'Aventura',
+    'Animación',
+    'Ciencia Ficción',
+    'Comedia',
+    'Drama',
+    'Fantasía',
+    'Terror',
+    'Romance',
+    'Suspenso',
+    'Anime',
   ];
 
   generosSeleccionados = signal<string[]>([]);
@@ -73,7 +91,7 @@ export class AdminDashboardComponent implements OnInit {
     es_proximamente: false,
     fecha_estreno: '',
     es_preventa: false,
-    precio_preventa: 0
+    precio_preventa: 0,
   });
 
   // Formulario Candy
@@ -109,7 +127,7 @@ export class AdminDashboardComponent implements OnInit {
     costo_puntos: 100,
     tipo: 'Entrada',
     imagen_url: '',
-    activo: true
+    activo: true,
   });
 
   // Programación Recurrente
@@ -121,8 +139,17 @@ export class AdminDashboardComponent implements OnInit {
     { id: 4, nombre: 'Jue', seleccionado: false },
     { id: 5, nombre: 'Vie', seleccionado: false },
     { id: 6, nombre: 'Sáb', seleccionado: false },
-    { id: 0, nombre: 'Dom', seleccionado: false }
+    { id: 0, nombre: 'Dom', seleccionado: false },
   ];
+
+  // Variables para Métricas y Reportes
+  logsAuditoria = signal<any[]>([]);
+  metrasDashboard = signal({
+    recaudacionTotal: 0,
+    entradasVendidas: 0,
+    productosCandyVendidos: 0,
+    porcentajeOcupacion: 0,
+  });
 
   async ngOnInit() {
     await this.cargarDatos();
@@ -136,8 +163,12 @@ export class AdminDashboardComponent implements OnInit {
       this.supabaseService.client.from('peliculas').select('*'),
       this.candyService.getProductos(),
       this.cuponesService.getCupones(),
-      this.supabaseService.client.from('funciones').select('*, peliculas(titulo, duracion_minutos), salas(nombre)').gte('horario_fin', hoy).order('fecha_hora', { ascending: true }),
-      this.recompensasService.getRecompensas()
+      this.supabaseService.client
+        .from('funciones')
+        .select('*, peliculas(titulo, duracion_minutos), salas(nombre)')
+        .gte('horario_fin', hoy)
+        .order('fecha_hora', { ascending: true }),
+      this.recompensasService.getRecompensas(),
     ]);
 
     if (resPelis.data) this.peliculas.set(resPelis.data);
@@ -251,7 +282,7 @@ export class AdminDashboardComponent implements OnInit {
       es_proximamente: peli.es_proximamente || false,
       fecha_estreno: peli.fecha_estreno || null,
       es_preventa: peli.es_preventa || false,
-      precio_preventa: Number(peli.precio_preventa) || 0
+      precio_preventa: Number(peli.precio_preventa) || 0,
     };
 
     if (this.idPeliculaEditando()) {
@@ -364,7 +395,7 @@ export class AdminDashboardComponent implements OnInit {
       nombre: prod.nombre,
       categoria: prod.categoria,
       precio: prod.precio,
-      imagen_url: prod.imagen_url || ''
+      imagen_url: prod.imagen_url || '',
     });
   }
 
@@ -459,11 +490,11 @@ export class AdminDashboardComponent implements OnInit {
 
   // --- PROGRAMACIÓN DE FUNCIONES CON RECURRENCIA ---
   hayDiasSeleccionados(): boolean {
-    return this.diasSemana.some(d => d.seleccionado);
+    return this.diasSemana.some((d) => d.seleccionado);
   }
 
   resetearDiasSemana() {
-    this.diasSemana.forEach(d => d.seleccionado = false);
+    this.diasSemana.forEach((d) => (d.seleccionado = false));
     this.periodoRecurrencia = 1;
   }
 
@@ -481,11 +512,11 @@ export class AdminDashboardComponent implements OnInit {
       return alert('Error: No podés programar una nueva función en un horario pasado.');
     }
 
-    const peliElegida = this.peliculas().find(p => p.id === fn.pelicula_id);
+    const peliElegida = this.peliculas().find((p) => p.id === fn.pelicula_id);
     const duracionMinutos = peliElegida?.duracion_minutos || 120;
 
     // Determinar fechas a procesar
-    const diasElegidos = this.diasSemana.filter(d => d.seleccionado).map(d => d.id);
+    const diasElegidos = this.diasSemana.filter((d) => d.seleccionado).map((d) => d.id);
     const fechasAProgramar: Date[] = [];
 
     if (this.idFuncionEditando() || diasElegidos.length === 0) {
@@ -507,17 +538,19 @@ export class AdminDashboardComponent implements OnInit {
     let omitidasPorSolapamiento = 0;
 
     for (const fechaInicio of fechasAProgramar) {
-      const fechaFinConLimpieza = new Date(fechaInicio.getTime() + ((duracionMinutos + 30) * 60000));
+      const fechaFinConLimpieza = new Date(fechaInicio.getTime() + (duracionMinutos + 30) * 60000);
 
-      const haySolapamiento = funcionesExistentes.some(existente => {
+      const haySolapamiento = funcionesExistentes.some((existente) => {
         if (this.idFuncionEditando() && existente.id === this.idFuncionEditando()) return false;
         if (existente.sala_id !== fn.sala_id) return false;
 
         const inicioExistente = new Date(existente.fecha_hora || existente.horario_inicio);
         const duracionExistente = existente.peliculas?.duracion_minutos || 120;
-        const finExistenteConLimpieza = new Date(inicioExistente.getTime() + ((duracionExistente + 30) * 60000));
+        const finExistenteConLimpieza = new Date(
+          inicioExistente.getTime() + (duracionExistente + 30) * 60000,
+        );
 
-        return (fechaInicio < finExistenteConLimpieza && fechaFinConLimpieza > inicioExistente);
+        return fechaInicio < finExistenteConLimpieza && fechaFinConLimpieza > inicioExistente;
       });
 
       if (haySolapamiento) {
@@ -528,10 +561,10 @@ export class AdminDashboardComponent implements OnInit {
           sala_id: fn.sala_id,
           fecha_hora: fechaInicio.toISOString(),
           horario_inicio: fechaInicio.toISOString(),
-          horario_fin: new Date(fechaInicio.getTime() + (duracionMinutos * 60000)).toISOString(),
+          horario_fin: new Date(fechaInicio.getTime() + duracionMinutos * 60000).toISOString(),
           formato: fn.formato,
           idioma: fn.idioma,
-          precio_base: 4500
+          precio_base: 4500,
         };
         nuevasFuncionesPayload.push(payload);
         funcionesExistentes.push(payload);
@@ -539,7 +572,9 @@ export class AdminDashboardComponent implements OnInit {
     }
 
     if (nuevasFuncionesPayload.length === 0) {
-      return alert('⚠️ CONFLICTO DE SALA:\n\nLa sala seleccionada está ocupada en ese horario o no se respeta el margen obligatorio de 30 minutos de limpieza entre funciones.');
+      return alert(
+        '⚠️ CONFLICTO DE SALA:\n\nLa sala seleccionada está ocupada en ese horario o no se respeta el margen obligatorio de 30 minutos de limpieza entre funciones.',
+      );
     }
 
     if (this.idFuncionEditando()) {
@@ -587,7 +622,7 @@ export class AdminDashboardComponent implements OnInit {
 
     if (func.fecha_hora) {
       const dateObj = new Date(func.fecha_hora);
-      const localDate = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
+      const localDate = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000);
       fechaFormateada = localDate.toISOString().slice(0, 16);
     }
 
@@ -597,17 +632,14 @@ export class AdminDashboardComponent implements OnInit {
       sala_id: func.sala_id,
       fecha_hora: fechaFormateada,
       formato: func.formato || '2D',
-      idioma: func.idioma || 'Castellano'
+      idioma: func.idioma || 'Castellano',
     });
   }
 
   async eliminarFuncion(id: string) {
     if (!confirm('¿Seguro que deseas eliminar esta función programada?')) return;
 
-    const { error } = await this.supabaseService.client
-      .from('funciones')
-      .delete()
-      .eq('id', id);
+    const { error } = await this.supabaseService.client.from('funciones').delete().eq('id', id);
 
     if (error) alert('Error al eliminar función: ' + error.message);
     else await this.cargarDatos();
@@ -626,7 +658,9 @@ export class AdminDashboardComponent implements OnInit {
       const fileName = `recompensa_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `recompensas/${fileName}`;
 
-      const { error: uploadError } = await this.supabaseService.client.storage.from('posters').upload(filePath, file);
+      const { error: uploadError } = await this.supabaseService.client.storage
+        .from('posters')
+        .upload(filePath, file);
       if (uploadError) {
         alert('Error al subir imagen: ' + uploadError.message);
         return null;
@@ -643,7 +677,8 @@ export class AdminDashboardComponent implements OnInit {
 
   async guardarRecompensa() {
     const rec = { ...this.nuevaRecompensa() };
-    if (!rec.nombre || rec.costo_puntos <= 0) return alert('Completá nombre y un costo válido en puntos.');
+    if (!rec.nombre || rec.costo_puntos <= 0)
+      return alert('Completá nombre y un costo válido en puntos.');
 
     let urlImagen = rec.imagen_url;
     if (this.archivoRecompensaSeleccionado) {
@@ -658,11 +693,14 @@ export class AdminDashboardComponent implements OnInit {
       costo_puntos: Number(rec.costo_puntos),
       tipo: rec.tipo,
       imagen_url: urlImagen || null,
-      activo: rec.activo !== undefined ? rec.activo : true
+      activo: rec.activo !== undefined ? rec.activo : true,
     };
 
     if (this.idRecompensaEditando()) {
-      const { error } = await this.recompensasService.actualizarRecompensa(this.idRecompensaEditando()!, payload);
+      const { error } = await this.recompensasService.actualizarRecompensa(
+        this.idRecompensaEditando()!,
+        payload,
+      );
       if (error) alert('Error al actualizar: ' + error.message);
       else this.cancelarEdicionRecompensa();
     } else {
@@ -685,7 +723,14 @@ export class AdminDashboardComponent implements OnInit {
     if (this.fileInputRecompensa && this.fileInputRecompensa.nativeElement) {
       this.fileInputRecompensa.nativeElement.value = '';
     }
-    this.nuevaRecompensa.set({ nombre: '', descripcion: '', costo_puntos: 100, tipo: 'Entrada', imagen_url: '', activo: true });
+    this.nuevaRecompensa.set({
+      nombre: '',
+      descripcion: '',
+      costo_puntos: 100,
+      tipo: 'Entrada',
+      imagen_url: '',
+      activo: true,
+    });
   }
 
   async eliminarRecompensa(id: string) {
@@ -694,4 +739,58 @@ export class AdminDashboardComponent implements OnInit {
     if (error) alert('Error al eliminar: ' + error.message);
     else await this.cargarDatos();
   }
+
+  async cargarMetricasYLogs() {
+    const { data: ventas } = await this.supabaseService.client.from('ventas').select('*');
+    const { data: logs } = await this.auditoriaService.obtenerLogs();
+
+    if (logs) this.logsAuditoria.set(logs);
+
+    if (ventas) {
+      let totalDinero = 0;
+      let totalEntradas = 0;
+      let totalCandy = 0;
+
+      ventas.forEach((v: any) => {
+        if (v.estado_qr !== 'cancelado') {
+          totalDinero += Number(v.monto_total) || 0;
+          if (Array.isArray(v.detalle_butacas)) totalEntradas += v.detalle_butacas.length;
+          if (Array.isArray(v.detalle_candy)) totalCandy += v.detalle_candy.reduce((acc: number, c: any) => acc + (c.cantidad || 1), 0);
+        }
+      });
+
+      this.metrasDashboard.set({
+        recaudacionTotal: totalDinero,
+        entradasVendidas: totalEntradas,
+        productosCandyVendidos: totalCandy,
+        porcentajeOcupacion: Math.min(Math.round((totalEntradas / 500) * 100), 100) // Estimación sobre capacidad total
+      });
+    }
+  }
+
+  // Exportar historial de ventas a archivo CSV (Excel)
+  exportarVentasCSV() {
+    const ventasData = this.funciones(); // o tus ventas cargadas
+    if (!ventasData || ventasData.length === 0) return alert('No hay datos para exportar.');
+
+    let csvContent = 'data:text/csv;charset=utf-8,';
+    csvContent += 'ID Venta,Fecha,Monto Total,Estado QR,Entradas\n';
+
+    this.funciones().forEach((v: any) => {
+      csvContent += `"${v.id}","${v.fecha_hora}","${v.monto_total || 0}","${v.estado_qr || 'valido'}","${v.detalle_butacas?.length || 0}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `reporte_ventas_cine_utn_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    this.auditoriaService.registrarAccion('EXPORTAR_REPORTE_CSV', { cantidad_registros: ventasData.length });
+  }
+
+
+
 }

@@ -12,181 +12,215 @@
   <!-- NAVEGACIÓN PESTAÑAS -->
   <ul class="nav nav-pills mb-4 gap-2 border-bottom border-secondary pb-3">
     <li class="nav-item">
-      <button class="btn fw-bold" [class.btn-danger]="pestanaActiva() === 'peliculas'" [class.btn-outline-light]="pestanaActiva() !== 'peliculas'" (click)="pestanaActiva.set('peliculas')">
+      <button 
+        class="btn fw-bold" 
+        [class.btn-danger]="pestanaActiva() === 'peliculas'" 
+        [class.btn-outline-light]="pestanaActiva() !== 'peliculas'" 
+        (click)="pestanaActiva.set('peliculas')">
         <i class="bi bi-film me-2"></i>Películas
       </button>
     </li>
     <li class="nav-item">
-      <button class="btn fw-bold" [class.btn-danger]="pestanaActiva() === 'candy'" [class.btn-outline-light]="pestanaActiva() !== 'candy'" (click)="pestanaActiva.set('candy')">
+      <button 
+        class="btn fw-bold" 
+        [class.btn-danger]="pestanaActiva() === 'candy'" 
+        [class.btn-outline-light]="pestanaActiva() !== 'candy'" 
+        (click)="pestanaActiva.set('candy')">
         <i class="bi bi-cup-straw me-2"></i>Candy Bar
       </button>
     </li>
     <li class="nav-item">
-      <button class="btn fw-bold" [class.btn-danger]="pestanaActiva() === 'cupones'" [class.btn-outline-light]="pestanaActiva() !== 'cupones'" (click)="pestanaActiva.set('cupones')">
+      <button 
+        class="btn fw-bold" 
+        [class.btn-danger]="pestanaActiva() === 'cupones'" 
+        [class.btn-outline-light]="pestanaActiva() !== 'cupones'" 
+        (click)="pestanaActiva.set('cupones')">
         <i class="bi bi-ticket-perforated me-2"></i>Cupones
       </button>
     </li>
     <li class="nav-item">
-      <button class="btn fw-bold" [class.btn-danger]="pestanaActiva() === 'funciones'" [class.btn-outline-light]="pestanaActiva() !== 'funciones'" (click)="pestanaActiva.set('funciones')">
+      <button 
+        class="btn fw-bold" 
+        [class.btn-danger]="pestanaActiva() === 'funciones'" 
+        [class.btn-outline-light]="pestanaActiva() !== 'funciones'" 
+        (click)="pestanaActiva.set('funciones')">
         <i class="bi bi-calendar-event me-2"></i>Funciones & Salas
       </button>
     </li>
     <li class="nav-item">
-      <button class="btn fw-bold" [class.btn-danger]="pestanaActiva() === 'recompensas'" [class.btn-outline-light]="pestanaActiva() !== 'recompensas'" (click)="pestanaActiva.set('recompensas')">
+      <button 
+        class="btn fw-bold" 
+        [class.btn-danger]="pestanaActiva() === 'recompensas'" 
+        [class.btn-outline-light]="pestanaActiva() !== 'recompensas'" 
+        (click)="pestanaActiva.set('recompensas')">
         <i class="bi bi-star-fill me-2"></i>Fidelización
+      </button>
+    </li>
+    <li class="nav-item">
+      <button 
+        class="btn fw-bold" 
+        [class.btn-danger]="pestanaActiva() === 'reportes'" 
+        [class.btn-outline-light]="pestanaActiva() !== 'reportes'" 
+        (click)="pestanaActiva.set('reportes'); cargarMetricasYLogs()">
+        <i class="bi bi-graph-up-arrow me-2"></i>Reportes & Logs
       </button>
     </li>
   </ul>
 
   <!-- PESTAÑA PELÍCULAS -->
-@if (pestanaActiva() === 'peliculas') {
-  <div class="row g-4">
-    <!-- FORMULARIO: AGREGAR / EDITAR PELÍCULA -->
-    <div class="col-md-4">
-      <div class="card bg-dark text-white border-secondary p-4 shadow">
-        <h5 class="text-danger fw-bold mb-3">
-          <i class="bi bi-plus-circle me-2"></i>{{ idPeliculaEditando() ? 'Editar Película' : 'Agregar Película' }}
-        </h5>
+  @if (pestanaActiva() === 'peliculas') {
+    <div class="row g-4">
+      <!-- FORMULARIO: AGREGAR / EDITAR PELÍCULA -->
+      <div class="col-md-4">
+        <div class="card bg-dark text-white border-secondary p-4 shadow">
+          <h5 class="text-danger fw-bold mb-3">
+            <i class="bi bi-plus-circle me-2"></i>{{ idPeliculaEditando() ? 'Editar Película' : 'Agregar Película' }}
+          </h5>
 
-        <div class="mb-3">
-          <label class="form-label small text-secondary">Título</label>
-          <input type="text" class="form-control bg-dark text-white border-secondary" [(ngModel)]="nuevaPelicula().titulo">
-        </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Título</label>
+            <input type="text" class="form-control bg-dark text-white border-secondary" [(ngModel)]="nuevaPelicula().titulo">
+          </div>
 
-        <div class="mb-3">
-          <label class="form-label small text-secondary">Sinopsis</label>
-          <textarea class="form-control bg-dark text-white border-secondary" rows="3" [(ngModel)]="nuevaPelicula().sinopsis"></textarea>
-        </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Sinopsis</label>
+            <textarea class="form-control bg-dark text-white border-secondary" rows="3" [(ngModel)]="nuevaPelicula().sinopsis"></textarea>
+          </div>
 
-        <div class="mb-3">
-          <label class="form-label small text-secondary">Géneros</label>
-          <div class="d-flex flex-wrap gap-1 p-2 bg-secondary bg-opacity-10 rounded border border-secondary">
-            @for (g of generosDisponibles; track g) {
-              <button type="button" class="btn btn-sm" [class.btn-danger]="generosSeleccionados().includes(g)" [class.btn-outline-secondary]="!generosSeleccionados().includes(g)" (click)="toggleGenero(g)">
-                {{ g }}
-              </button>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Géneros</label>
+            <div class="d-flex flex-wrap gap-1 p-2 bg-secondary bg-opacity-10 rounded border border-secondary">
+              @for (g of generosDisponibles; track g) {
+                <button 
+                  type="button" 
+                  class="btn btn-sm" 
+                  [class.btn-danger]="generosSeleccionados().includes(g)" 
+                  [class.btn-outline-secondary]="!generosSeleccionados().includes(g)" 
+                  (click)="toggleGenero(g)">
+                  {{ g }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-secondary">Duración (min)</label>
+              <input type="number" class="form-control bg-dark text-white border-secondary" [(ngModel)]="nuevaPelicula().duracion_minutos">
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-secondary">Clasificación</label>
+              <select class="form-select bg-dark text-white border-secondary" [(ngModel)]="nuevaPelicula().clasificacion">
+                <option value="ATP">ATP</option>
+                <option value="+13">+13</option>
+                <option value="+16">+16</option>
+                <option value="+18">+18</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- CONTROLES DE PRÓXIMAMENTE Y PREVENTA -->
+          <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary mb-3">
+            <div class="row g-2">
+              <div class="col-6">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="chkProximamente" [(ngModel)]="nuevaPelicula().es_proximamente">
+                  <label class="form-check-label small text-white fw-bold" for="chkProximamente">Próximamente</label>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="chkPreventa" [(ngModel)]="nuevaPelicula().es_preventa">
+                  <label class="form-check-label small text-warning fw-bold" for="chkPreventa">Preventa</label>
+                </div>
+              </div>
+            </div>
+
+            @if (nuevaPelicula().es_proximamente) {
+              <div class="mt-3 pt-2 border-top border-secondary">
+                <label class="form-label small text-info"><i class="bi bi-calendar-event me-1"></i>Fecha de Estreno</label>
+                <input type="date" class="form-control bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevaPelicula().fecha_estreno">
+              </div>
+            }
+
+            @if (nuevaPelicula().es_preventa) {
+              <div class="mt-3 pt-2 border-top border-secondary">
+                <label class="form-label small text-warning"><i class="bi bi-tag-fill me-1"></i>Precio Especial Preventa ($)</label>
+                <input type="number" class="form-control bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevaPelicula().precio_preventa">
+              </div>
             }
           </div>
-        </div>
 
-        <div class="row g-2 mb-3">
-          <div class="col-6">
-            <label class="form-label small text-secondary">Duración (min)</label>
-            <input type="number" class="form-control bg-dark text-white border-secondary" [(ngModel)]="nuevaPelicula().duracion_minutos">
-          </div>
-          <div class="col-6">
-            <label class="form-label small text-secondary">Clasificación</label>
-            <select class="form-select bg-dark text-white border-secondary" [(ngModel)]="nuevaPelicula().clasificacion">
-              <option value="ATP">ATP</option>
-              <option value="+13">+13</option>
-              <option value="+16">+16</option>
-              <option value="+18">+18</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- CONTROLES DE PRÓXIMAMENTE Y PREVENTA -->
-        <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary mb-3">
-          <div class="row g-2">
-            <div class="col-6">
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="chkProximamente" [(ngModel)]="nuevaPelicula().es_proximamente">
-                <label class="form-check-label small text-white fw-bold" for="chkProximamente">Próximamente</label>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="chkPreventa" [(ngModel)]="nuevaPelicula().es_preventa">
-                <label class="form-check-label small text-warning fw-bold" for="chkPreventa">Preventa</label>
-              </div>
-            </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Poster / Afiche</label>
+            <input #fileInput type="file" class="form-control bg-dark text-white border-secondary" accept="image/*" (change)="onArchivoSeleccionado($event)">
           </div>
 
-          @if (nuevaPelicula().es_proximamente) {
-            <div class="mt-3 pt-2 border-top border-secondary">
-              <label class="form-label small text-info"><i class="bi bi-calendar-event me-1"></i>Fecha de Estreno</label>
-              <input type="date" class="form-control bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevaPelicula().fecha_estreno">
-            </div>
-          }
+          <button class="btn btn-danger w-100 fw-bold shadow" [disabled]="subiendoImagen()" (click)="guardarPelicula()">
+            {{ subiendoImagen() ? 'Subiendo Imagen...' : (idPeliculaEditando() ? 'Guardar Cambios' : 'Agregar Película') }}
+          </button>
 
-          @if (nuevaPelicula().es_preventa) {
-            <div class="mt-3 pt-2 border-top border-secondary">
-              <label class="form-label small text-warning"><i class="bi bi-tag-fill me-1"></i>Precio Especial Preventa ($)</label>
-              <input type="number" class="form-control bg-dark text-white border-secondary btn-sm" [(ngModel)]="nuevaPelicula().precio_preventa">
-            </div>
+          @if (idPeliculaEditando()) {
+            <button class="btn btn-outline-light w-100 mt-2 btn-sm" (click)="cancelarEdicionPelicula()">Cancelar Edición</button>
           }
         </div>
-
-        <div class="mb-3">
-          <label class="form-label small text-secondary">Poster / Afiche</label>
-          <input #fileInput type="file" class="form-control bg-dark text-white border-secondary" accept="image/*" (change)="onArchivoSeleccionado($event)">
-        </div>
-
-        <button class="btn btn-danger w-100 fw-bold shadow" [disabled]="subiendoImagen()" (click)="guardarPelicula()">
-          {{ subiendoImagen() ? 'Subiendo Imagen...' : (idPeliculaEditando() ? 'Guardar Cambios' : 'Agregar Película') }}
-        </button>
-
-        @if (idPeliculaEditando()) {
-          <button class="btn btn-outline-light w-100 mt-2 btn-sm" (click)="cancelarEdicionPelicula()">Cancelar Edición</button>
-        }
       </div>
-    </div>
 
-    <!-- TABLA DE CATÁLOGO DE PELÍCULAS -->
-    <div class="col-md-8">
-      <div class="card bg-dark text-white border-secondary p-4 shadow">
-        <h5 class="text-danger fw-bold mb-3"><i class="bi bi-film me-2"></i>Catálogo de Películas</h5>
-        <div class="table-responsive">
-          <table class="table table-dark table-hover align-middle m-0">
-            <thead>
-              <tr class="text-secondary small text-uppercase">
-                <th>Poster</th>
-                <th>Título</th>
-                <th>Género</th>
-                <th>Duración</th>
-                <th>Clasificación</th>
-                <th class="text-end">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (peli of peliculas(); track peli.id) {
-                <tr>
-                  <td>
-                    <img [src]="peli.imagen_url || 'assets/placeholder-poster.png'" class="rounded shadow-sm" style="width: 45px; height: 65px; object-fit: cover;">
-                  </td>
-                  <td>
-                    <div class="fw-bold">{{ peli.titulo }}</div>
-                    <div class="d-flex flex-wrap gap-1 mt-1">
-                      @if (peli.es_proximamente) {
-                        <span class="badge bg-info text-dark" style="font-size: 0.65rem;">
-                          <i class="bi bi-calendar-event me-1"></i>Estreno: {{ peli.fecha_estreno | date:'dd/MM/yyyy' }}
-                        </span>
-                      }
-                      @if (peli.es_preventa) {
-                        <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">
-                          <i class="bi bi-tag-fill me-1"></i>Preventa ${{ peli.precio_preventa }}
-                        </span>
-                      }
-                    </div>
-                  </td>
-                  <td><small class="text-secondary">{{ obtenerGenerosFormateados(peli.generos) }}</small></td>
-                  <td>{{ peli.duracion_minutos }} min</td>
-                  <td><span class="badge bg-secondary">{{ peli.clasificacion_edad || 'ATP' }}</span></td>
-                  <td class="text-end">
-                    <button class="btn btn-sm btn-outline-warning me-1" (click)="editarPelicula(peli)"><i class="bi bi-pencil-square"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" (click)="eliminarPelicula(peli.id)"><i class="bi bi-trash"></i></button>
-                  </td>
+      <!-- TABLA DE CATÁLOGO DE PELÍCULAS -->
+      <div class="col-md-8">
+        <div class="card bg-dark text-white border-secondary p-4 shadow">
+          <h5 class="text-danger fw-bold mb-3"><i class="bi bi-film me-2"></i>Catálogo de Películas</h5>
+          <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle m-0">
+              <thead>
+                <tr class="text-secondary small text-uppercase">
+                  <th>Poster</th>
+                  <th>Título</th>
+                  <th>Género</th>
+                  <th>Duración</th>
+                  <th>Clasificación</th>
+                  <th class="text-end">Acciones</th>
                 </tr>
-              } @empty {
-                <tr><td colspan="6" class="text-center text-muted py-4">No hay películas registradas.</td></tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (peli of peliculas(); track peli.id) {
+                  <tr>
+                    <td>
+                      <img [src]="peli.imagen_url || 'assets/placeholder-poster.png'" class="rounded shadow-sm" style="width: 45px; height: 65px; object-fit: cover;">
+                    </td>
+                    <td>
+                      <div class="fw-bold">{{ peli.titulo }}</div>
+                      <div class="d-flex flex-wrap gap-1 mt-1">
+                        @if (peli.es_proximamente) {
+                          <span class="badge bg-info text-dark" style="font-size: 0.65rem;">
+                            <i class="bi bi-calendar-event me-1"></i>Estreno: {{ peli.fecha_estreno | date:'dd/MM/yyyy' }}
+                          </span>
+                        }
+                        @if (peli.es_preventa) {
+                          <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">
+                            <i class="bi bi-tag-fill me-1"></i>Preventa ${{ peli.precio_preventa }}
+                          </span>
+                        }
+                      </div>
+                    </td>
+                    <td><small class="text-secondary">{{ obtenerGenerosFormateados(peli.generos) }}</small></td>
+                    <td>{{ peli.duracion_minutos }} min</td>
+                    <td><span class="badge bg-secondary">{{ peli.clasificacion_edad || 'ATP' }}</span></td>
+                    <td class="text-end">
+                      <button class="btn btn-sm btn-outline-warning me-1" (click)="editarPelicula(peli)"><i class="bi bi-pencil-square"></i></button>
+                      <button class="btn btn-sm btn-outline-danger" (click)="eliminarPelicula(peli.id)"><i class="bi bi-trash"></i></button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="6" class="text-center text-muted py-4">No hay películas registradas.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-}
+  }
 
   <!-- PESTAÑA CANDY BAR -->
   @if (pestanaActiva() === 'candy') {
@@ -595,6 +629,79 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- PESTAÑA REPORTES & LOGS DE AUDITORÍA -->
+  @if (pestanaActiva() === 'reportes') {
+    <!-- TARJETAS DE MÉTRICAS / KPIS -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="card bg-dark border-success text-white p-3 shadow text-center">
+          <span class="text-secondary small fw-bold"><i class="bi bi-cash-stack me-1"></i>Recaudación Total</span>
+          <h3 class="text-success fw-bold m-0 mt-1">${{ metrasDashboard().recaudacionTotal }}</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-dark border-primary text-white p-3 shadow text-center">
+          <span class="text-secondary small fw-bold"><i class="bi bi-ticket-perforated me-1"></i>Entradas Vendidas</span>
+          <h3 class="text-primary fw-bold m-0 mt-1">{{ metrasDashboard().entradasVendidas }}</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-dark border-warning text-white p-3 shadow text-center">
+          <span class="text-secondary small fw-bold"><i class="bi bi-cup-straw me-1"></i>Combos Candy Vendidos</span>
+          <h3 class="text-warning fw-bold m-0 mt-1">{{ metrasDashboard().productosCandyVendidos }}</h3>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-dark border-info text-white p-3 shadow text-center">
+          <span class="text-secondary small fw-bold"><i class="bi bi-pie-chart me-1"></i>Ocupación Est. Salas</span>
+          <h3 class="text-info fw-bold m-0 mt-1">{{ metrasDashboard().porcentajeOcupacion }}%</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- TABLA DE LOGS DE AUDITORÍA -->
+      <div class="col-md-8">
+        <div class="card bg-dark text-white border-secondary p-4 shadow">
+          <h5 class="text-danger fw-bold mb-3"><i class="bi bi-shield-check me-2"></i>Registro de Actividades y Auditoría</h5>
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-dark table-hover table-sm align-middle m-0">
+              <thead class="position-sticky top-0 bg-dark">
+                <tr class="text-secondary small text-uppercase">
+                  <th>Fecha</th>
+                  <th>Usuario</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (log of logsAuditoria(); track log.id) {
+                  <tr>
+                    <td class="small text-secondary">{{ log.created_at | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+                    <td class="fw-bold small">{{ log.usuario_email }}</td>
+                    <td><span class="badge bg-secondary">{{ log.accion }}</span></td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="3" class="text-center text-muted py-4">No hay registros de auditoría aún.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTÓN EXPORTAR EXCEL / CSV -->
+      <div class="col-md-4">
+        <div class="card bg-dark text-white border-secondary p-4 shadow text-center">
+          <h5 class="text-warning fw-bold mb-3"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Exportar Datos</h5>
+          <p class="small text-secondary">Descargá el listado consolidado de ventas e ingresos en un archivo CSV compatible con Microsoft Excel.</p>
+          <button class="btn btn-success fw-bold w-100 py-2 shadow" (click)="exportarVentasCSV()">
+            <i class="bi bi-download me-2"></i>Descargar Excel / CSV
+          </button>
         </div>
       </div>
     </div>

@@ -102,6 +102,8 @@ export class CarteleraComponent implements OnInit {
     }
   }
 
+  
+
   // Cargar las alertas activadas por el usuario logueado
   async cargarAlertasDelUsuario() {
     const user = this.authService.currentUser();
@@ -152,11 +154,36 @@ export class CarteleraComponent implements OnInit {
     this.alertasUsuario.set(setActual);
   }
 
-  seleccionarPelicula(peliculaId: string) {
+async seleccionarPelicula(peliculaId: string) {
     if (!peliculaId) {
       console.error('No se proporcionó un ID de película válido');
       return;
     }
+
+    // 1. Buscar la película en el listado cargado
+    const pelicula = this.peliculas().find(p => p.id === peliculaId);
+    const clasificacion = pelicula?.clasificacion_edad || pelicula?.clasificacion || 'ATP';
+
+    // 2. Control de restricción +18
+    if (clasificacion === '+18') {
+      const perfil = await this.authService.getPerfilActual();
+
+      if (!perfil) {
+        alert('Debés iniciar sesión para seleccionar funciones de películas clasificadas para mayores de 18 años.');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      if (perfil.fecha_nacimiento) {
+        const edad = this.authService.calcularEdad(perfil.fecha_nacimiento);
+        if (edad < 18) {
+          alert('⛔ Acceso restringido: Esta película es exclusiva para mayores de 18 años y tu perfil indica que sos menor de edad.');
+          return;
+        }
+      }
+    }
+
+    // 3. Si cumple los requisitos, navega a la vista de la película
     this.router.navigate(['/pelicula', peliculaId]);
   }
 }
