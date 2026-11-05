@@ -194,7 +194,7 @@ export class CheckoutComponent implements OnInit {
     try {
       const user = this.authService.currentUser();
       const uuidVenta = crypto.randomUUID();
-      const tokenQR = `CINE-UTN-${uuidVenta}`;
+      const tokenQR = this.generarCodigoCorto();
 
       const funcionObj = this.infoEntradas()?.funcion;
       const funcionId = funcionObj?.id || null;
@@ -272,6 +272,15 @@ export class CheckoutComponent implements OnInit {
     } finally {
       this.cargando.set(false);
     }
+  }
+
+  private generarCodigoCorto(): string {
+    const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Se omiten letras y números confusos como O, 0, I, 1
+    let codigo = '';
+    for (let i = 0; i < 6; i++) {
+      codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+    }
+    return `UTN-${codigo}`; // Ejemplo: UTN-8X2K9P
   }
 
   async descargarPDF() {

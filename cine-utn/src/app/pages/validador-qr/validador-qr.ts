@@ -44,9 +44,10 @@ export class ValidadorQrComponent implements OnInit {
     this.mensajeEstado = null;
 
     try {
+      // Consultar directamente por el campo text 'codigo_qr'
       const { data, error } = await this.supabaseService.client
         .from('ventas')
-        .select(', funciones(, peliculas(), salas())')
+        .select('*, funciones(*, peliculas(*), salas(*))')
         .eq('codigo_qr', codigoLimpio)
         .maybeSingle();
 
@@ -115,7 +116,8 @@ export class ValidadorQrComponent implements OnInit {
       this.cdr.detectChanges();
     }
   }
-async entregarCandyBar() {
+
+  async entregarCandyBar() {
     if (!this.ventaEncontrada) return;
 
     if (this.ventaEncontrada.candy_entregado) {
@@ -125,7 +127,6 @@ async entregarCandyBar() {
     this.cargando = true;
     const nuevoEstado = this.ventaEncontrada.entradas_validadas ? 'usado_total' : 'usado_candy';
 
-    // FIX: Eliminar el .select('*') previo al .update
     const { error } = await this.supabaseService.client
       .from('ventas')
       .update({

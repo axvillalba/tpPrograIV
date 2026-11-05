@@ -29,7 +29,7 @@ export class PerfilComponent implements OnInit {
   // Fidelización (Puntos)
   historialPuntos: any[] = [];
   saldoPuntos: number = 0;
-  recompensasDisponibles: any[] = []; // <-- AGREGADO
+  recompensasDisponibles: any[] = [];
 
   // Estado del formulario de reseña
   peliculaParaResenar: any = null;
@@ -53,7 +53,8 @@ export class PerfilComponent implements OnInit {
           nombre: user.user_metadata?.['nombre'] || 'Usuario',
           apellido: user.user_metadata?.['apellido'] || '',
           rol: user.user_metadata?.['rol'] || 'cliente',
-          puntos_fidelidad: 0
+          puntos_fidelidad: 0,
+          credito_saldo: 0
         };
       }
 
@@ -69,7 +70,7 @@ export class PerfilComponent implements OnInit {
           this.cargarHistorialVentas(perfil.id),
           this.cargarResenasDelUsuario(perfil.id),
           this.cargarMovimientosPuntos(perfil.id),
-          this.cargarRecompensasDisponibles() // <-- 1. LLAMADA AGREGADA AQUÍ
+          this.cargarRecompensasDisponibles()
         ]);
         this.procesarPeliculasCompradas();
       }
@@ -81,9 +82,70 @@ export class PerfilComponent implements OnInit {
     }
   }
 
+  // --- CANCELACIÓN DE RESERVAS Y CRÉDITO A FAVOR ---
+
+  // Verifica si faltan 2 horas o más para la función
+  puedeCancelarCompra(fechaFuncionISO: string): boolean {
+    if (!fechaFuncionISO) return false;
+    const fechaFuncion = new Date(fechaFuncionISO).getTime();
+    const ahora = new Date().getTime();
+    const diferenciaHoras = (fechaFuncion - ahora) / (1000 * 60 * 60);
+
+    return diferenciaHoras >= 2;
+  }
+
+  async cancelarCompra(venta: any) {
+    const fechaFuncion = venta.funcion?.fecha_hora;
+    if (!this.puedeCancelarCompra(fechaFuncion)) {
+      alert('Las compras solo pueden cancelarse hasta 2 horas antes del inicio de la función.');
+      return;
+    }
+
+    if (!confirm(`¿Confirmás la cancelación de esta reserva? Se acreditarán $${venta.monto_total} como saldo a favor en tu perfil.`)) {
+      return;
+    }
+
+    try {
+      this.cargando = true;
+      const perfilActual = this.perfilUsuario;
+      const saldoActual = Number(perfilActual?.credito_saldo) || 0;
+      const nuevoSaldo = saldoActual + Number(venta.monto_total);
+
+      // 1. Marcar la venta como cancelada en la BD
+      const { error: errVenta } = await this.supabaseService.client
+        .from('ventas')
+        .update({ estado_qr: 'cancelado' })
+        .eq('id', venta.id);
+
+      if (errVenta) throw errVenta;
+
+      // 2. Acreditar el saldo en la cuenta del usuario
+      const { error: errPerfil } = await this.supabaseService.client
+        .from('perfiles')
+        .update({ credito_saldo: nuevoSaldo })
+        .eq('id', perfilActual.id);
+
+      if (errPerfil) throw errPerfil;
+
+      // Actualizar localmente el estado de la pantalla
+      this.perfilUsuario.credito_saldo = nuevoSaldo;
+      venta.estado_qr = 'cancelado';
+
+      alert(`✔️ Compra cancelada con éxito. Tenés $${nuevoSaldo} de crédito disponible en tu perfil.`);
+      if (perfilActual?.id) {
+        await this.cargarHistorialVentas(perfilActual.id);
+      }
+    } catch (err: any) {
+      console.error('Error al cancelar compra:', err);
+      alert('No se pudo cancelar la compra: ' + err.message);
+    } finally {
+      this.cargando = false;
+      this.cdr.detectChanges();
+    }
+  }
+
   // --- FIDELIZACIÓN: MÉTODOS DE PUNTOS Y RECOMPENSAS ---
 
-  // Carga el historial y calcula el saldo sumando todas las transacciones
   async cargarMovimientosPuntos(userId: string) {
     try {
       const { data, error } = await this.supabaseService.client
@@ -99,7 +161,6 @@ export class PerfilComponent implements OnInit {
 
       if (data) {
         this.historialPuntos = data;
-        // Sumamos todos los movimientos (acumulaciones positivas y canjes negativos)
         this.saldoPuntos = data.reduce((acc: number, mov: any) => acc + (mov.cantidad || 0), 0);
       }
     } catch (err) {
@@ -107,7 +168,6 @@ export class PerfilComponent implements OnInit {
     }
   }
 
-  // <-- 2. MÉTODO NUEVO: Cargar los premios activos desde Supabase
   async cargarRecompensasDisponibles() {
     try {
       const { data, error } = await this.supabaseService.client
@@ -129,7 +189,7 @@ export class PerfilComponent implements OnInit {
     }
   }
 
-async canjearRecompensa(recompensa: any) {
+  async canjearRecompensa(recompensa: any) {
     if (this.saldoPuntos < recompensa.costo_puntos) {
       return alert(`No tenés puntos suficientes. Necesitás ${recompensa.costo_puntos} pts y tenés ${this.saldoPuntos} pts.`);
     }
@@ -139,7 +199,6 @@ async canjearRecompensa(recompensa: any) {
     const userId = this.perfilUsuario?.id;
     if (!userId) return;
 
-    // 1. Descontar puntos en la BD
     const { error } = await this.supabaseService.client
       .from('movimientos_puntos')
       .insert([{
@@ -152,25 +211,24 @@ async canjearRecompensa(recompensa: any) {
     if (error) {
       alert('Error al procesar el canje: ' + error.message);
     } else {
-      // 2. Guardar el premio canjeado en los beneficios disponibles del usuario
       const beneficiosPrevios = JSON.parse(localStorage.getItem('beneficios_canjeados') || '[]');
       beneficiosPrevios.push({
         id: crypto.randomUUID(),
         recompensa_id: recompensa.id,
         nombre: recompensa.nombre,
-        tipo: recompensa.tipo, // 'Entrada Gratis', 'Producto Candy', 'Combo Especial'
+        tipo: recompensa.tipo,
         costo_puntos: recompensa.costo_puntos
       });
       localStorage.setItem('beneficios_canjeados', JSON.stringify(beneficiosPrevios));
 
       alert(`¡Canje exitoso! Tenés disponible "${recompensa.nombre}". Se aplicará en tu próximo checkout.`);
-      
+
       await this.cargarMovimientosPuntos(userId);
       this.cdr.detectChanges();
     }
   }
 
-  // --- RESTO DE MÉTODOS EXISTENTES ---
+  // --- HISTORIAL DE VENTAS Y RESEÑAS ---
 
   async cargarHistorialVentas(userId: string) {
     try {

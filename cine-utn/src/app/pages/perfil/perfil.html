@@ -10,14 +10,22 @@
   } @else if (perfilUsuario) {
     <!-- ENCABEZADO DEL PERFIL -->
     <div class="card bg-dark text-white border-secondary p-4 mb-4 shadow">
-      <div class="d-flex align-items-center gap-3">
-        <div class="bg-danger text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-          <i class="bi bi-person-fill fs-2"></i>
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-danger text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+            <i class="bi bi-person-fill fs-2"></i>
+          </div>
+          <div>
+            <h2 class="m-0 fw-bold">{{ perfilUsuario.nombre }} {{ perfilUsuario.apellido }}</h2>
+            <span class="badge bg-secondary me-2">{{ perfilUsuario.rol | uppercase }}</span>
+            <small class="text-secondary"><i class="bi bi-envelope me-1"></i>{{ perfilUsuario.email }}</small>
+          </div>
         </div>
-        <div>
-          <h2 class="m-0 fw-bold">{{ perfilUsuario.nombre }} {{ perfilUsuario.apellido }}</h2>
-          <span class="badge bg-secondary me-2">{{ perfilUsuario.rol | uppercase }}</span>
-          <small class="text-secondary"><i class="bi bi-envelope me-1"></i>{{ perfilUsuario.email }}</small>
+
+        <!-- INDICADOR DE CRÉDITO A FAVOR -->
+        <div class="bg-secondary bg-opacity-20 border border-success rounded p-3 text-end">
+          <span class="text-secondary small d-block"><i class="bi bi-wallet2 me-1"></i>Crédito a Favor en Cuenta</span>
+          <h3 class="m-0 text-success fw-bold">${{ perfilUsuario.credito_saldo || 0 }}</h3>
         </div>
       </div>
     </div>
@@ -184,7 +192,7 @@
           </div>
         </div>
 
-        <!-- HISTORIAL DE COMPRAS -->
+        <!-- HISTORIAL DE COMPRAS CON OPCIÓN DE CANCELACIÓN -->
         <div class="card bg-dark text-white border-secondary p-4 shadow mb-4">
           <h4 class="text-danger fw-bold mb-3"><i class="bi bi-receipt me-2"></i>Mis Entradas Compradas</h4>
 
@@ -201,7 +209,9 @@
                       <h5 class="fw-bold text-danger m-0">{{ v.funcion?.peliculas?.titulo || 'Cine UTN Ticket' }}</h5>
                       <small class="text-secondary">Comprado el: {{ formatearFecha(v.created_at) }}</small>
                     </div>
-                    <span class="badge bg-success fs-6">${{ v.monto_total }}</span>
+                    <div class="text-end">
+                      <span class="badge bg-success fs-6">${{ v.monto_total }}</span>
+                    </div>
                   </div>
 
                   @if (v.funcion) {
@@ -211,13 +221,31 @@
                     </div>
                   }
 
-                  <div class="d-flex flex-wrap gap-1 mt-2">
+                  <div class="d-flex flex-wrap gap-1 mt-2 mb-3">
                     @for (b of v.detalle_butacas; track b.fila + b.columna) {
                       <span class="badge bg-dark border border-secondary text-light">
                         Fila {{ b.fila }} - Asiento {{ b.columna }}
                       </span>
                     }
                   </div>
+
+                  <!-- CONTROL DE CANCELACIÓN -->
+                  <div class="border-top border-secondary pt-2 mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    @if (v.estado_qr === 'cancelado') {
+                      <span class="badge bg-danger p-2"><i class="bi bi-x-circle me-1"></i>RESERVA CANCELADA - MONTO ACREDITADO</span>
+                    } @else {
+                      @if (puedeCancelarCompra(v.funcion?.fecha_hora)) {
+                        <button class="btn btn-outline-danger btn-sm fw-bold" (click)="cancelarCompra(v)">
+                          <i class="bi bi-x-circle me-1"></i> Cancelar Reserva (Devolución a Crédito)
+                        </button>
+                      } @else {
+                        <small class="text-white-50">
+                          <i class="bi bi-clock-history me-1"></i> Fuera del plazo de cancelación (menos de 2 hs).
+                        </small>
+                      }
+                    }
+                  </div>
+
                 </div>
               }
             </div>

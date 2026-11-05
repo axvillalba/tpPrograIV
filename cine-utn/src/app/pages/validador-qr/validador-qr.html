@@ -44,7 +44,7 @@
               <small class="text-secondary">Reserva: {{ ventaEncontrada.codigo_qr }}</small>
             </div>
             <span class="badge bg-outline-light border fs-6">
-              Estado: {{ ventaEncontrada.estado_qr | uppercase }}
+              Estado: {{ (ventaEncontrada.estado_qr || 'PENDIENTE') | uppercase }}
             </span>
           </div>
 

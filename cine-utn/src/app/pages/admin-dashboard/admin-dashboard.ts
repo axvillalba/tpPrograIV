@@ -1,4 +1,4 @@
-import { Component, signal, ViewChild, ElementRef, inject, OnInit } from '@angular/core';
+import { Component, signal, ViewChild, ElementRef, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -6,8 +6,7 @@ import { AuthService } from '../../services/auth';
 import { SupabaseService } from '../../services/supabase';
 import { CandyService } from '../../services/candy';
 import { CuponesService } from '../../services/cupones';
-import { RecompensasService } from '../../services/recompensas'
-
+import { RecompensasService } from '../../services/recompensas';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -20,14 +19,16 @@ export class AdminDashboardComponent implements OnInit {
   private supabaseService = inject(SupabaseService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
-  // Nuevos servicios inyectados
+  // Servicios inyectados
   private candyService = inject(CandyService);
   private cuponesService = inject(CuponesService);
   private recompensasService = inject(RecompensasService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('fileInputCandy') fileInputCandy!: ElementRef<HTMLInputElement>;
+  @ViewChild('fileInputRecompensa') fileInputRecompensa!: ElementRef<HTMLInputElement>;
 
   pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recompensas'>('peliculas');
 
@@ -36,6 +37,8 @@ export class AdminDashboardComponent implements OnInit {
   productosCandy = signal<any[]>([]);
   cupones = signal<any[]>([]);
   funciones = signal<any[]>([]);
+  salas = signal<any[]>([]);
+  recompensas = signal<any[]>([]);
 
   // Estados de carga y edición
   subiendoImagen = signal<boolean>(false);
@@ -43,9 +46,12 @@ export class AdminDashboardComponent implements OnInit {
   idCandyEditando = signal<string | null>(null);
   idCuponEditando = signal<string | null>(null);
   idFuncionEditando = signal<string | null>(null);
+  idRecompensaEditando = signal<string | null>(null);
 
-  // Archivo local seleccionado
+  // Archivos seleccionados
   archivoPosterSeleccionado: File | null = null;
+  archivoCandySeleccionado: File | null = null;
+  archivoRecompensaSeleccionado: File | null = null;
 
   // Géneros disponibles para los checkboxes
   generosDisponibles: string[] = [
@@ -66,9 +72,6 @@ export class AdminDashboardComponent implements OnInit {
     poster_url: '',
   });
 
-
-  //Variable para el archivo del Candy
-  archivoCandySeleccionado: File | null = null;
   // Formulario Candy
   nuevoCandy = signal<any>({
     nombre: '',
@@ -95,13 +98,7 @@ export class AdminDashboardComponent implements OnInit {
     idioma: 'Subtitulada',
   });
 
-  // Salas
-  salas = signal<any[]>([]);
-
-  recompensas = signal<any[]>([]);
-  idRecompensaEditando = signal<string | null>(null);
-  archivoRecompensaSeleccionado: File | null = null;
-  @ViewChild('fileInputRecompensa') fileInputRecompensa!: ElementRef<HTMLInputElement>;
+  // Formulario Recompensas
   nuevaRecompensa = signal<any>({
     nombre: '',
     descripcion: '',
@@ -111,7 +108,17 @@ export class AdminDashboardComponent implements OnInit {
     activo: true
   });
 
-
+  // Programación Recurrente
+  periodoRecurrencia: number = 1; // Cantidad de semanas (1, 2 o 4)
+  diasSemana = [
+    { id: 1, nombre: 'Lun', seleccionado: false },
+    { id: 2, nombre: 'Mar', seleccionado: false },
+    { id: 3, nombre: 'Mié', seleccionado: false },
+    { id: 4, nombre: 'Jue', seleccionado: false },
+    { id: 5, nombre: 'Vie', seleccionado: false },
+    { id: 6, nombre: 'Sáb', seleccionado: false },
+    { id: 0, nombre: 'Dom', seleccionado: false }
+  ];
 
   async ngOnInit() {
     await this.cargarDatos();
@@ -125,17 +132,27 @@ export class AdminDashboardComponent implements OnInit {
       this.supabaseService.client.from('peliculas').select('*'),
       this.candyService.getProductos(),
       this.cuponesService.getCupones(),
-      this.supabaseService.client.from('funciones').select('*, peliculas(titulo), salas(nombre)').gte('horario_fin', hoy).order('fecha_hora', { ascending: true }),
-      this.recompensasService.getRecompensas() // Nueva petición paralela
+      this.supabaseService.client.from('funciones').select('*, peliculas(titulo, duracion_minutos), salas(nombre)').gte('horario_fin', hoy).order('fecha_hora', { ascending: true }),
+      this.recompensasService.getRecompensas()
     ]);
 
     if (resPelis.data) this.peliculas.set(resPelis.data);
     if (resCandy.data) this.productosCandy.set(resCandy.data);
     if (resCups.data) this.cupones.set(resCups.data);
     if (resFuncs.data) this.funciones.set(resFuncs.data);
-    if (resRecompensas.data) this.recompensas.set(resRecompensas.data); // Guardamos la data
+    if (resRecompensas.data) this.recompensas.set(resRecompensas.data);
   }
 
+  async cargarSalas() {
+    const { data, error } = await this.supabaseService.client
+      .from('salas')
+      .select('*')
+      .order('nombre', { ascending: true });
+
+    if (!error && data) {
+      this.salas.set(data);
+    }
+  }
 
   async cerrarSesion() {
     try {
@@ -169,12 +186,10 @@ export class AdminDashboardComponent implements OnInit {
     return 'Sin género';
   }
 
-  // --- SELECCIÓN Y SUBIDA DE ARCHIVO ---
+  // --- SUBIDA DE IMÁGENES ---
   onArchivoSeleccionado(event: any) {
     const file = event.target.files[0];
-    if (file) {
-      this.archivoPosterSeleccionado = file;
-    }
+    if (file) this.archivoPosterSeleccionado = file;
   }
 
   async subirPosterASupabase(file: File): Promise<string | null> {
@@ -194,7 +209,6 @@ export class AdminDashboardComponent implements OnInit {
       }
 
       const { data } = this.supabaseService.client.storage.from('posters').getPublicUrl(filePath);
-
       return data.publicUrl;
     } catch (err: any) {
       alert('Error inesperado subiendo la imagen');
@@ -302,11 +316,10 @@ export class AdminDashboardComponent implements OnInit {
     this.resetFormPelicula();
   }
 
-  // --- CRUD CANDY BAR ---
+ // --- CRUD CANDY BAR ---
   async guardarCandy() {
     const prod = { ...this.nuevoCandy() };
 
-    // VALIDACIÓN ESTRICTA CANDY BAR
     if (!prod.nombre) return alert('Completá el nombre del producto.');
     if (prod.precio <= 0 || prod.precio > 999999) {
       return alert('El precio debe ser mayor a $0 y menor a $999.999.');
@@ -338,7 +351,7 @@ export class AdminDashboardComponent implements OnInit {
 
   editarCandy(prod: any) {
     this.idCandyEditando.set(prod.id);
-    this.archivoCandySeleccionado = null; // Limpiar selección previa
+    this.archivoCandySeleccionado = null;
     this.nuevoCandy.set({
       nombre: prod.nombre,
       categoria: prod.categoria,
@@ -365,12 +378,9 @@ export class AdminDashboardComponent implements OnInit {
     this.nuevoCandy.set({ nombre: '', categoria: 'Pochoclos', precio: 0, imagen_url: '' });
   }
 
-  // --- MÉTODOS PARA SUBIR IMAGEN CANDY ---
   onArchivoCandySeleccionado(event: any) {
     const file = event.target.files[0];
-    if (file) {
-      this.archivoCandySeleccionado = file;
-    }
+    if (file) this.archivoCandySeleccionado = file;
   }
 
   async subirImagenCandyASupabase(file: File): Promise<string | null> {
@@ -378,9 +388,8 @@ export class AdminDashboardComponent implements OnInit {
       this.subiendoImagen.set(true);
       const fileExt = file.name.split('.').pop();
       const fileName = `candy_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `candy/${fileName}`; // Se guarda en la carpeta candy dentro del bucket posters
+      const filePath = `candy/${fileName}`;
 
-      // Reutilizamos el bucket 'posters' que ya tenés público y funcionando
       const { error: uploadError } = await this.supabaseService.client.storage
         .from('posters')
         .upload(filePath, file);
@@ -407,7 +416,6 @@ export class AdminDashboardComponent implements OnInit {
       return alert('Por favor, ingresá un código y un descuento válido entre 1 y 100.');
     }
 
-    // Aseguramos mayúsculas
     cup.codigo = cup.codigo.toUpperCase().trim();
 
     if (this.idCuponEditando()) {
@@ -441,7 +449,16 @@ export class AdminDashboardComponent implements OnInit {
     else await this.cargarDatos();
   }
 
-  // --- PROGRAMACIÓN DE FUNCIONES ---
+  // --- PROGRAMACIÓN DE FUNCIONES CON RECURRENCIA ---
+  hayDiasSeleccionados(): boolean {
+    return this.diasSemana.some(d => d.seleccionado);
+  }
+
+  resetearDiasSemana() {
+    this.diasSemana.forEach(d => d.seleccionado = false);
+    this.periodoRecurrencia = 1;
+  }
+
   async crearFuncionAutomatica() {
     const fn = { ...this.nuevaFuncion() };
 
@@ -449,75 +466,118 @@ export class AdminDashboardComponent implements OnInit {
       return alert('Por favor seleccioná Película, Sala y Fecha/Hora.');
     }
 
-    const fechaInicio = new Date(fn.fecha_hora);
+    const fechaInicioBase = new Date(fn.fecha_hora);
     const ahora = new Date();
 
-    if (fechaInicio < ahora && !this.idFuncionEditando()) {
+    if (fechaInicioBase < ahora && !this.idFuncionEditando()) {
       return alert('Error: No podés programar una nueva función en un horario pasado.');
     }
 
     const peliElegida = this.peliculas().find(p => p.id === fn.pelicula_id);
     const duracionMinutos = peliElegida?.duracion_minutos || 120;
 
-    const fechaFinConLimpieza = new Date(fechaInicio.getTime() + ((duracionMinutos + 30) * 60000));
+    // Determinar fechas a procesar
+    const diasElegidos = this.diasSemana.filter(d => d.seleccionado).map(d => d.id);
+    const fechasAProgramar: Date[] = [];
 
-    const haySolapamiento = this.funciones().some(existente => {
-      if (this.idFuncionEditando() && existente.id === this.idFuncionEditando()) return false;
-      if (existente.sala_id !== fn.sala_id) return false;
+    if (this.idFuncionEditando() || diasElegidos.length === 0) {
+      fechasAProgramar.push(fechaInicioBase);
+    } else {
+      const totalDias = Number(this.periodoRecurrencia) * 7;
+      for (let i = 0; i < totalDias; i++) {
+        const fechaEval = new Date(fechaInicioBase);
+        fechaEval.setDate(fechaInicioBase.getDate() + i);
 
-      const inicioExistente = new Date(existente.fecha_hora);
-      const duracionExistente = existente.peliculas?.duracion_minutos || 120;
-      const finExistenteConLimpieza = new Date(inicioExistente.getTime() + ((duracionExistente + 30) * 60000));
+        if (diasElegidos.includes(fechaEval.getDay())) {
+          fechasAProgramar.push(fechaEval);
+        }
+      }
+    }
 
-      return (fechaInicio < finExistenteConLimpieza && fechaFinConLimpieza > inicioExistente);
-    });
+    const funcionesExistentes = [...this.funciones()];
+    const nuevasFuncionesPayload: any[] = [];
+    let omitidasPorSolapamiento = 0;
 
-    if (haySolapamiento) {
+    for (const fechaInicio of fechasAProgramar) {
+      const fechaFinConLimpieza = new Date(fechaInicio.getTime() + ((duracionMinutos + 30) * 60000));
+
+      const haySolapamiento = funcionesExistentes.some(existente => {
+        if (this.idFuncionEditando() && existente.id === this.idFuncionEditando()) return false;
+        if (existente.sala_id !== fn.sala_id) return false;
+
+        const inicioExistente = new Date(existente.fecha_hora || existente.horario_inicio);
+        const duracionExistente = existente.peliculas?.duracion_minutos || 120;
+        const finExistenteConLimpieza = new Date(inicioExistente.getTime() + ((duracionExistente + 30) * 60000));
+
+        return (fechaInicio < finExistenteConLimpieza && fechaFinConLimpieza > inicioExistente);
+      });
+
+      if (haySolapamiento) {
+        omitidasPorSolapamiento++;
+      } else {
+        const payload = {
+          pelicula_id: fn.pelicula_id,
+          sala_id: fn.sala_id,
+          fecha_hora: fechaInicio.toISOString(),
+          horario_inicio: fechaInicio.toISOString(),
+          horario_fin: new Date(fechaInicio.getTime() + (duracionMinutos * 60000)).toISOString(),
+          formato: fn.formato,
+          idioma: fn.idioma,
+          precio_base: 4500
+        };
+        nuevasFuncionesPayload.push(payload);
+        funcionesExistentes.push(payload);
+      }
+    }
+
+    if (nuevasFuncionesPayload.length === 0) {
       return alert('⚠️ CONFLICTO DE SALA:\n\nLa sala seleccionada está ocupada en ese horario o no se respeta el margen obligatorio de 30 minutos de limpieza entre funciones.');
     }
 
-    // CORRECCIÓN CLAVE: Transformamos la fecha local a formato UTC (ISO) estricto antes de enviarla
-    const payload = {
-      pelicula_id: fn.pelicula_id,
-      sala_id: fn.sala_id,
-      fecha_hora: fechaInicio.toISOString(),
-      horario_inicio: fechaInicio.toISOString(),
-      horario_fin: new Date(fechaInicio.getTime() + (duracionMinutos * 60000)).toISOString(),
-      formato: fn.formato,
-      idioma: fn.idioma,
-      precio_base: 4500
-    };
-
     if (this.idFuncionEditando()) {
-      const { error } = await this.supabaseService.client.from('funciones').update(payload).eq('id', this.idFuncionEditando());
+      const { error } = await this.supabaseService.client
+        .from('funciones')
+        .update(nuevasFuncionesPayload[0])
+        .eq('id', this.idFuncionEditando());
+
       if (error) alert('Error al actualizar: ' + error.message);
       else this.cancelarEdicionFuncion();
     } else {
-      const { error } = await this.supabaseService.client.from('funciones').insert([payload]);
-      if (error) alert('Error al programar: ' + error.message);
-      else this.cancelarEdicionFuncion();
+      const { error } = await this.supabaseService.client
+        .from('funciones')
+        .insert(nuevasFuncionesPayload);
+
+      if (error) {
+        alert('Error al programar: ' + error.message);
+      } else {
+        let msg = `✔️ Se programó ${nuevasFuncionesPayload.length} función(es) con éxito.`;
+        if (omitidasPorSolapamiento > 0) {
+          msg += `\n⚠️ ${omitidasPorSolapamiento} fecha(s) omitida(s) por superposición.`;
+        }
+        alert(msg);
+        this.cancelarEdicionFuncion();
+      }
     }
 
     await this.cargarDatos();
   }
 
-
-
   cancelarEdicionFuncion() {
     this.idFuncionEditando.set(null);
     this.nuevaFuncion.set({
       pelicula_id: '',
+      sala_id: '',
       fecha_hora: '',
       formato: '2D',
       idioma: 'Subtitulada',
     });
+    this.resetearDiasSemana();
   }
 
   editarFuncion(func: any) {
     let fechaFormateada = '';
 
     if (func.fecha_hora) {
-      // Convertimos el UTC de Supabase a la hora local para que el <input> lo lea bien
       const dateObj = new Date(func.fecha_hora);
       const localDate = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
       fechaFormateada = localDate.toISOString().slice(0, 16);
@@ -526,7 +586,7 @@ export class AdminDashboardComponent implements OnInit {
     this.idFuncionEditando.set(func.id);
     this.nuevaFuncion.set({
       pelicula_id: func.pelicula_id,
-      sala_id: func.sala_id, // Ahora la sala también se selecciona al editar
+      sala_id: func.sala_id,
       fecha_hora: fechaFormateada,
       formato: func.formato || '2D',
       idioma: func.idioma || 'Castellano'
@@ -545,17 +605,7 @@ export class AdminDashboardComponent implements OnInit {
     else await this.cargarDatos();
   }
 
-  async cargarSalas() {
-    const { data, error } = await this.supabaseService.client
-      .from('salas')
-      .select('*')
-      .order('nombre', { ascending: true });
-
-    if (!error && data) {
-      this.salas.set(data);
-    }
-  }
-
+  // --- CRUD RECOMPENSAS ---
   onArchivoRecompensaSeleccionado(event: any) {
     const file = event.target.files[0];
     if (file) this.archivoRecompensaSeleccionado = file;
@@ -583,7 +633,7 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-async guardarRecompensa() {
+  async guardarRecompensa() {
     const rec = { ...this.nuevaRecompensa() };
     if (!rec.nombre || rec.costo_puntos <= 0) return alert('Completá nombre y un costo válido en puntos.');
 
@@ -636,9 +686,4 @@ async guardarRecompensa() {
     if (error) alert('Error al eliminar: ' + error.message);
     else await this.cargarDatos();
   }
-
-
-
-
-
 }
