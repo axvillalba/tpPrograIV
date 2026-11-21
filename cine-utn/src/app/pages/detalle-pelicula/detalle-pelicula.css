@@ -1,0 +1,147 @@
+.max-w-detail {
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+.btn-back-detail {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e4e4e7;
+  border-radius: 999px;
+  padding: 6px 16px;
+  transition: all 0.2s ease;
+}
+
+.btn-back-detail:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.detail-poster-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #09090c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
+}
+
+.detail-poster-img {
+  width: 100%;
+  max-height: 490px;
+  object-fit: contain;
+  display: block;
+}
+
+.detail-age-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.detail-age-badge.adult {
+  background: rgba(229, 9, 20, 0.2);
+  border-color: rgba(229, 9, 20, 0.55);
+  color: #ff6b72;
+}
+
+.detail-meta-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #a1a1aa;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.rating-pill {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.25);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.accent-bar-red {
+  width: 4px;
+  height: 24px;
+  border-radius: 4px;
+  background: #e50914;
+  box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+}
+
+/* Selector de Días */
+.day-selector-btn {
+  background: rgba(12, 12, 16, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a1a1aa;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.day-selector-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+}
+
+.day-selector-btn.active {
+  background: linear-gradient(135deg, #e50914 0%, #b80710 100%);
+  border-color: #ff4d56;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(229, 9, 20, 0.35);
+}
+
+/* Grupos de Horarios */
+.format-group-box {
+  background: rgba(11, 11, 15, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.showtime-pill-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f4f4f5;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.showtime-pill-btn:hover {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.showtime-pill-btn.selected {
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+  border-color: #4ade80;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(25, 135, 84, 0.4);
+}
+
+.empty-showtimes-box {
+  background: rgba(11, 11, 15, 0.5);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+
+/* Reseñas */
+.review-item-card {
+  background: rgba(12, 12, 16, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.review-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(229, 9, 20, 0.2);
+  color: #ff6b72;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}

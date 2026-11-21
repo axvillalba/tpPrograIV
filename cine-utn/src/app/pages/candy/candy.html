@@ -1,52 +1,74 @@
 <app-navbar></app-navbar>
 
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-4 bg-dark-card p-3 rounded border border-secondary">
-    <div>
-      <h2 class="text-danger fw-bold mb-1"><i class="bi bi-cup-straw me-2"></i>Sector Candy Bar</h2>
-      <p class="text-secondary mb-0">Agregá tus snacks preferidos para retirarlos en el cine</p>
+<div class="container py-4 py-md-5 animate-fade-in">
+  
+  <!-- CABECERA Y RESUMEN DE SUBTOTALES -->
+  <div class="candy-header-card d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4 p-3 p-md-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="candy-icon-badge">
+        <i class="bi bi-cup-straw"></i>
+      </div>
+      <div>
+        <h2 class="text-white fw-bold mb-1">Sector <span class="text-danger">Candy Bar</span></h2>
+        <p class="text-secondary small mb-0">Agregá tus combos y snacks para retirarlos sin fila en el cine</p>
+      </div>
     </div>
     
     <!-- Desglose de Subtotales y Total General -->
-    <div class="text-end">
-      <div class="small text-secondary">
-        Entradas: <span class="text-light fw-bold me-3">${{ montoEntradas() }}</span>
-        Candy: <span class="text-light fw-bold">${{ totalCandy() }}</span>
+    <div class="candy-totals-box text-md-end">
+      <div class="small text-secondary mb-1">
+        Entradas: <span class="text-white fw-semibold me-3">${{ montoEntradas() }}</span>
+        Candy: <span class="text-warning fw-semibold">${{ totalCandy() }}</span>
       </div>
-      <h4 class="text-light mb-0 mt-1">
-        Total General: <span class="text-success fw-bold">${{ totalGeneral() }}</span>
-      </h4>
+      <div class="d-flex align-items-baseline justify-content-md-end gap-2">
+        <span class="small text-uppercase text-secondary fw-bold">Total General:</span>
+        <span class="fs-3 text-success fw-bold">${{ totalGeneral() }}</span>
+      </div>
     </div>
   </div>
 
-  <!-- Filtro por Categorías -->
-  <div class="d-flex gap-2 mb-4">
+  <!-- FILTRO POR CATEGORÍAS -->
+  <div class="d-flex flex-wrap gap-2 mb-4">
     @for (cat of categorias; track cat) {
       <button 
-        class="btn btn-sm"
-        [ngClass]="categoriaFiltro() === cat ? 'btn-danger-custom' : 'btn-outline-secondary text-light'"
+        type="button"
+        class="btn candy-cat-pill"
+        [class.active]="categoriaFiltro() === cat"
         (click)="categoriaFiltro.set(cat)">
         {{ cat }}
       </button>
     }
   </div>
 
-  <!-- Grilla de Productos -->
-  <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+  <!-- GRILLA DE PRODUCTOS -->
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4 mb-5">
     @for (p of productosFiltrados(); track p.id) {
       <div class="col">
-        <div class="card h-100 bg-dark-card text-white border-secondary shadow-sm">
-          <img [src]="p.imagen_url" class="card-img-top object-fit-cover" alt="{{ p.nombre }}" style="height: 200px;">
-          <div class="card-body d-flex flex-column">
-            <span class="badge bg-secondary mb-2 w-fit">{{ p.categoria }}</span>
-            <h5 class="card-title fw-bold mb-1">{{ p.nombre }}</h5>
-            <p class="card-text text-secondary small flex-grow-1">{{ p.descripcion }}</p>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="fs-5 fw-bold text-success">${{ p.precio }}</span>
-              <div class="btn-group align-items-center">
-                <button class="btn btn-outline-danger btn-sm" (click)="modificarCantidad(p, -1)">-</button>
-                <span class="px-3 fw-bold text-light">{{ p.cantidad || 0 }}</span>
-                <button class="btn btn-outline-success btn-sm" (click)="modificarCantidad(p, 1)">+</button>
+        <div class="card h-100 candy-product-card text-white position-relative" [class.has-items]="(p.cantidad || 0) > 0">
+          
+          <span class="candy-category-tag">{{ p.categoria }}</span>
+
+          <div class="candy-img-wrapper">
+            <img [src]="p.imagen_url" class="candy-img" alt="{{ p.nombre }}">
+            <div class="candy-img-fade"></div>
+          </div>
+
+          <div class="card-body d-flex flex-column pt-2">
+            <h5 class="card-title fw-bold text-white mb-1">{{ p.nombre }}</h5>
+            <p class="card-text text-secondary small flex-grow-1 mb-3">{{ p.descripcion }}</p>
+            
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
+              <span class="fs-4 fw-bold text-success">${{ p.precio }}</span>
+              
+              <!-- Selector de Cantidad Estilizado -->
+              <div class="qty-stepper">
+                <button type="button" class="qty-btn qty-minus" (click)="modificarCantidad(p, -1)">
+                  <i class="bi bi-dash"></i>
+                </button>
+                <span class="qty-value">{{ p.cantidad || 0 }}</span>
+                <button type="button" class="qty-btn qty-plus" (click)="modificarCantidad(p, 1)">
+                  <i class="bi bi-plus"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -55,12 +77,12 @@
     }
   </div>
 
-  <!-- Botones de Acción -->
-  <div class="d-flex justify-content-between">
-    <button class="btn btn-outline-secondary" (click)="continuarAlCheckout()">
+  <!-- BARRA DE ACCIONES INFERIOR -->
+  <div class="candy-footer-bar d-flex justify-content-between align-items-center flex-wrap gap-3 p-3 p-md-4">
+    <button class="btn btn-omit-candy px-4 py-2" (click)="continuarAlCheckout()">
       Omitir Candy Bar
     </button>
-    <button class="btn btn-danger-custom btn-lg px-5 shadow" (click)="continuarAlCheckout()">
+    <button class="btn btn-danger-custom btn-lg px-5" (click)="continuarAlCheckout()">
       Continuar al Pago <i class="bi bi-arrow-right ms-2"></i>
     </button>
   </div>

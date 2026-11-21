@@ -1,0 +1,138 @@
+.profile-header-card {
+  border-left: 4px solid #e50914 !important;
+}
+
+.profile-avatar-circle {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e50914 0%, #99060d 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(229, 9, 20, 0.35);
+  flex-shrink: 0;
+}
+
+.role-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e4e4e7;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.wallet-credit-box {
+  background: rgba(25, 135, 84, 0.1);
+  border: 1px solid rgba(25, 135, 84, 0.38);
+  border-radius: 12px;
+}
+
+.accent-bar-red {
+  width: 4px;
+  height: 24px;
+  border-radius: 4px;
+  background: #e50914;
+  box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+}
+
+.empty-profile-box {
+  background: rgba(11, 11, 15, 0.6);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+}
+
+/* Galería Películas Vistas */
+.watched-movie-card {
+  background: rgba(14, 14, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.watched-movie-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(229, 9, 20, 0.5);
+}
+
+.watched-poster-box {
+  height: 190px;
+  overflow: hidden;
+  background: #09090c;
+}
+
+.watched-poster-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.watched-movie-card:hover .watched-poster-img {
+  transform: scale(1.06);
+}
+
+/* Filas de Calificación y Formulario */
+.rate-item-row {
+  background: rgba(12, 12, 16, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.review-form-card {
+  border: 1px solid rgba(229, 9, 20, 0.45) !important;
+}
+
+/* Fidelización */
+.loyalty-card {
+  border: 1px solid rgba(255, 193, 7, 0.35) !important;
+}
+
+.loyalty-header {
+  background: rgba(255, 193, 7, 0.08);
+  border-bottom: 1px solid rgba(255, 193, 7, 0.25);
+}
+
+.points-pill {
+  background: rgba(11, 11, 15, 0.85);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  padding: 4px 14px;
+  border-radius: 999px;
+}
+
+.table-profile-cinema {
+  --bs-table-bg: transparent;
+  --bs-table-color: #e4e4e7;
+  --bs-table-border-color: rgba(255, 255, 255, 0.06);
+}
+
+.table-profile-cinema thead th {
+  background: #111116;
+  color: #a1a1aa;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Recompensas y Compras */
+.reward-item-card, .purchase-ticket-card {
+  background: rgba(12, 12, 16, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.purchase-ticket-card {
+  border-left: 3px solid #e50914;
+}
+
+.seat-tag-mini {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f4f4f5;
+  font-size: 0.75rem;
+  padding: 3px 9px;
+  border-radius: 6px;
+}

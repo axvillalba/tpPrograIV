@@ -1,58 +1,53 @@
-# 🎬 Cine UTN - Documentación del Proyecto y Estado de Avance
+# Cine UTN · TP Programación IV
 
-**Cine UTN** es una plataforma web moderna para la reserva de entradas de cine y productos de Candy Bar, desarrollada con **Angular (Standalone Components)** en el front-end y **Supabase** como backend serverless y base de datos relacional PostgreSQL.
+Aplicación web integral para la gestión y reserva de entradas de cine: cartelera interactiva, selección de asientos, compra de tickets, validación de ingresos/candy bar por código QR para personal y gestión de perfiles con reseñas comunitarias.
 
----
+Desarrollada con **Angular 18/19** (Standalone Components, Signals) y **Supabase** (PostgreSQL, Auth, RLS y RPC).
 
-## 📌 Tabla de Estado de Funcionalidades
-
-| Módulo / Funcionalidad | Descripción de la Implementación | Estado |
-| :--- | :--- | :---: |
-| **Cartelera y Buscador** | Búsqueda en tiempo real por título/sinopsis y filtrado dinámico por género de películas. | ✅ Implementado |
-| **Afiches Oficiales** | Carga de posters cinematográficos oficiales con URLs directas de alta resolución sin bloqueos de hotlinking/CORS. | ✅ Implementado |
-| **Top 3 Películas Más Vendidas** | Sección superior destacada en cartelera que agrupa y calcula dinámicamente las películas con más tickets vendidos desde la tabla `ventas` de Supabase. | ✅ Implementado |
-| **Sistema de Reseñas y Puntuación** | Permite a los usuarios dejar calificaciones (1 a 5 estrellas) y comentarios cortos. Muestra la puntuación promedio general y el conteo de opiniones por película antes de comprar. Incluye feedback visual al publicar. | ✅ Implementado |
-| **Validación de Clasificación por Edad** | Control de edad leyendo el perfil del usuario. Bloqueo para películas +18 a menores y alertas preventivas para cintas +13. | ✅ Implementado |
-| **Selección Interactiva de Butacas** | Modelo de filas y bloques con precios diferenciales (Estándar, Adaptada Discapacidad, VIP) y detección en tiempo real de asientos ocupados por función. | ✅ Implementado |
-| **Candy Bar Integrado** | Menú de productos categorizados (Pochoclos, Bebidas, Combos, Snacks, Golosinas) seleccionables e integrados en el mismo flujo de compra. | ✅ Implementado |
-| **Cupones de Descuento Dinámicos** | Validación contra la tabla `cupones` en Supabase. Soporta porcentaje configurable, descuento automático en 1ra compra y restricción exclusiva para usuarios mayores de 50 años. | ✅ Implementado |
-| **Checkout y Comprobante con QR** | Procesamiento de ventas, generación de código QR único para entradas y snack bar, opción de descarga de Ticket en PDF e impresión directa. | ✅ Implementado |
-| **Mapa Interactivo de Salas del Cine** | Pantalla o vista modal con la distribución geográfica completa del establecimiento indicando la ubicación física exacta de la sala asignada a la función. | ⏳ Pendiente (Sin luz verde del directorio) |
+| | |
+|---|---|
+| **Proyecto** | Cine UTN |
+| **Tecnologías** | Angular + Supabase + Bootstrap/Tailwind |
+| **Estado actual** | Core funcional, Perfil, Validador QR Staff y Reseñas Relacionales listas |
 
 ---
 
-## 🛠️ Arquitectura Técnica y Stack de Tecnologías
+## 📚 Documentación del Proyecto
 
-* **Frontend:** Angular (v17+ Standalone Components, Signals, Computed properties, RxJS).
-* **Estilos & UI:** Bootstrap 5 + Bootstrap Icons.
-* **Backend / Database:** Supabase (PostgreSQL, Auth, Realtime queries).
-* **Librerías Adicionales:** `qrcode` (para generación de códigos QR de reserva) y `html2pdf.js` (para exportación de comprobantes a PDF).
-
----
-
-## 🗄️ Esquema de Base de Datos (Supabase)
-
-La aplicación utiliza las siguientes tablas principales en Supabase:
-
-* `peliculas`: Información de títulos, sinopsis, géneros, duración, clasificación y URLs de afiches.
-* `funciones`: Días, horarios, idioma, formato y relación con salas de proyección.
-* `ventas`: Registro histórico de compras con UUID, usuario, detalle de butacas seleccionadas, detalle de productos de Candy Bar, descuento aplicado y código QR.
-* `resenas`: Comentarios y valoraciones numéricas (1 a 5) dejadas por los usuarios para cada película.
-* `productos_candy`: Catálogo de consumibles categorizados con precios e imágenes.
-* `cupones`: Códigos de descuento con porcentajes variables, vigencia, flag de 1ra compra y restricción para mayores de 50 años.
+| Documento | Qué contiene |
+|---|---|
+| [FUNCIONAL.md](FUNCIONAL.md) | Reglas de negocio, roles de usuario (Cliente, Empleado, Admin), flujos de compra, validación QR y sistema de reseñas. |
+| [TECNICO.md](TECNICO.md) | Arquitectura, modelo de datos DDL, configuración de Supabase, componentes Standalone, Signals y mapa de rutas. |
 
 ---
 
-## ⚙️ Instrucciones de Configuración e Instalación
+## 🍿 Características Principales
 
-1. Clonar el repositorio.
-2. Ejecutar `npm install` para instalar las dependencias.
-3. Configurar las credenciales de la API de Supabase en `src/environments/environment.ts`.
-4. Ejecutar los scripts SQL proporcionados para crear y poblar las tablas en el panel de Supabase.
-5. Iniciar el servidor de desarrollo con `ng serve` o `npm start` e ingresar a `http://localhost:4200`.
+- **Cartelera Principal & Top 3**: Destacado de las películas más vendidas, buscador interactivo y filtrado por género.
+- **Detalle de Película & Horarios**: Sinopsis, restricción de edad, duración, promedio de calificación y grilla de funciones agrupadas por formato (`2D`, `3D`) e idioma (`Castellano`, `Subtitulada`).
+- **Reserva & Compra**: Selección de funciones con automatización de horarios y margen de limpieza obligatorio de 30 minutos entre funciones.
+- **Validaciones QR (Staff/Candy Bar)**: Pantalla exclusiva `/empleado/validador` con actualización de estado en tiempo real (`usado_cine`, `usado_candy`, `usado_total`).
+- **Mi Perfil & Historial**: Consulta de ventas realizadas, historial de entradas compradas y módulo para calificar/reseñar películas vistas.
+- **Reseñas Relacionales**: Integración dinámica relacional entre `resenas` y `perfiles` mediante `usuario_id` en PostgreSQL.
 
 ---
 
-## 📝 Próximos Pasos
+## 🛠️ Stack Tecnológico
 
-Mantenerse a la espera de la confirmación directiva respecto al módulo de la vista del mapa del cine para proceder con la maquetación y asignación de ubicaciones de salas.
+| Capa | Tecnología |
+|---|---|
+| Frontend | Angular (Standalone Components, Signals, Reactive & Template Forms) |
+| Backend & DB | Supabase (PostgreSQL, Client Auth, Row Level Security) |
+| Estilos | Bootstrap 5 / Tailwind CSS + Icons |
+| Control de Versiones | Git & GitHub (`laComarca`) |
+
+---
+
+## ⚡ Arranque Rápido
+
+```bash
+# 1. Instalar dependencias
+npm install
+
+# 2. Iniciar servidor de desarrollo
+npm start

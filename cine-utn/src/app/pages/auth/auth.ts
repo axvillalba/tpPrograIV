@@ -35,6 +35,7 @@ export class AuthComponent {
     });
   }
 
+
   toggleModo() {
     this.modoRegistro.update(v => !v);
     this.mensajeError.set(null);

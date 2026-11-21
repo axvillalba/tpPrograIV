@@ -8,9 +8,9 @@ export interface RegistroUsuario {
   nombre: string;
   apellido: string;
   fechaNacimiento: string;
-  tipoSangre: string;
-  colorOjos: string;
-  diasVacaciones: number;
+  tipoSangre?: string;
+  colorOjos?: string;
+  diasVacaciones?: number;
 }
 
 @Injectable({
@@ -20,14 +20,24 @@ export class AuthService {
   currentUser = signal<User | null>(null);
 
   constructor(private supabaseService: SupabaseService) {
-    this.supabaseService.client.auth.onAuthStateChange((event, session) => {
+    this.supabaseService.client.auth.onAuthStateChange((_event, session) => {
       this.currentUser.set(session?.user ?? null);
     });
   }
 
   async registrarUsuario(datos: RegistroUsuario) {
-    const { email, password, nombre, apellido, fechaNacimiento, tipoSangre, colorOjos, diasVacaciones } = datos;
+    const { 
+      email, 
+      password, 
+      nombre, 
+      apellido, 
+      fechaNacimiento, 
+      tipoSangre, 
+      colorOjos, 
+      diasVacaciones 
+    } = datos;
 
+    // Enviar metadatos completos para que el Trigger de Postgres arme el perfil en 'perfiles'
     const { data, error } = await this.supabaseService.client.auth.signUp({
       email,
       password,
@@ -36,9 +46,10 @@ export class AuthService {
           nombre,
           apellido,
           fecha_nacimiento: fechaNacimiento,
-          tipo_sangre: tipoSangre,
-          color_ojos: colorOjos,
-          dias_vacaciones: diasVacaciones
+          tipo_sangre: tipoSangre || 'O+',
+          color_ojos: colorOjos || '',
+          dias_vacaciones: diasVacaciones || 14,
+          rol: 'cliente'
         }
       }
     });
@@ -63,16 +74,36 @@ export class AuthService {
   }
 
   async getPerfilActual() {
-    const user = this.currentUser();
+    const { data: { user } } = await this.supabaseService.client.auth.getUser();
     if (!user) return null;
 
-    const { data, error } = await this.supabaseService.client
-      .from('profiles')
+    // Consulta directa y limpia a la tabla unificada 'perfiles'
+    const { data: perfil, error } = await this.supabaseService.client
+      .from('perfiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('Error al obtener el perfil unificado:', error);
+      return null;
+    }
+
+    return perfil;
+  }
+
+    calcularEdad(fechaNacimientoStr: string | Date): number {
+    if (!fechaNacimientoStr) return 0;
+
+    const hoy = new Date();
+    const fechaNac = new Date(fechaNacimientoStr);
+    let edad = hoy.getFullYear() - fechaNac.getFullYear();
+    const mes = hoy.getMonth() - fechaNac.getMonth();
+
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
+      edad--;
+    }
+
+    return edad;
   }
 }

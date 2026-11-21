@@ -1,25 +1,30 @@
-<div class="min-vh-100 d-flex align-items-center justify-content-center bg-dark text-white py-5">
-  <div class="card bg-dark-card border-danger shadow-lg p-4" style="max-width: 420px; width: 100%;">
-    
+<div class="staff-auth-container">
+  <div class="staff-spotlight"></div>
+
+  <div class="card bg-dark-card staff-auth-card p-4 p-md-5 animate-fade-in">
     <div class="text-center mb-4">
-      <h3 class="text-danger fw-bold mb-1"><i class="bi bi-shield-lock me-2"></i>Acceso Staff</h3>
-      <p class="text-secondary small">Portal exclusivo para Gerencia y Empleados de Cine UTN</p>
+      <div class="staff-shield-badge mx-auto mb-3">
+        <i class="bi bi-shield-lock-fill"></i>
+      </div>
+      <span class="staff-tag d-block mb-1">PORTAL INTERNO</span>
+      <h3 class="text-white fw-bold mb-1">Acceso <span class="text-danger">Staff</span></h3>
+      <p class="text-secondary small m-0">Exclusivo para Gerencia y Empleados de Cine UTN</p>
     </div>
 
     @if (errorMensaje()) {
-      <div class="alert alert-danger py-2 small fw-bold mb-3">
+      <div class="staff-error-alert py-2 px-3 small fw-semibold mb-3 rounded-3">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMensaje() }}
       </div>
     }
 
     <form (ngSubmit)="iniciarSesionStaff()">
       <div class="mb-3">
-        <label class="form-label small text-secondary fw-bold">Correo Institucional</label>
-        <div class="input-group">
-          <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-envelope"></i></span>
+        <label class="form-label small text-light fw-medium">Correo Institucional</label>
+        <div class="input-group staff-input-group">
+          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
           <input 
             type="email" 
-            class="form-control bg-dark text-white border-secondary" 
+            class="form-control" 
             placeholder="usuario@cineutn.com"
             [ngModel]="email()"
             (ngModelChange)="email.set($event)"
@@ -29,12 +34,12 @@
       </div>
 
       <div class="mb-4">
-        <label class="form-label small text-secondary fw-bold">Contraseña</label>
-        <div class="input-group">
-          <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-key"></i></span>
+        <label class="form-label small text-light fw-medium">Contraseña</label>
+        <div class="input-group staff-input-group">
+          <span class="input-group-text"><i class="bi bi-key"></i></span>
           <input 
             type="password" 
-            class="form-control bg-dark text-white border-secondary" 
+            class="form-control" 
             placeholder="••••••••"
             [ngModel]="password()"
             (ngModelChange)="password.set($event)"
@@ -45,7 +50,7 @@
 
       <button 
         type="submit" 
-        class="btn btn-danger-custom btn-lg w-100 mb-3 shadow" 
+        class="btn btn-danger-custom btn-lg w-100 mb-3 py-2" 
         [disabled]="cargando() || !email() || !password()">
         @if (cargando()) {
           <span class="spinner-border spinner-border-sm me-2"></span> Autenticando...
@@ -56,7 +61,7 @@
 
       <button 
         type="button" 
-        class="btn btn-outline-secondary btn-sm w-100" 
+        class="btn btn-back-client btn-sm w-100 py-2" 
         (click)="volverAlLoginCliente()">
         <i class="bi bi-arrow-left me-1"></i> Volver a la Vista de Clientes
       </button>

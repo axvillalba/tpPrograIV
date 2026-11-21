@@ -1,10 +1,11 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase';
 import { AuthService } from '../../services/auth';
 import { NavbarComponent } from '../../components/navbar/navbar';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface Butaca {
   fila: string;
@@ -31,17 +32,18 @@ interface Resena {
   templateUrl: './seleccion-entradas.html',
   styleUrl: './seleccion-entradas.css'
 })
-export class SeleccionEntradasComponent implements OnInit {
+export class SeleccionEntradasComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private supabaseService = inject(SupabaseService);
   private authService = inject(AuthService);
 
+  private canalRealtime: RealtimeChannel | null = null;
+
   pelicula = signal<any>(null);
-  funciones = signal<any[]>([]);
   funcionSeleccionada = signal<any>(null);
   mapaButacas = signal<Butaca[]>([]);
-  advertenciaEdad = signal<string | null>(null);
+  usuarioActual = signal<any>(null);
 
   // Estados de Reseñas y Puntuaciones
   resenas = signal<Resena[]>([]);
@@ -52,107 +54,62 @@ export class SeleccionEntradasComponent implements OnInit {
     return (suma / list.length).toFixed(1);
   });
 
-  // Formulario nueva reseña + Mensaje de éxito
-  nuevaCalificacion = signal<number>(5);
-  nuevoComentario = signal<string>('');
-  mensajeExitoResena = signal<boolean>(false);
-  usuarioActual = signal<any>(null);
-
-  filas = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'];
+  filas = ['A','B','C','D','E','F','G','H','I','DISC','L','M','N','O','P','Q','R','S','T'];
 
   butacasSeleccionadas = computed(() => this.mapaButacas().filter(b => b.seleccionada));
   montoTotal = computed(() => this.butacasSeleccionadas().reduce((acc, curr) => acc + curr.precio, 0));
 
   async ngOnInit() {
-    const peliculaId = this.route.snapshot.paramMap.get('id');
-    if (!peliculaId) return;
+    try {
+      // 1. El ID recibido en la URL corresponde a la FUNCION elegida en el paso anterior
+      const funcionId = this.route.snapshot.paramMap.get('id');
+      if (!funcionId) return;
 
-    const perfil = await this.authService.getPerfilActual();
-    this.usuarioActual.set(perfil);
+      const perfil = await this.authService.getPerfilActual();
+      this.usuarioActual.set(perfil);
 
-    await this.cargarPeliculaYFunciones(peliculaId);
-    await this.cargarResenas(peliculaId);
-    await this.validarEdadUsuario();
+      await this.cargarFuncionYPelicula(funcionId);
+    } catch (err) {
+      console.error('Error al inicializar:', err);
+    }
   }
 
-  private async cargarPeliculaYFunciones(peliculaId: string) {
-    // 1. Obtener Película
-    const { data: p } = await this.supabaseService.client
-      .from('peliculas')
-      .select('*')
-      .eq('id', peliculaId)
-      .single();
-    this.pelicula.set(p);
+  ngOnDestroy() {
+    if (this.canalRealtime) {
+      this.supabaseService.client.removeChannel(this.canalRealtime);
+    }
+  }
 
-    // 2. Obtener Funciones disponibles
-    const { data: fList } = await this.supabaseService.client
+  private async cargarFuncionYPelicula(funcionId: string) {
+    // Cargar la función con los datos vinculados de película y sala
+    const { data: f, error } = await this.supabaseService.client
       .from('funciones')
-      .select('*, salas(nombre)')
-      .eq('pelicula_id', peliculaId)
-      .order('horario_inicio', { ascending: true });
+      .select('*, peliculas(*), salas(*)')
+      .eq('id', funcionId)
+      .maybeSingle();
 
-    if (fList && fList.length > 0) {
-      this.funciones.set(fList);
-      this.seleccionarFuncion(fList[0]);
+    if (error || !f) {
+      console.error('Error al cargar la función:', error);
+      return;
     }
-  }
 
-  async seleccionarFuncion(f: any) {
     this.funcionSeleccionada.set(f);
+    if (f.peliculas) {
+      this.pelicula.set(f.peliculas);
+      await this.cargarResenas(f.peliculas.id);
+    }
+
     this.generarMapaSalas();
-    await this.cargarButacasOcupadas(f.id);
-  }
-
-  private async cargarButacasOcupadas(funcionId: string) {
-    const { data: ventasExistentes } = await this.supabaseService.client
-      .from('ventas')
-      .select('detalle_butacas')
-      .eq('funcion_id', funcionId);
-
-    if (ventasExistentes && ventasExistentes.length > 0) {
-      const asientosCompradosSet = new Set<string>();
-
-      ventasExistentes.forEach((v: any) => {
-        if (v.detalle_butacas && Array.isArray(v.detalle_butacas)) {
-          v.detalle_butacas.forEach((b: any) => {
-            asientosCompradosSet.add(`${b.fila}-${b.columna}`);
-          });
-        }
-      });
-
-      this.mapaButacas.update(asientos =>
-        asientos.map(b => ({
-          ...b,
-          ocupada: asientosCompradosSet.has(`${b.fila}-${b.columna}`),
-          seleccionada: false
-        }))
-      );
-    }
-  }
-
-  private async validarEdadUsuario() {
-    const perfil = await this.authService.getPerfilActual();
-    const pelicula = this.pelicula();
-
-    if (perfil && pelicula) {
-      const fechaNac = new Date(perfil.fecha_nacimiento);
-      const edad = new Date().getFullYear() - fechaNac.getFullYear();
-
-      if (pelicula.clasificacion_edad === '+18' && edad < 18) {
-        alert('Esta película es exclusiva para mayores de 18 años.');
-        this.router.navigate(['/cartelera']);
-      } else if (pelicula.clasificacion_edad === '+13' && edad < 18) {
-        this.advertenciaEdad.set('Atención: Al ser menor de 18 años, deberás asistir acompañado por un adulto.');
-      }
-    }
+    await this.cargarButacasOcupadas(funcionId);
+    this.suscribirAOcumpacionEnTiempoReal(funcionId);
   }
 
   private generarMapaSalas() {
-    const precioBase = this.funcionSeleccionada()?.precio_base || 5000;
+    const precioBase = this.funcionSeleccionada()?.precio_base || 4500;
     const listado: Butaca[] = [];
 
     this.filas.forEach(fila => {
-      const esDiscapacidad = fila === 'J' || fila === 'K';
+      const esDiscapacidad = fila === 'DISC';
       const esVip = fila === 'R' || fila === 'S' || fila === 'T';
       
       let tipo: 'estandar' | 'discapacidad' | 'vip' = 'estandar';
@@ -185,6 +142,97 @@ export class SeleccionEntradasComponent implements OnInit {
     this.mapaButacas.set(listado);
   }
 
+  private async cargarButacasOcupadas(funcionId: string) {
+    const { data: ventasExistentes } = await this.supabaseService.client
+      .from('ventas')
+      .select('detalle_butacas, estado_qr')
+      .eq('funcion_id', funcionId)
+      .neq('estado_qr', 'cancelado');
+
+    if (ventasExistentes && ventasExistentes.length > 0) {
+      const asientosCompradosSet = new Set<string>();
+
+      ventasExistentes.forEach((v: any) => {
+        const detalle = v['detalle_butacas'];
+        if (detalle && Array.isArray(detalle)) {
+          detalle.forEach((b: any) => {
+            asientosCompradosSet.add(`${b.fila}-${b.columna}`);
+          });
+        }
+      });
+
+      this.mapaButacas.update(asientos =>
+        asientos.map(b => ({
+          ...b,
+          ocupada: asientosCompradosSet.has(`${b.fila}-${b.columna}`),
+          seleccionada: asientosCompradosSet.has(`${b.fila}-${b.columna}`) ? false : b.seleccionada
+        }))
+      );
+    }
+  }
+
+  private suscribirAOcumpacionEnTiempoReal(funcionId: string) {
+    if (this.canalRealtime) {
+      this.supabaseService.client.removeChannel(this.canalRealtime);
+    }
+
+    this.canalRealtime = this.supabaseService.client
+      .channel(`ventas-funcion-${funcionId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ventas', filter: `funcion_id=eq.${funcionId}` },
+        (payload) => {
+          // 1. Cuando se concreta una nueva venta activa: inhabilitar butacas
+          if (payload.eventType === 'INSERT') {
+            const nuevaVenta = payload.new as Record<string, any>;
+            if (nuevaVenta && nuevaVenta['estado_qr'] !== 'cancelado') {
+              const detalleButacas = nuevaVenta['detalle_butacas'];
+              if (detalleButacas && Array.isArray(detalleButacas)) {
+                const nuevasOcupadas = new Set<string>();
+                detalleButacas.forEach((b: any) => {
+                  nuevasOcupadas.add(`${b.fila}-${b.columna}`);
+                });
+
+                this.mapaButacas.update(asientos =>
+                  asientos.map(b => {
+                    const clave = `${b.fila}-${b.columna}`;
+                    if (nuevasOcupadas.has(clave)) {
+                      return { ...b, ocupada: true, seleccionada: false };
+                    }
+                    return b;
+                  })
+                );
+              }
+            }
+          }
+          // 2. Cuando se cancela una reserva: liberar inmediatamente las butacas en el mapa
+          else if (payload.eventType === 'UPDATE') {
+            const ventaActualizada = payload.new as Record<string, any>;
+            if (ventaActualizada && ventaActualizada['estado_qr'] === 'cancelado') {
+              const detalleButacas = ventaActualizada['detalle_butacas'];
+              if (detalleButacas && Array.isArray(detalleButacas)) {
+                const liberadas = new Set<string>();
+                detalleButacas.forEach((b: any) => {
+                  liberadas.add(`${b.fila}-${b.columna}`);
+                });
+
+                this.mapaButacas.update(asientos =>
+                  asientos.map(b => {
+                    const clave = `${b.fila}-${b.columna}`;
+                    if (liberadas.has(clave)) {
+                      return { ...b, ocupada: false };
+                    }
+                    return b;
+                  })
+                );
+              }
+            }
+          }
+        }
+      )
+      .subscribe();
+  }
+
   toggleButaca(b: Butaca) {
     if (b.ocupada) return;
     b.seleccionada = !b.seleccionada;
@@ -209,7 +257,7 @@ export class SeleccionEntradasComponent implements OnInit {
     this.router.navigate(['/candy']);
   }
 
-  // Lógica de Reseñas
+  // --- LÓGICA DE RESEÑAS ---
   async cargarResenas(peliculaId: string) {
     const { data } = await this.supabaseService.client
       .from('resenas')
@@ -219,37 +267,6 @@ export class SeleccionEntradasComponent implements OnInit {
 
     if (data) {
       this.resenas.set(data);
-    }
-  }
-
-  async agregarResena() {
-    if (!this.nuevoComentario().trim()) return;
-
-    const peliculaId = this.pelicula()?.id;
-    const perfil = this.usuarioActual();
-    const nombreUsuario = perfil ? `${perfil.nombre || ''} ${perfil.apellido || ''}`.trim() : 'Cliente Cine UTN';
-
-    const nueva = {
-      pelicula_id: peliculaId,
-      usuario_id: perfil?.id || null,
-      nombre_usuario: nombreUsuario || 'Cliente',
-      calificacion: Number(this.nuevaCalificacion()),
-      comentario: this.nuevoComentario().trim()
-    };
-
-    const { error } = await this.supabaseService.client
-      .from('resenas')
-      .insert([nueva]);
-
-    if (!error) {
-      this.nuevoComentario.set('');
-      this.mensajeExitoResena.set(true);
-      await this.cargarResenas(peliculaId);
-
-      // Ocultar mensaje tras 4 segundos
-      setTimeout(() => {
-        this.mensajeExitoResena.set(false);
-      }, 4000);
     }
   }
 }

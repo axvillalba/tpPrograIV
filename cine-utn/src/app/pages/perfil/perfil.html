@@ -1,0 +1,318 @@
+<app-navbar></app-navbar>
+
+<div class="container py-4 py-md-5 text-white animate-fade-in">
+  @if (cargando) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-danger" role="status">
+        <span class="visually-hidden">Cargando perfil...</span>
+      </div>
+    </div>
+  } @else if (perfilUsuario) {
+    
+    <!-- ENCABEZADO DEL PERFIL -->
+    <div class="card bg-dark-card profile-header-card text-white p-4 mb-4">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="profile-avatar-circle">
+            <i class="bi bi-person-fill fs-2"></i>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <h2 class="m-0 fw-bold text-white">{{ perfilUsuario.nombre }} {{ perfilUsuario.apellido }}</h2>
+              <span class="role-pill">{{ perfilUsuario.rol | uppercase }}</span>
+            </div>
+            <small class="text-secondary d-block mt-1">
+              <i class="bi bi-envelope me-1 text-danger"></i>{{ perfilUsuario.email }}
+            </small>
+          </div>
+        </div>
+
+        <!-- INDICADOR DE CRÉDITO A FAVOR -->
+        <div class="wallet-credit-box p-3 text-md-end">
+          <span class="text-secondary small d-block fw-medium">
+            <i class="bi bi-wallet2 me-1 text-success"></i>Crédito a Favor en Cuenta
+          </span>
+          <h3 class="m-0 text-success fw-bold">${{ perfilUsuario.credito_saldo || 0 }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN GALERÍA VISUAL: MIS PELÍCULAS VISTAS -->
+    <div class="card bg-dark-card text-white p-4 mb-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="accent-bar-red"></span>
+        <h4 class="text-white fw-bold m-0">Mis Películas Vistas</h4>
+      </div>
+      
+      @if (peliculasCompradas.length === 0) {
+        <div class="empty-profile-box p-3 text-secondary small m-0">
+          Aún no tenés películas registradas. ¡Tus entradas compradas aparecerán acá automáticamente!
+        </div>
+      } @else {
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+          @for (peli of peliculasCompradas; track peli.id) {
+            <div class="col">
+              <div class="watched-movie-card h-100 d-flex flex-column justify-content-between">
+                <div class="watched-poster-box">
+                  <img [src]="peli.imagen_url || 'assets/placeholder-poster.png'" 
+                       [alt]="peli.titulo" 
+                       class="watched-poster-img">
+                </div>
+                
+                <div class="p-2 text-center d-flex flex-column justify-content-between flex-grow-1">
+                  <h6 class="fw-bold text-truncate small m-0 text-white" [title]="peli.titulo">{{ peli.titulo }}</h6>
+                  
+                  <div class="mt-2">
+                    @if (yaTieneResena(peli.id)) {
+                      <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 w-100" style="font-size: 0.68rem;">
+                        <i class="bi bi-star-fill me-1"></i>Calificada
+                      </span>
+                    } @else {
+                      <button class="btn btn-outline-warning btn-sm w-100 py-1 fw-semibold" style="font-size: 0.72rem;" (click)="abrirFormularioResena(peli)">
+                        Opinar
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="row g-4">
+      
+      <!-- COLUMNA IZQUIERDA: RESEÑAS Y OPINIONES -->
+      <div class="col-lg-5">
+        <div class="card bg-dark-card text-white p-4 mb-4">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="accent-bar-red"></span>
+            <h4 class="text-white fw-bold m-0">Calificar Películas Vistas</h4>
+          </div>
+          <p class="small text-secondary mb-3">
+            Solo podés dejar una opinión sobre aquellas películas cuyas entradas hayas adquirido previamente.
+          </p>
+
+          @if (peliculasCompradas.length === 0) {
+            <div class="empty-profile-box p-3 text-secondary small">
+              Aún no compraste entradas para ninguna película.
+            </div>
+          } @else {
+            <div class="d-flex flex-column gap-2">
+              @for (peli of peliculasCompradas; track peli.id) {
+                <div class="p-3 rate-item-row rounded-3 d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    <h6 class="fw-bold m-0 text-white">{{ peli.titulo }}</h6>
+                    @if (yaTieneResena(peli.id)) {
+                      <span class="badge bg-success bg-opacity-25 text-success mt-1"><i class="bi bi-check-circle me-1"></i>Ya opinaste</span>
+                    } @else {
+                      <span class="badge bg-warning bg-opacity-25 text-warning mt-1">Pendiente de opinión</span>
+                    }
+                  </div>
+
+                  @if (!yaTieneResena(peli.id)) {
+                    <button class="btn btn-danger-custom btn-sm px-3" (click)="abrirFormularioResena(peli)">
+                      Opinar
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- FORMULARIO DE RESEÑA -->
+        @if (peliculaParaResenar) {
+          <div class="card bg-dark-card review-form-card text-white p-4 mb-4">
+            <h5 class="text-warning fw-bold mb-3">
+              <i class="bi bi-pencil-square me-2"></i>Opinar sobre: {{ peliculaParaResenar.titulo }}
+            </h5>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary fw-medium">Puntuación</label>
+              <select class="form-select bg-dark text-white" [(ngModel)]="calificacionSeleccionada">
+                <option [value]="5">⭐⭐⭐⭐⭐ (5/5) - Obra Maestra</option>
+                <option [value]="4">⭐⭐⭐⭐ (4/5) - Muy Buena</option>
+                <option [value]="3">⭐⭐⭐ (3/5) - Entretenida</option>
+                <option [value]="2">⭐⭐ (2/5) - Regular</option>
+                <option [value]="1">⭐ (1/5) - Mala</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary fw-medium">Tu comentario</label>
+              <textarea class="form-control bg-dark text-white" rows="3"
+                        placeholder="Contanos qué te pareció la película..."
+                        [(ngModel)]="comentarioInput"></textarea>
+            </div>
+
+            @if (mensajeExito) {
+              <div class="alert alert-success small py-2 mb-3">
+                {{ mensajeExito }}
+              </div>
+            }
+
+            <div class="d-flex gap-2 justify-content-end">
+              <button class="btn btn-outline-light btn-sm px-3" (click)="cancelarResena()">Cancelar</button>
+              <button class="btn btn-danger-custom btn-sm px-4" [disabled]="enviandoResena" (click)="enviarResena()">
+                {{ enviandoResena ? 'Guardando...' : 'Publicar Reseña' }}
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- COLUMNA DERECHA: HISTORIAL, PUNTOS Y RECOMPENSAS -->
+      <div class="col-lg-7">
+        
+        <!-- PROGRAMA DE FIDELIZACIÓN (PUNTOS Y SALDO) -->
+        <div class="card bg-dark-card loyalty-card text-white mb-4 overflow-hidden">
+          <div class="loyalty-header d-flex justify-content-between align-items-center p-3 px-4">
+            <h5 class="m-0 text-warning fw-bold"><i class="bi bi-star-fill me-2"></i>Programa de Fidelización</h5>
+            <div class="points-pill">
+              <span class="fs-4 fw-bold text-white">{{ saldoPuntos }}</span> <small class="text-warning fw-bold">PTS</small>
+            </div>
+          </div>
+          
+          <div class="p-0">
+            <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+              <table class="table table-profile-cinema table-sm m-0">
+                <thead class="position-sticky top-0">
+                  <tr>
+                    <th class="ps-4 py-2">Fecha</th>
+                    <th class="py-2">Detalle de Operación</th>
+                    <th class="text-end pe-4 py-2">Puntos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (mov of historialPuntos; track mov.id) {
+                    <tr>
+                      <td class="ps-4 text-secondary small align-middle">{{ mov.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+                      <td class="align-middle text-light small">{{ mov.motivo }}</td>
+                      <td class="text-end pe-4 fw-bold align-middle" [ngClass]="mov.cantidad > 0 ? 'text-success' : 'text-danger'">
+                        {{ mov.cantidad > 0 ? '+' : '' }}{{ mov.cantidad }}
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="3" class="text-center text-secondary py-4 small">
+                        Aún no tenés movimientos. ¡Tus compras sumarán puntos automáticamente!
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- CATÁLOGO DE RECOMPENSAS Y PREMIOS CANJEABLES -->
+        <div class="card bg-dark-card text-white p-4 mb-4">
+          <h4 class="text-warning fw-bold mb-3"><i class="bi bi-gift-fill me-2"></i>Premios y Beneficios Canjeables</h4>
+          
+          <div class="row g-3">
+            @for (rec of recompensasDisponibles; track rec.id) {
+              <div class="col-md-6">
+                <div class="reward-item-card h-100 p-3 d-flex flex-column justify-content-between">
+                  <div>
+                    @if (rec.imagen_url) {
+                      <img [src]="rec.imagen_url" class="rounded-3 mb-2 object-fit-cover w-100" style="height: 120px;">
+                    }
+                    <h6 class="fw-bold text-white mb-1">{{ rec.nombre }}</h6>
+                    <p class="small text-secondary mb-2">{{ rec.descripcion || 'Sin descripción' }}</p>
+                  </div>
+
+                  <div class="pt-2 border-top border-secondary border-opacity-25">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-25">{{ rec.tipo }}</span>
+                      <span class="fw-bold text-warning small"><i class="bi bi-star-fill me-1"></i>{{ rec.costo_puntos }} pts</span>
+                    </div>
+                    
+                    <button 
+                      class="btn btn-sm w-100 fw-bold" 
+                      [class.btn-warning]="saldoPuntos >= rec.costo_puntos"
+                      [class.btn-outline-secondary]="saldoPuntos < rec.costo_puntos"
+                      [disabled]="saldoPuntos < rec.costo_puntos"
+                      (click)="canjearRecompensa(rec)">
+                      {{ saldoPuntos >= rec.costo_puntos ? 'Canjear Premio' : 'Puntos Insuficientes' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <div class="col-12 text-center text-secondary py-3 small">
+                No hay premios o combos activos disponibles en este momento.
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- HISTORIAL DE COMPRAS CON OPCIÓN DE CANCELACIÓN -->
+        <div class="card bg-dark-card text-white p-4 mb-4">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="accent-bar-red"></span>
+            <h4 class="text-white fw-bold m-0">Mis Entradas Compradas</h4>
+          </div>
+
+          @if (ventas.length === 0) {
+            <div class="empty-profile-box p-3 text-secondary small">
+              No tenés compras registradas en tu historial.
+            </div>
+          } @else {
+            <div class="d-flex flex-column gap-3">
+              @for (v of ventas; track v.id) {
+                <div class="purchase-ticket-card p-3 rounded-3">
+                  <div class="d-flex justify-content-between align-items-start flex-wrap mb-2">
+                    <div>
+                      <h5 class="fw-bold text-white m-0">{{ v.funcion?.peliculas?.titulo || 'Cine UTN Ticket' }}</h5>
+                      <small class="text-secondary">Comprado el: {{ formatearFecha(v.created_at) }}</small>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge bg-success fs-6">${{ v.monto_total }}</span>
+                    </div>
+                  </div>
+
+                  @if (v.funcion) {
+                    <div class="small text-light opacity-75 mb-2">
+                      <span class="me-3"><i class="bi bi-calendar3 text-danger me-1"></i><strong>Función:</strong> {{ formatearFecha(v.funcion.fecha_hora) }}</span>
+                      <span><i class="bi bi-film text-warning me-1"></i><strong>Formato:</strong> {{ v.funcion.formato }} ({{ v.funcion.idioma }})</span>
+                    </div>
+                  }
+
+                  <div class="d-flex flex-wrap gap-1 mt-2 mb-3">
+                    @for (b of v.detalle_butacas; track b.fila + b.columna) {
+                      <span class="seat-tag-mini">
+                        Fila {{ b.fila }} · Asiento {{ b.columna }}
+                      </span>
+                    }
+                  </div>
+
+                  <!-- CONTROL DE CANCELACIÓN -->
+                  <div class="border-top border-secondary border-opacity-25 pt-2 mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    @if (v.estado_qr === 'cancelado') {
+                      <span class="badge bg-danger bg-opacity-25 text-danger border border-danger p-2">
+                        <i class="bi bi-x-circle me-1"></i>RESERVA CANCELADA - MONTO ACREDITADO
+                      </span>
+                    } @else {
+                      @if (puedeCancelarCompra(v.funcion?.fecha_hora)) {
+                        <button class="btn btn-outline-danger btn-sm fw-bold" (click)="cancelarCompra(v)">
+                          <i class="bi bi-x-circle me-1"></i> Cancelar Reserva (Devolución a Crédito)
+                        </button>
+                      } @else {
+                        <small class="text-secondary">
+                          <i class="bi bi-clock-history me-1"></i> Fuera del plazo de cancelación (menos de 2 hs).
+                        </small>
+                      }
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+      </div>
+    </div>
+  }
+</div>
