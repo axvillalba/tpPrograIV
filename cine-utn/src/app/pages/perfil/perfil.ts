@@ -127,6 +127,30 @@ export class PerfilComponent implements OnInit {
 
       if (errPerfil) throw errPerfil;
 
+      // 3. Revertir puntos de fidelización sumados por esta compra
+      const puntosARestar = Math.floor(Number(venta.monto_total) || 0);
+      if (puntosARestar > 0 && perfilActual?.id) {
+        const saldoPuntosActual = Number(this.saldoPuntos) || 0;
+        const nuevoSaldoPuntos = Math.max(0, saldoPuntosActual - puntosARestar);
+
+        await this.supabaseService.client
+          .from('perfiles')
+          .update({ puntos_fidelidad: nuevoSaldoPuntos })
+          .eq('id', perfilActual.id);
+
+        const tituloPeli = venta.funcion?.peliculas?.titulo || 'Función de Cine';
+        await this.supabaseService.client
+          .from('movimientos_puntos')
+          .insert([{
+            usuario_id: perfilActual.id,
+            cantidad: -puntosARestar,
+            motivo: `Deducción por cancelación: ${tituloPeli}`,
+            fecha: new Date().toISOString()
+          }]);
+
+        await this.cargarMovimientosPuntos(perfilActual.id);
+      }
+
       // Actualizar localmente el estado de la pantalla
       this.perfilUsuario.credito_saldo = nuevoSaldo;
       venta.estado_qr = 'cancelado';

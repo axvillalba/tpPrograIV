@@ -36,6 +36,10 @@ export class CheckoutComponent implements OnInit {
   beneficiosCanjeados = signal<any[]>([]);
   beneficioSeleccionado = signal<any>(null);
 
+  // Perfil del usuario y manejo de Crédito a Favor
+  perfilUsuario = signal<any>(null);
+  usarCredito = signal<boolean>(false);
+
   compraFinalizada = signal<boolean>(false);
   codigoQR = signal<string>('');
   cargando = signal<boolean>(false);
@@ -43,6 +47,21 @@ export class CheckoutComponent implements OnInit {
   montoEntradas = computed(() => this.infoEntradas()?.montoEntradas || 0);
   montoCandy = computed(() => this.infoCandy()?.totalCandy || 0);
   subtotal = computed(() => this.montoEntradas() + this.montoCandy());
+
+  // Crédito a favor acumulado en el perfil
+  creditoDisponible = computed(() => {
+    return Number(this.perfilUsuario()?.credito_saldo) || 0;
+  });
+
+  // Clasificación de edad de la película y verificación de restricción
+  clasificacionPelicula = computed(() => {
+    return this.infoEntradas()?.pelicula?.clasificacion_edad || this.infoEntradas()?.pelicula?.clasificacion || 'ATP';
+  });
+
+  esPeliculaConRestriccion = computed(() => {
+    const clasif = this.clasificacionPelicula();
+    return clasif === '+13' || clasif === '+16' || clasif === '+18';
+  });
 
   // Descuento por código de cupón
   montoDescuento = computed(() => {
@@ -72,9 +91,17 @@ export class CheckoutComponent implements OnInit {
     return 0;
   });
 
-  // Total final a pagar restando tanto cupones como recompensas aplicadas
+  // Descuento aplicable por crédito a favor en cuenta
+  montoCreditoAplicado = computed(() => {
+    if (!this.usarCredito()) return 0;
+    const remanente = this.subtotal() - this.montoDescuento() - this.montoDescuentoRecompensa();
+    if (remanente <= 0) return 0;
+    return Math.min(this.creditoDisponible(), remanente);
+  });
+
+  // Total final a pagar restando cupones, recompensas y crédito a favor
   totalPagar = computed(() => {
-    const total = this.subtotal() - this.montoDescuento() - this.montoDescuentoRecompensa();
+    const total = this.subtotal() - this.montoDescuento() - this.montoDescuentoRecompensa() - this.montoCreditoAplicado();
     return total > 0 ? total : 0;
   });
 
@@ -99,6 +126,12 @@ export class CheckoutComponent implements OnInit {
 
       this.infoEntradas.set(JSON.parse(entradas));
       if (candy) this.infoCandy.set(JSON.parse(candy));
+
+      // Cargar perfil del usuario actual para consultar saldo a favor
+      const perfil = await this.authService.getPerfilActual();
+      if (perfil) {
+        this.perfilUsuario.set(perfil);
+      }
 
       await this.verificarYAutoAplicarPrimeraCompra();
     } catch (err) {
@@ -199,9 +232,9 @@ export class CheckoutComponent implements OnInit {
       const funcionObj = this.infoEntradas()?.funcion;
       const funcionId = funcionObj?.id || null;
       const montoFinal = this.totalPagar();
-      const descuentoTotal = this.montoDescuento() + this.montoDescuentoRecompensa();
+      const descuentoTotal = this.montoDescuento() + this.montoDescuentoRecompensa() + this.montoCreditoAplicado();
 
-      // 1. Guardar la Venta registrando el descuento total consolidado
+      // 1. Guardar la Venta registrando el descuento total consolidado (cupones + fidelidad + crédito)
       const { error } = await this.supabaseService.client.from('ventas').insert({
         id: uuidVenta,
         user_id: user ? user.id : null,
@@ -214,6 +247,17 @@ export class CheckoutComponent implements OnInit {
       });
 
       if (error) throw error;
+
+      // 1.1 Descontar saldo a favor del perfil si se utilizó crédito
+      if (user?.id && this.montoCreditoAplicado() > 0) {
+        const saldoRestante = Math.max(0, this.creditoDisponible() - this.montoCreditoAplicado());
+        await this.supabaseService.client
+          .from('perfiles')
+          .update({ credito_saldo: saldoRestante })
+          .eq('id', user.id);
+
+        this.perfilUsuario.update(p => p ? { ...p, credito_saldo: saldoRestante } : null);
+      }
 
       // 2. Acumulación de Puntos de Fidelización según el total efectivamente abonado
       if (user?.id) {

@@ -149,8 +149,9 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
   private async cargarButacasOcupadas(funcionId: string) {
     const { data: ventasExistentes } = await this.supabaseService.client
       .from('ventas')
-      .select('detalle_butacas')
-      .eq('funcion_id', funcionId);
+      .select('detalle_butacas, estado_qr')
+      .eq('funcion_id', funcionId)
+      .neq('estado_qr', 'cancelado');
 
     if (ventasExistentes && ventasExistentes.length > 0) {
       const asientosCompradosSet = new Set<string>();
@@ -183,26 +184,53 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
       .channel(`ventas-funcion-${funcionId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'ventas', filter: `funcion_id=eq.${funcionId}` },
+        { event: '*', schema: 'public', table: 'ventas', filter: `funcion_id=eq.${funcionId}` },
         (payload) => {
-          const nuevaVenta = payload.new as Record<string, any>;
-          const detalleButacas = nuevaVenta ? nuevaVenta['detalle_butacas'] : null;
+          // 1. Cuando se concreta una nueva venta activa: inhabilitar butacas
+          if (payload.eventType === 'INSERT') {
+            const nuevaVenta = payload.new as Record<string, any>;
+            if (nuevaVenta && nuevaVenta['estado_qr'] !== 'cancelado') {
+              const detalleButacas = nuevaVenta['detalle_butacas'];
+              if (detalleButacas && Array.isArray(detalleButacas)) {
+                const nuevasOcupadas = new Set<string>();
+                detalleButacas.forEach((b: any) => {
+                  nuevasOcupadas.add(`${b.fila}-${b.columna}`);
+                });
 
-          if (detalleButacas && Array.isArray(detalleButacas)) {
-            const nuevasOcupadas = new Set<string>();
-            detalleButacas.forEach((b: any) => {
-              nuevasOcupadas.add(`${b.fila}-${b.columna}`);
-            });
+                this.mapaButacas.update(asientos =>
+                  asientos.map(b => {
+                    const clave = `${b.fila}-${b.columna}`;
+                    if (nuevasOcupadas.has(clave)) {
+                      return { ...b, ocupada: true, seleccionada: false };
+                    }
+                    return b;
+                  })
+                );
+              }
+            }
+          }
+          // 2. Cuando se cancela una reserva: liberar inmediatamente las butacas en el mapa
+          else if (payload.eventType === 'UPDATE') {
+            const ventaActualizada = payload.new as Record<string, any>;
+            if (ventaActualizada && ventaActualizada['estado_qr'] === 'cancelado') {
+              const detalleButacas = ventaActualizada['detalle_butacas'];
+              if (detalleButacas && Array.isArray(detalleButacas)) {
+                const liberadas = new Set<string>();
+                detalleButacas.forEach((b: any) => {
+                  liberadas.add(`${b.fila}-${b.columna}`);
+                });
 
-            this.mapaButacas.update(asientos =>
-              asientos.map(b => {
-                const clave = `${b.fila}-${b.columna}`;
-                if (nuevasOcupadas.has(clave)) {
-                  return { ...b, ocupada: true, seleccionada: false };
-                }
-                return b;
-              })
-            );
+                this.mapaButacas.update(asientos =>
+                  asientos.map(b => {
+                    const clave = `${b.fila}-${b.columna}`;
+                    if (liberadas.has(clave)) {
+                      return { ...b, ocupada: false };
+                    }
+                    return b;
+                  })
+                );
+              }
+            }
           }
         }
       )

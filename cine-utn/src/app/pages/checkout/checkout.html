@@ -7,6 +7,13 @@
   <div class="row g-4">
     <!-- Detalle de Entradas y Candy Bar -->
     <div class="col-md-7">
+      @if (esPeliculaConRestriccion()) {
+      <div class="alert alert-warning border border-warning bg-opacity-10 py-2 px-3 small mb-3 text-warning">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Aviso de Admisión ({{ clasificacionPelicula() }}):</strong> Cualquier menor de edad que asista a esta función debe concurrir obligatoriamente acompañado por un adulto responsable.
+      </div>
+      }
+
       <div class="bg-dark-card p-3 rounded border border-secondary mb-3 text-white">
         <h5 class="text-danger fw-bold"><i class="bi bi-ticket-detailed me-2"></i>Entradas</h5>
         <p class="mb-1"><strong>Película:</strong> {{ infoEntradas()?.pelicula?.titulo }}</p>
@@ -62,6 +69,31 @@
         </div>
         }
 
+        <!-- MÓDULO DE CRÉDITO A FAVOR EN CUENTA -->
+        @if (creditoDisponible() > 0) {
+        <div class="my-3 p-3 bg-dark rounded border border-success shadow-sm">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="fw-bold text-success mb-1">
+                <i class="bi bi-wallet2 me-2"></i>Crédito a Favor Disponible
+              </h6>
+              <small class="text-white-50 d-block">Tenés ${{ creditoDisponible() }} por cancelaciones previas.</small>
+            </div>
+            <div class="form-check form-switch fs-5 mb-0">
+              <input class="form-check-input" type="checkbox" role="switch" id="switchCredito"
+                [checked]="usarCredito()"
+                (change)="usarCredito.set(!usarCredito())">
+            </div>
+          </div>
+          @if (usarCredito()) {
+          <div class="mt-2 text-success small fw-bold d-flex justify-content-between align-items-center border-top border-secondary pt-2">
+            <span>Crédito a aplicar:</span>
+            <span>-${{ montoCreditoAplicado() }}</span>
+          </div>
+          }
+        </div>
+        }
+
         <!-- MÓDULO DE CUPÓN DE DESCUENTO CONFIGURABLE -->
         <div class="my-3 p-3 bg-dark rounded border border-secondary">
           <label class="form-label small fw-bold text-light mb-2">
@@ -97,6 +129,13 @@
         <div class="d-flex justify-content-between mb-2 text-warning fw-bold">
           <span><i class="bi bi-gift-fill me-1"></i> Beneficio Fidelización:</span>
           <span>-${{ montoDescuentoRecompensa() }}</span>
+        </div>
+        }
+
+        @if (montoCreditoAplicado() > 0) {
+        <div class="d-flex justify-content-between mb-2 text-success fw-bold">
+          <span><i class="bi bi-wallet2 me-1"></i> Crédito a Favor Utilizado:</span>
+          <span>-${{ montoCreditoAplicado() }}</span>
         </div>
         }
 
@@ -142,6 +181,11 @@
           📅 <strong>Fecha de la Función:</strong> 
           {{ formatearFechaFuncion(infoEntradas()?.funcion?.fecha_hora || infoEntradas()?.funcion?.horario_inicio) }}
         </p>
+        @if (esPeliculaConRestriccion()) {
+        <p class="mb-1 text-dark bg-warning p-1 rounded fw-bold small">
+          ⚠️ <strong>Aviso ({{ clasificacionPelicula() }}):</strong> Los menores de edad deben ingresar acompañados por un adulto.
+        </p>
+        }
         <p class="mb-1 text-muted">
           <strong>Fecha de Compra:</strong> {{ fechaActual | date:'dd/MM/yyyy HH:mm' }}
         </p>
@@ -197,6 +241,13 @@
         <div class="d-flex justify-content-between mb-1 text-danger fw-bold">
           <span>Descuento Premio Fidelización:</span>
           <span>-${{ montoDescuentoRecompensa() }}</span>
+        </div>
+        }
+
+        @if (montoCreditoAplicado() > 0) {
+        <div class="d-flex justify-content-between mb-1 text-success fw-bold">
+          <span>Crédito a Favor Utilizado:</span>
+          <span>-${{ montoCreditoAplicado() }}</span>
         </div>
         }
 
