@@ -29,15 +29,8 @@ export class LoginStaffComponent {
     const emailLimpio = this.email().trim().toLowerCase();
     const pass = this.password();
 
-    // --- BYPASS DE DESARROLLO TEMPORAL ---
-    if (emailLimpio === 'gerente@cineutn.com' && pass === '123456') {
-      this.cargando.set(false);
-      this.router.navigate(['/admin/dashboard']);
-      return;
-    }
-
     try {
-      // 1. Iniciar sesión en Supabase Auth
+      // 1. Iniciar sesión en Supabase Auth con credenciales reales
       const { data, error } = await this.supabaseService.client.auth.signInWithPassword({
         email: emailLimpio,
         password: pass
@@ -47,7 +40,7 @@ export class LoginStaffComponent {
         throw new Error('Credenciales inválidas. Verifique su correo y contraseña.');
       }
 
-      // 2. Consultar perfil
+      // 2. Consultar perfil en la tabla 'perfiles'
       const { data: perfiles, error: errorPerfil } = await this.supabaseService.client
         .from('perfiles')
         .select('rol')
@@ -64,8 +57,8 @@ export class LoginStaffComponent {
 
       const perfil = perfiles[0];
 
-      // 3. Redirección según el rol
-      if (perfil.rol === 'gerente') {
+      // 3. Redirección estricta según el rol verificado en base de datos
+      if (perfil.rol === 'gerente' || perfil.rol === 'admin') {
         this.router.navigate(['/admin/dashboard']);
       } else if (perfil.rol === 'empleado') {
         this.router.navigate(['/empleado/validador']);
