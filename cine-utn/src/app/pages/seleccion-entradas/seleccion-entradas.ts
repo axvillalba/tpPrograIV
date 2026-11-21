@@ -54,10 +54,6 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
     return (suma / list.length).toFixed(1);
   });
 
-  nuevaCalificacion = signal<number>(5);
-  nuevoComentario = signal<string>('');
-  mensajeExitoResena = signal<boolean>(false);
-
   filas = ['A','B','C','D','E','F','G','H','I','DISC','L','M','N','O','P','Q','R','S','T'];
 
   butacasSeleccionadas = computed(() => this.mapaButacas().filter(b => b.seleccionada));
@@ -271,36 +267,6 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
 
     if (data) {
       this.resenas.set(data);
-    }
-  }
-
-  async agregarResena() {
-    if (!this.nuevoComentario().trim()) return;
-
-    const peliculaId = this.pelicula()?.id;
-    const perfil = this.usuarioActual();
-    const nombreUsuario = perfil ? `${perfil.nombre || ''} ${perfil.apellido || ''}`.trim() : 'Cliente Cine UTN';
-
-    const nueva = {
-      pelicula_id: peliculaId,
-      usuario_id: perfil?.id || null,
-      nombre_usuario: nombreUsuario || 'Cliente',
-      calificacion: Number(this.nuevaCalificacion()),
-      comentario: this.nuevoComentario().trim()
-    };
-
-    const { error } = await this.supabaseService.client
-      .from('resenas')
-      .insert([nueva]);
-
-    if (!error) {
-      this.nuevoComentario.set('');
-      this.mensajeExitoResena.set(true);
-      await this.cargarResenas(peliculaId);
-
-      setTimeout(() => {
-        this.mensajeExitoResena.set(false);
-      }, 4000);
     }
   }
 }

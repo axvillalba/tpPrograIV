@@ -298,12 +298,18 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
         .eq('id', this.idPeliculaEditando());
 
       if (error) alert('Error al actualizar: ' + error.message);
-      else this.resetFormPelicula();
+      else {
+        await this.auditoriaService.registrarAccion('MODIFICAR_PELICULA', { id: this.idPeliculaEditando(), titulo: payload.titulo });
+        this.resetFormPelicula();
+      }
     } else {
       const { error } = await this.supabaseService.client.from('peliculas').insert([payload]);
 
       if (error) alert('Error al crear: ' + error.message);
-      else this.resetFormPelicula();
+      else {
+        await this.auditoriaService.registrarAccion('CREAR_PELICULA', { titulo: payload.titulo });
+        this.resetFormPelicula();
+      }
     }
 
     await this.cargarDatos();
@@ -333,9 +339,13 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
 
   async eliminarPelicula(id: string) {
     if (!confirm('¿Seguro que deseas eliminar esta película?')) return;
+    const peliEliminada = this.peliculas().find((p) => p.id === id);
     const { error } = await this.supabaseService.client.from('peliculas').delete().eq('id', id);
     if (error) alert('Error al eliminar: ' + error.message);
-    else await this.cargarDatos();
+    else {
+      await this.auditoriaService.registrarAccion('ELIMINAR_PELICULA', { id, titulo: peliEliminada?.titulo || 'Desconocido' });
+      await this.cargarDatos();
+    }
   }
 
   resetFormPelicula() {
@@ -384,11 +394,17 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
     if (this.idCandyEditando()) {
       const { error } = await this.candyService.actualizarProducto(this.idCandyEditando()!, prod);
       if (error) alert('Error al actualizar: ' + error.message);
-      else this.cancelarEdicionCandy();
+      else {
+        await this.auditoriaService.registrarAccion('MODIFICAR_PRODUCTO_CANDY', { id: this.idCandyEditando(), nombre: prod.nombre, precio: prod.precio });
+        this.cancelarEdicionCandy();
+      }
     } else {
       const { error } = await this.candyService.crearProducto(prod);
       if (error) alert('Error al crear: ' + error.message);
-      else this.cancelarEdicionCandy();
+      else {
+        await this.auditoriaService.registrarAccion('CREAR_PRODUCTO_CANDY', { nombre: prod.nombre, precio: prod.precio });
+        this.cancelarEdicionCandy();
+      }
     }
 
     await this.cargarDatos();
@@ -407,9 +423,13 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
 
   async eliminarCandy(id: string) {
     if (!confirm('¿Eliminar producto?')) return;
+    const candyEliminado = this.productosCandy().find((c) => c.id === id);
     const { error } = await this.candyService.eliminarProducto(id);
     if (error) alert('Error al eliminar: ' + error.message);
-    else await this.cargarDatos();
+    else {
+      await this.auditoriaService.registrarAccion('ELIMINAR_PRODUCTO_CANDY', { id, nombre: candyEliminado?.nombre || 'Desconocido' });
+      await this.cargarDatos();
+    }
   }
 
   cancelarEdicionCandy() {
@@ -466,10 +486,16 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
     if (this.idCuponEditando()) {
       const { error } = await this.cuponesService.actualizarCupon(this.idCuponEditando()!, cup);
       if (error) alert('Error al actualizar: ' + error.message);
-      else this.idCuponEditando.set(null);
+      else {
+        await this.auditoriaService.registrarAccion('MODIFICAR_CUPON', { id: this.idCuponEditando(), codigo: cup.codigo, descuento: cup.porcentaje_descuento });
+        this.idCuponEditando.set(null);
+      }
     } else {
       const { error } = await this.cuponesService.crearCupon(cup);
       if (error) alert('Error al crear: ' + error.message);
+      else {
+        await this.auditoriaService.registrarAccion('CREAR_CUPON', { codigo: cup.codigo, descuento: cup.porcentaje_descuento });
+      }
     }
 
     this.nuevoCupon.set({
@@ -489,9 +515,13 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
 
   async eliminarCupon(id: string) {
     if (!confirm('¿Eliminar cupón?')) return;
+    const cupEliminado = this.cupones().find((c) => c.id === id);
     const { error } = await this.cuponesService.eliminarCupon(id);
     if (error) alert('Error al eliminar: ' + error.message);
-    else await this.cargarDatos();
+    else {
+      await this.auditoriaService.registrarAccion('ELIMINAR_CUPON', { id, codigo: cupEliminado?.codigo || 'Desconocido' });
+      await this.cargarDatos();
+    }
   }
 
   // --- PROGRAMACIÓN DE FUNCIONES CON RECURRENCIA ---
@@ -590,7 +620,10 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
         .eq('id', this.idFuncionEditando());
 
       if (error) alert('Error al actualizar: ' + error.message);
-      else this.cancelarEdicionFuncion();
+      else {
+        await this.auditoriaService.registrarAccion('MODIFICAR_FUNCION', { id: this.idFuncionEditando(), pelicula: peliElegida?.titulo, fecha: nuevasFuncionesPayload[0].fecha_hora });
+        this.cancelarEdicionFuncion();
+      }
     } else {
       const { error } = await this.supabaseService.client
         .from('funciones')
@@ -599,6 +632,7 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
       if (error) {
         alert('Error al programar: ' + error.message);
       } else {
+        await this.auditoriaService.registrarAccion('PROGRAMAR_FUNCION', { pelicula: peliElegida?.titulo, cantidad_programada: nuevasFuncionesPayload.length, formato: fn.formato });
         let msg = `✔️ Se programó ${nuevasFuncionesPayload.length} función(es) con éxito.`;
         if (omitidasPorSolapamiento > 0) {
           msg += `\n⚠️ ${omitidasPorSolapamiento} fecha(s) omitida(s) por superposición.`;
@@ -644,11 +678,15 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
 
   async eliminarFuncion(id: string) {
     if (!confirm('¿Seguro que deseas eliminar esta función programada?')) return;
+    const funcEliminada = this.funciones().find((f) => f.id === id);
 
     const { error } = await this.supabaseService.client.from('funciones').delete().eq('id', id);
 
     if (error) alert('Error al eliminar función: ' + error.message);
-    else await this.cargarDatos();
+    else {
+      await this.auditoriaService.registrarAccion('ELIMINAR_FUNCION', { id, pelicula: funcEliminada?.peliculas?.titulo, fecha: funcEliminada?.fecha_hora });
+      await this.cargarDatos();
+    }
   }
 
   // --- CRUD RECOMPENSAS ---
@@ -708,11 +746,17 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
         payload,
       );
       if (error) alert('Error al actualizar: ' + error.message);
-      else this.cancelarEdicionRecompensa();
+      else {
+        await this.auditoriaService.registrarAccion('MODIFICAR_RECOMPENSA', { id: this.idRecompensaEditando(), nombre: payload.nombre, costo: payload.costo_puntos });
+        this.cancelarEdicionRecompensa();
+      }
     } else {
       const { error } = await this.recompensasService.crearRecompensa(payload);
       if (error) alert('Error al crear: ' + error.message);
-      else this.cancelarEdicionRecompensa();
+      else {
+        await this.auditoriaService.registrarAccion('CREAR_RECOMPENSA', { nombre: payload.nombre, costo: payload.costo_puntos });
+        this.cancelarEdicionRecompensa();
+      }
     }
     await this.cargarDatos();
   }
@@ -741,9 +785,13 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
 
   async eliminarRecompensa(id: string) {
     if (!confirm('¿Eliminar esta recompensa del catálogo?')) return;
+    const recEliminada = this.recompensas().find((r) => r.id === id);
     const { error } = await this.recompensasService.eliminarRecompensa(id);
     if (error) alert('Error al eliminar: ' + error.message);
-    else await this.cargarDatos();
+    else {
+      await this.auditoriaService.registrarAccion('ELIMINAR_RECOMPENSA', { id, nombre: recEliminada?.nombre || 'Desconocido' });
+      await this.cargarDatos();
+    }
   }
 
   async cargarMetricasYLogs() {
@@ -775,15 +823,31 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
   }
 
   // Exportar historial de ventas a archivo CSV (Excel)
-  exportarVentasCSV() {
-    const ventasData = this.funciones(); // o tus ventas cargadas
-    if (!ventasData || ventasData.length === 0) return alert('No hay datos para exportar.');
+  async exportarVentasCSV() {
+    const { data: ventasData, error } = await this.supabaseService.client
+      .from('ventas')
+      .select('*, funciones(*, peliculas(titulo), salas(nombre))')
+      .order('created_at', { ascending: false });
+
+    if (error || !ventasData || ventasData.length === 0) {
+      return alert('No hay ventas registradas para exportar o ocurrió un error al consultar.');
+    }
 
     let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'ID Venta,Fecha,Monto Total,Estado QR,Entradas\n';
+    csvContent += 'ID Venta,Fecha Compra,Codigo QR,Pelicula,Sala,Horario Funcion,Cantidad Entradas,Butacas,Total Facturado,Descuento,Estado QR\n';
 
-    this.funciones().forEach((v: any) => {
-      csvContent += `"${v.id}","${v.fecha_hora}","${v.monto_total || 0}","${v.estado_qr || 'valido'}","${v.detalle_butacas?.length || 0}"\n`;
+    ventasData.forEach((v: any) => {
+      const pelicula = (v.funciones?.peliculas?.titulo || 'N/A').replace(/"/g, '""');
+      const sala = (v.funciones?.salas?.nombre || 'Sala 1').replace(/"/g, '""');
+      const horario = v.funciones?.fecha_hora ? new Date(v.funciones.fecha_hora).toLocaleString('es-AR') : 'N/A';
+      const cantEntradas = Array.isArray(v.detalle_butacas) ? v.detalle_butacas.length : 0;
+      const butacasStr = Array.isArray(v.detalle_butacas)
+        ? v.detalle_butacas.map((b: any) => `${b.fila}${b.columna}`).join('; ')
+        : '';
+      const butacasEscapadas = `"${butacasStr.replace(/"/g, '""')}"`;
+      const fechaCompra = v.created_at ? new Date(v.created_at).toLocaleString('es-AR') : 'N/A';
+
+      csvContent += `"${v.id}","${fechaCompra}","${v.codigo_qr}","${pelicula}","${sala}","${horario}",${cantEntradas},${butacasEscapadas},"${v.monto_total || 0}","${v.descuento_aplicado || 0}","${v.estado_qr || 'valido'}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -794,7 +858,8 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
     link.click();
     document.body.removeChild(link);
 
-    this.auditoriaService.registrarAccion('EXPORTAR_REPORTE_CSV', { cantidad_registros: ventasData.length });
+    await this.auditoriaService.registrarAccion('EXPORTAR_REPORTE_CSV', { cantidad_registros: ventasData.length });
+    await this.cargarMetricasYLogs();
   }
 
 

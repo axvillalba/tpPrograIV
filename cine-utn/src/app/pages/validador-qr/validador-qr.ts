@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase';
 import { AuthService } from '../../services/auth';
+import { AuditoriaService } from '../../services/auditoria';
 
 @Component({
   selector: 'app-validador-qr',
@@ -15,6 +16,7 @@ import { AuthService } from '../../services/auth';
 export class ValidadorQrComponent implements OnInit {
   private supabaseService = inject(SupabaseService);
   private authService = inject(AuthService);
+  private auditoriaService = inject(AuditoriaService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
@@ -95,12 +97,14 @@ export class ValidadorQrComponent implements OnInit {
 
     this.cargando = true;
     const nuevoEstado = this.ventaEncontrada.candy_entregado ? 'usado_total' : 'usado_cine';
+    const ahoraIso = new Date().toISOString();
 
     const { error } = await this.supabaseService.client
       .from('ventas')
       .update({
         entradas_validadas: true,
-        estado_qr: nuevoEstado
+        estado_qr: nuevoEstado,
+        fecha_validacion: ahoraIso
       })
       .eq('id', this.ventaEncontrada.id);
 
@@ -112,6 +116,14 @@ export class ValidadorQrComponent implements OnInit {
       this.ventaEncontrada.entradas_validadas = true;
       this.ventaEncontrada.estado_qr = nuevoEstado;
       this.evaluarEstadoQR(this.ventaEncontrada);
+
+      await this.auditoriaService.registrarAccion('VALIDAR_INGRESO_SALA', {
+        codigo_qr: this.ventaEncontrada.codigo_qr,
+        venta_id: this.ventaEncontrada.id,
+        pelicula: this.ventaEncontrada.funciones?.peliculas?.titulo,
+        estado_qr: nuevoEstado
+      });
+
       alert('🎟️ ¡Ingreso a la sala VALIDADO con éxito!');
       this.cdr.detectChanges();
     }
@@ -126,12 +138,14 @@ export class ValidadorQrComponent implements OnInit {
 
     this.cargando = true;
     const nuevoEstado = this.ventaEncontrada.entradas_validadas ? 'usado_total' : 'usado_candy';
+    const ahoraIso = new Date().toISOString();
 
     const { error } = await this.supabaseService.client
       .from('ventas')
       .update({
         candy_entregado: true,
-        estado_qr: nuevoEstado
+        estado_qr: nuevoEstado,
+        fecha_validacion: ahoraIso
       })
       .eq('id', this.ventaEncontrada.id);
 
@@ -143,6 +157,13 @@ export class ValidadorQrComponent implements OnInit {
       this.ventaEncontrada.candy_entregado = true;
       this.ventaEncontrada.estado_qr = nuevoEstado;
       this.evaluarEstadoQR(this.ventaEncontrada);
+
+      await this.auditoriaService.registrarAccion('ENTREGAR_CANDY_BAR', {
+        codigo_qr: this.ventaEncontrada.codigo_qr,
+        venta_id: this.ventaEncontrada.id,
+        estado_qr: nuevoEstado
+      });
+
       alert('🍿 ¡Entrega de Candy Bar REGISTRADA con éxito!');
       this.cdr.detectChanges();
     }
