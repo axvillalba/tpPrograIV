@@ -152,6 +152,12 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
   });
 
   async ngOnInit() {
+    const perfil = await this.authService.getPerfilActual();
+    if (!perfil || (perfil.rol !== 'admin' && perfil.rol !== 'gerente')) {
+      alert('Acceso restringido únicamente para la gerencia del cine.');
+      this.router.navigate(['/login-staff']);
+      return;
+    }
     await this.cargarDatos();
     await this.cargarSalas();
   }

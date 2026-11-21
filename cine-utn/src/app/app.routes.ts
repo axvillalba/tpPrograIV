@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { LoginStaffComponent } from './pages/login-staff/login-staff';
+import { adminGuard, staffGuard, authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -33,15 +34,18 @@ export const routes: Routes = [
   { path: 'login-staff', component: LoginStaffComponent },
   { 
     path: 'admin/dashboard', 
+    canActivate: [adminGuard],
     loadComponent: () => import('./pages/admin-dashboard/admin-dashboard').then(m => m.AdminDashboardComponent) 
   },
 
   { 
     path: 'perfil', 
+    canActivate: [authGuard],
     loadComponent: () => import('./pages/perfil/perfil').then(m => m.PerfilComponent) 
   },
   { 
     path: 'empleado/validador', 
+    canActivate: [staffGuard],
     loadComponent: () => import('./pages/validador-qr/validador-qr').then(m => m.ValidadorQrComponent) 
   },
   /* 
