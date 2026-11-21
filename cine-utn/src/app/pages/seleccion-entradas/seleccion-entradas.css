@@ -1,19 +1,65 @@
+.seat-header-card {
+  border-left: 4px solid #e50914 !important;
+}
+
+.seat-age-badge {
+  background: rgba(229, 9, 20, 0.2);
+  border: 1px solid rgba(229, 9, 20, 0.5);
+  color: #ff6b72;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.seat-meta-badge {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e4e4e7;
+  font-size: 0.75rem;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.seat-total-box {
+  background: rgba(11, 11, 15, 0.8);
+  border: 1px solid rgba(25, 135, 84, 0.35);
+  border-radius: 12px;
+}
+
+/* Pantalla de Cine con Proyección Luminosa */
+.pantalla-cine {
+  max-width: 620px;
+  padding: 10px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.04) 100%);
+  border-top: 3px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50% 50% 0 0 / 18px 18px 0 0;
+  color: #d4d4d8;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  box-shadow: 0 18px 36px rgba(255, 255, 255, 0.09);
+}
+
 /* Botón Base de Butaca */
 .butaca {
   width: 28px !important;
   height: 28px !important;
   margin: 1px !important;
-  border-radius: 4px;
+  border-radius: 7px 7px 3px 3px;
   font-size: 11px;
-  font-weight: bold;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid #3f3f46 !important;
-  background-color: #18181b !important;
-  color: #ffffff !important;
+  border-top-width: 2px !important;
+  background-color: #18181f !important;
+  color: #e4e4e7 !important;
   cursor: pointer;
   box-sizing: border-box;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 /* Espaciadores transparentes para alinear la fila DISC */
@@ -26,8 +72,9 @@
 }
 
 .butaca:hover:not(:disabled) {
-  transform: scale(1.15);
+  transform: scale(1.18);
   z-index: 2;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
 }
 
 /* Adaptada Discapacidad (Fila DISC - Celeste Prominente) */
@@ -41,35 +88,36 @@
 .butaca.vip {
   background-color: #eab308 !important;
   border-color: #fde047 !important;
-  color: #000000 !important;
+  color: #121212 !important;
 }
 
 /* Seleccionada (Verde) */
 .butaca.seleccionada {
   background-color: #22c55e !important;
-  border-color: #4ade80 !important;
+  border-color: #86efac !important;
   color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.55);
 }
 
 /* Ocupada (Rojo) */
 .butaca.ocupada {
-  background-color: #dc2626 !important;
-  border-color: #ef4444 !important;
-  color: #ffffff !important;
+  background-color: #991b1b !important;
+  border-color: #dc2626 !important;
+  color: rgba(255, 255, 255, 0.45) !important;
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
 /* Muestras de la Leyenda Superior */
 .butaca-referencia {
   width: 18px;
   height: 18px;
-  border-radius: 3px;
+  border-radius: 5px 5px 2px 2px;
   display: inline-block;
 }
 
 .butaca-referencia.estandar {
-  background-color: #18181b;
+  background-color: #18181f;
   border: 1px solid #3f3f46;
 }
 
@@ -85,10 +133,15 @@
 
 .butaca-referencia.seleccionada {
   background-color: #22c55e;
-  border: 1px solid #4ade80;
+  border: 1px solid #86efac;
 }
 
 .butaca-referencia.ocupada {
-  background-color: #dc2626;
-  border: 1px solid #ef4444;
+  background-color: #991b1b;
+  border: 1px solid #dc2626;
+}
+
+.review-box-seat {
+  background: rgba(11, 11, 15, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }

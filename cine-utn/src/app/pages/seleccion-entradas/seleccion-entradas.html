@@ -1,42 +1,43 @@
 <app-navbar></app-navbar>
 
-<div class="container my-4 text-white">
+<div class="container my-4 my-md-5 text-white animate-fade-in">
   <!-- Cabecera de Película y Función Seleccionada -->
   @if (pelicula()) {
-    <div class="card bg-dark text-white border-secondary p-4 mb-4">
+    <div class="card bg-dark-card seat-header-card text-white p-4 mb-4">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
-          <h2 class="text-danger fw-bold m-0">{{ pelicula()?.titulo }}</h2>
+          <h2 class="text-white fw-bold m-0">{{ pelicula()?.titulo }}</h2>
           <div class="d-flex align-items-center flex-wrap gap-2 my-2">
-            <span class="badge bg-danger">{{ pelicula()?.clasificacion_edad || pelicula()?.clasificacion || 'ATP' }}</span>
-            <span class="badge bg-secondary">{{ funcionSeleccionada()?.formato || '2D' }}</span>
-            <span class="badge bg-secondary">{{ funcionSeleccionada()?.idioma || 'Castellano' }}</span>
-            <span class="badge bg-primary">
+            <span class="seat-age-badge">{{ pelicula()?.clasificacion_edad || pelicula()?.clasificacion || 'ATP' }}</span>
+            <span class="seat-meta-badge">{{ funcionSeleccionada()?.formato || '2D' }}</span>
+            <span class="seat-meta-badge">{{ funcionSeleccionada()?.idioma || 'Castellano' }}</span>
+            <span class="badge bg-primary bg-opacity-75 py-1 px-2">
               <i class="bi bi-door-closed me-1"></i>{{ funcionSeleccionada()?.salas?.nombre || 'SALA 1' }}
             </span>
-            <span class="badge bg-success">
+            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 py-1 px-2">
               <i class="bi bi-clock me-1"></i>{{ (funcionSeleccionada()?.fecha_hora || funcionSeleccionada()?.horario_inicio) | date:'EEEE dd/MM - HH:mm' }} hs
             </span>
-            <span class="text-warning small ms-2">
+            <span class="text-warning small ms-1">
               <i class="bi bi-star-fill"></i> {{ promedioCalificacion() }} ({{ resenas().length }} opiniones)
             </span>
           </div>
-          <p class="text-secondary small mb-0" style="max-width: 600px;">
+          <p class="text-secondary small mb-0" style="max-width: 650px;">
             {{ pelicula()?.sinopsis }}
           </p>
         </div>
 
-        <div class="text-end">
-          <h3 class="text-success fw-bold m-0">Total: ${{ montoTotal() }}</h3>
-          <small class="text-secondary">{{ butacasSeleccionadas().length }} entradas seleccionadas</small>
+        <div class="seat-total-box text-md-end p-3">
+          <small class="text-secondary d-block text-uppercase fw-semibold">Total Estimado</small>
+          <h3 class="text-success fw-bold m-0">${{ montoTotal() }}</h3>
+          <small class="text-light opacity-75">{{ butacasSeleccionadas().length }} entradas seleccionadas</small>
         </div>
       </div>
     </div>
   }
 
   <!-- LEYENDA CON COLORES DE BUTACAS -->
-  <div class="card bg-dark text-white border-secondary p-3 mb-4">
-    <div class="d-flex justify-content-center align-items-center flex-wrap gap-4 small">
+  <div class="card bg-dark-card text-white p-3 mb-4">
+    <div class="d-flex justify-content-center align-items-center flex-wrap gap-3 gap-md-4 small">
       <div class="d-flex align-items-center gap-2">
         <span class="butaca-referencia estandar"></span>
         <span>Estándar (${{ funcionSeleccionada()?.precio_base || 4500 }})</span>
@@ -61,94 +62,97 @@
   </div>
 
   <!-- MAPA DE BUTACAS DE LA SALA -->
-  <div class="mapa-sala-container text-center my-4 overflow-auto">
-    <div class="pantalla-cine mb-4 mx-auto p-2 rounded text-uppercase fw-bold text-secondary border border-secondary" style="max-width: 600px; background: #18181b;">
-      <i class="bi bi-projector me-2"></i> P A N T A L L A
-    </div>
+  <div class="card bg-dark-card p-3 p-md-4 my-4">
+    <div class="mapa-sala-container text-center overflow-auto pb-2">
+      <!-- Pantalla de Cine Curva con Luz Ambiental -->
+      <div class="pantalla-cine mb-5 mx-auto">
+        <i class="bi bi-projector me-2"></i> P A N T A L L A
+      </div>
 
-    <div class="d-inline-block text-nowrap">
-      @for (fila of filas; track fila) {
-        <div class="d-flex align-items-center justify-content-center mb-1">
-          <span class="fw-bold text-danger me-3 text-end" style="width: 35px;">{{ fila }}</span>
+      <div class="d-inline-block text-nowrap">
+        @for (fila of filas; track fila) {
+          <div class="d-flex align-items-center justify-content-center mb-1">
+            <span class="fw-bold text-danger me-3 text-end small" style="width: 35px;">{{ fila }}</span>
 
-          @if (fila === 'DISC') {
-            <!-- FILA ESPECIAL ACCESIBLE -->
-            <div class="d-flex me-3">
-              @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
-                <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-            </div>
+            @if (fila === 'DISC') {
+              <!-- FILA ESPECIAL ACCESIBLE -->
+              <div class="d-flex me-3">
+                @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
+                  <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    {{ b.columna }}
+                  </button>
+                }
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+              </div>
 
-            <div class="d-flex me-3">
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
+              <div class="d-flex me-3">
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
 
-              @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
-                <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
+                @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
+                  <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    {{ b.columna }}
+                  </button>
+                }
 
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-            </div>
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+              </div>
 
-            <div class="d-flex">
-              <div class="butaca-hueco"></div>
-              <div class="butaca-hueco"></div>
-              @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
-                <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
-            </div>
-          } @else {
-            <!-- FILAS ESTÁNDAR Y VIP -->
-            <div class="d-flex me-3">
-              @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
-                <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
-            </div>
+              <div class="d-flex">
+                <div class="butaca-hueco"></div>
+                <div class="butaca-hueco"></div>
+                @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
+                  <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    {{ b.columna }}
+                  </button>
+                }
+              </div>
+            } @else {
+              <!-- FILAS ESTÁNDAR Y VIP -->
+              <div class="d-flex me-3">
+                @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
+                  <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    {{ b.columna }}
+                  </button>
+                }
+              </div>
 
-            <div class="d-flex me-3">
-              @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
-                <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
-            </div>
+              <div class="d-flex me-3">
+                @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
+                  <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    {{ b.columna }}
+                  </button>
+                }
+              </div>
 
-            <div class="d-flex">
-              @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
-                <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                  {{ b.columna }}
-                </button>
-              }
-            </div>
-          }
+              <div class="d-flex">
+                @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
+                  <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    {{ b.columna }}
+                  </button>
+                }
+              </div>
+            }
 
-          <span class="fw-bold text-danger ms-3 text-start" style="width: 35px;">{{ fila }}</span>
-        </div>
-      }
+            <span class="fw-bold text-danger ms-3 text-start small" style="width: 35px;">{{ fila }}</span>
+          </div>
+        }
+      </div>
     </div>
   </div>
 
   <!-- BOTÓN DE CONFIRMACIÓN -->
   <div class="text-center my-4">
     <button 
-      class="btn btn-danger btn-lg px-5 py-3 fw-bold"
+      class="btn btn-danger-custom btn-lg px-5 py-3"
       [disabled]="butacasSeleccionadas().length === 0"
       (click)="continuarAlCandy()">
       Confirmar Selección y Continuar <i class="bi bi-arrow-right ms-2"></i>
@@ -156,20 +160,20 @@
   </div>
 
   <!-- RESEÑAS DE LA COMUNIDAD -->
-  <div class="card bg-dark text-white border-secondary p-4 mt-5">
-    <h4 class="text-danger mb-3"><i class="bi bi-chat-square-text me-2"></i>Reseñas de la Comunidad</h4>
+  <div class="card bg-dark-card text-white p-4 mt-5">
+    <h4 class="text-white fw-bold mb-3"><i class="bi bi-chat-square-text text-danger me-2"></i>Reseñas de la Comunidad</h4>
 
     @if (resenas().length === 0) {
-      <p class="text-secondary mb-0">Todavía no hay comentarios para esta película.</p>
+      <p class="text-secondary mb-0 small">Todavía no hay comentarios para esta película.</p>
     } @else {
       <div class="d-flex flex-column gap-3">
         @for (r of resenas(); track r.id) {
-          <div class="border-bottom border-secondary pb-3">
+          <div class="review-box-seat p-3 rounded-3">
             <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="fw-bold text-light">{{ r.nombre_usuario }}</span>
+              <span class="fw-bold text-white">{{ r.nombre_usuario }}</span>
               <span class="text-warning small"><i class="bi bi-star-fill me-1"></i>{{ r.calificacion }}/5</span>
             </div>
-            <p class="text-secondary small mb-0">{{ r.comentario }}</p>
+            <p class="text-light opacity-75 small mb-0">{{ r.comentario }}</p>
           </div>
         }
       </div>

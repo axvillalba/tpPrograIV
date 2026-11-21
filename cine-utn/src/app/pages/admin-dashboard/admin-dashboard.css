@@ -1,0 +1,245 @@
+.max-w-admin {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-header-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e50914 0%, #99060d 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  box-shadow: 0 6px 18px rgba(229, 9, 20, 0.35);
+}
+
+.btn-logout-admin {
+  background: rgba(229, 9, 20, 0.12);
+  border: 1px solid rgba(229, 9, 20, 0.35);
+  color: #ff6b72;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-logout-admin:hover {
+  background: #e50914;
+  border-color: #e50914;
+  color: #ffffff;
+}
+
+/* Barra de Pestañas Segmentada */
+.admin-tabs-container {
+  background: rgba(14, 14, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px;
+  border-radius: 14px;
+  overflow-x: auto;
+}
+
+.admin-nav-pills {
+  flex-wrap: nowrap;
+}
+
+@media (min-width: 992px) {
+  .admin-nav-pills {
+    flex-wrap: wrap;
+  }
+}
+
+.admin-tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a1a1aa;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 9px 18px;
+  border-radius: 10px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.admin-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.admin-tab-btn.active {
+  background: linear-gradient(135deg, #e50914 0%, #b80710 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(229, 9, 20, 0.35);
+}
+
+/* Títulos de Tarjetas */
+.card-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.accent-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #e50914;
+  box-shadow: 0 0 10px #e50914;
+}
+
+/* Cajas Internas y Chips */
+.admin-inner-box {
+  background: rgba(10, 10, 14, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.chip-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #a1a1aa;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  transition: all 0.18s ease;
+}
+
+.chip-btn:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.chip-btn.chip-active {
+  background: #e50914;
+  border-color: #e50914;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.admin-warning-banner {
+  background: rgba(255, 193, 7, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: #fde68a;
+}
+
+/* Tablas Cinematográficas */
+.table-cinema {
+  --bs-table-bg: transparent;
+  --bs-table-color: #e4e4e7;
+  --bs-table-border-color: rgba(255, 255, 255, 0.06);
+}
+
+.table-cinema thead th {
+  background: rgba(10, 10, 14, 0.9);
+  color: #a1a1aa;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 10px;
+}
+
+.table-cinema tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.table-cinema tbody tr:hover {
+  background-color: rgba(229, 9, 20, 0.06);
+}
+
+.admin-thumb-poster {
+  width: 44px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-thumb-square {
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.badge-neutral {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e4e4e7;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+/* Botones de Acción en Tablas */
+.btn-action-edit {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.35);
+  color: #ffc107;
+  border-radius: 8px;
+}
+
+.btn-action-edit:hover {
+  background: #ffc107;
+  color: #121212;
+}
+
+.btn-action-delete {
+  background: rgba(229, 9, 20, 0.1);
+  border: 1px solid rgba(229, 9, 20, 0.35);
+  color: #ff6b72;
+  border-radius: 8px;
+}
+
+.btn-action-delete:hover {
+  background: #e50914;
+  color: #ffffff;
+}
+
+/* Tarjetas KPIs */
+.kpi-card {
+  background: linear-gradient(165deg, rgba(26, 26, 33, 0.95) 0%, rgba(15, 15, 20, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+  border-left-width: 4px;
+}
+
+.kpi-success { border-left-color: #198754; }
+.kpi-primary { border-left-color: #0d6efd; }
+.kpi-warning { border-left-color: #ffc107; }
+.kpi-info    { border-left-color: #0dcaf0; }
+
+.kpi-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #d4d4d8;
+}
+
+.export-icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(25, 135, 84, 0.15);
+  border: 1px solid rgba(25, 135, 84, 0.4);
+  color: #4ade80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
