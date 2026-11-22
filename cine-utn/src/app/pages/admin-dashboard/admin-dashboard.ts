@@ -25,6 +25,7 @@ export type PestanaAdmin =
   | 'funciones'
   | 'recompensas'
   | 'roles'
+  | 'empleados'
   | 'reportes';
 
 @Component({
@@ -63,7 +64,8 @@ export class AdminDashboardComponent implements OnInit {
     { id: 'cupones', nombre: 'Cupones', icono: 'bi-ticket-perforated' },
     { id: 'funciones', nombre: 'Funciones & Salas', icono: 'bi-calendar-event' },
     { id: 'recompensas', nombre: 'Fidelización', icono: 'bi-star-fill' },
-    { id: 'roles', nombre: 'Roles y Usuarios', icono: 'bi-shield-lock' },
+    { id: 'roles', nombre: 'Roles y Permisos', icono: 'bi-shield-lock' },
+    { id: 'empleados', nombre: 'Empleados', icono: 'bi-people-fill' },
     { id: 'reportes', nombre: 'Reportes & Logs', icono: 'bi-graph-up-arrow' },
   ];
 
@@ -75,20 +77,37 @@ export class AdminDashboardComponent implements OnInit {
   salas = signal<any[]>([]);
   recompensas = signal<any[]>([]);
 
-  // Datos de Roles y Usuarios
+  // Datos de Roles y Empleados
   rolesAdmin = signal<any[]>([]);
-  usuariosSistema = signal<any[]>([]);
-  filtroUsuario = signal<string>('');
-  rolSeleccionadoPorUsuario = signal<Record<string, string>>({});
+  empleadosSistema = signal<any[]>([]);
+  filtroEmpleado = signal<string>('');
+  rolSeleccionadoPorEmpleado = signal<Record<string, string>>({});
+  creandoEmpleado = signal<boolean>(false);
 
-  usuariosFiltrados = computed(() => {
-    const termino = this.filtroUsuario().trim().toLowerCase();
-    const lista = this.usuariosSistema();
+  nuevoEmpleado = signal<{
+    nombre: string;
+    apellido: string;
+    fecha_nacimiento: string;
+    correo: string;
+    password: string;
+    rol_admin_id: string;
+  }>({
+    nombre: '',
+    apellido: '',
+    fecha_nacimiento: '',
+    correo: '',
+    password: '',
+    rol_admin_id: '',
+  });
+
+  empleadosFiltrados = computed(() => {
+    const termino = this.filtroEmpleado().trim().toLowerCase();
+    const lista = this.empleadosSistema();
     if (!termino) return lista;
 
-    return lista.filter((u) => {
-      const nombreCompleto = `${u.nombre || ''} ${u.apellido || ''}`.toLowerCase();
-      const correo = (u.correo || '').toLowerCase();
+    return lista.filter((e) => {
+      const nombreCompleto = `${e.nombre || ''} ${e.apellido || ''}`.toLowerCase();
+      const correo = (e.correo || '').toLowerCase();
       return nombreCompleto.includes(termino) || correo.includes(termino);
     });
   });
@@ -107,7 +126,7 @@ export class AdminDashboardComponent implements OnInit {
   archivoCandySeleccionado: File | null = null;
   archivoRecompensaSeleccionado: File | null = null;
 
-  // Géneros disponibles para los checkboxes
+  // Géneros disponibles
   generosDisponibles: string[] = [
     'Acción',
     'Aventura',
@@ -193,7 +212,7 @@ export class AdminDashboardComponent implements OnInit {
     { id: 0, nombre: 'Dom', seleccionado: false },
   ];
 
-  // Variables para Métricas y Reportes
+  // Métricas y Reportes
   logsAuditoria = signal<any[]>([]);
   metrasDashboard = signal({
     recaudacionTotal: 0,
@@ -219,7 +238,6 @@ export class AdminDashboardComponent implements OnInit {
     this.esSuperAdmin.set(superAdmin);
     this.permisosUsuario.set(permisos);
 
-    // Seleccionar automáticamente la primera pestaña habilitada para este usuario
     const primeraHabilitada = this.seccionesDisponibles.find((s) => permisos.includes(s.id));
     if (primeraHabilitada) {
       this.pestanaActiva.set(primeraHabilitada.id);
@@ -228,8 +246,8 @@ export class AdminDashboardComponent implements OnInit {
     await this.cargarDatos();
     await this.cargarSalas();
 
-    if (this.puedeVerPestana('roles')) {
-      await this.cargarRolesYUsuarios();
+    if (this.puedeVerPestana('roles') || this.puedeVerPestana('empleados')) {
+      await this.cargarRolesYEmpleados();
     }
     if (this.pestanaActiva() === 'reportes') {
       await this.cargarMetricasYLogs();
@@ -273,16 +291,17 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  // --- GESTIÓN DE ROLES Y ASIGNACIÓN A USUARIOS ---
-  async cargarRolesYUsuarios() {
-    const [resRoles, resUsuarios] = await Promise.all([
+  // --- GESTIÓN DE ROLES Y EMPLEADOS ---
+  async cargarRolesYEmpleados() {
+    const [resRoles, resEmpleados] = await Promise.all([
       this.supabaseService.client
         .from('roles_admin')
         .select('*')
         .order('created_at', { ascending: true }),
       this.supabaseService.client
         .from('perfiles')
-        .select('id, nombre, apellido, correo, rol, rol_admin_id, roles_admin(id, nombre, permisos)')
+        .select('id, nombre, apellido, correo, fecha_nacimiento, rol, activo, rol_admin_id, roles_admin(id, nombre, permisos)')
+        .in('rol', ['empleado', 'gerente', 'admin'])
         .order('created_at', { ascending: false }),
     ]);
 
@@ -290,13 +309,64 @@ export class AdminDashboardComponent implements OnInit {
       this.rolesAdmin.set(resRoles.data);
     }
 
-    if (resUsuarios.data) {
-      this.usuariosSistema.set(resUsuarios.data);
+    if (resEmpleados.data) {
+      this.empleadosSistema.set(resEmpleados.data);
       const mapaSeleccion: Record<string, string> = {};
-      resUsuarios.data.forEach((u: any) => {
-        mapaSeleccion[u.id] = u.rol_admin_id || '';
+      resEmpleados.data.forEach((emp: any) => {
+        mapaSeleccion[emp.id] = emp.rol_admin_id || '';
       });
-      this.rolSeleccionadoPorUsuario.set(mapaSeleccion);
+      this.rolSeleccionadoPorEmpleado.set(mapaSeleccion);
+    }
+  }
+
+  async darDeAltaEmpleado() {
+    const emp = { ...this.nuevoEmpleado() };
+
+    if (!emp.nombre.trim() || !emp.apellido.trim()) {
+      return alert('Completá el nombre y el apellido del empleado.');
+    }
+    if (!emp.correo.trim() || !emp.correo.includes('@')) {
+      return alert('Ingresá un correo electrónico válido.');
+    }
+    if (!emp.password || emp.password.length < 6) {
+      return alert('La contraseña provisoria debe tener al menos 6 caracteres.');
+    }
+
+    try {
+      this.creandoEmpleado.set(true);
+
+      await this.authService.registrarEmpleadoDesdeAdmin({
+        email: emp.correo,
+        password: emp.password,
+        nombre: emp.nombre,
+        apellido: emp.apellido,
+        fechaNacimiento: emp.fecha_nacimiento || undefined,
+        rolAdminId: emp.rol_admin_id || null,
+      });
+
+      const rolObj = this.rolesAdmin().find((r) => r.id === emp.rol_admin_id);
+
+      await this.auditoriaService.registrarAccion('ALTA_EMPLEADO', {
+        empleado_email: emp.correo.trim().toLowerCase(),
+        nombre_completo: `${emp.nombre.trim()} ${emp.apellido.trim()}`,
+        rol_asignado: rolObj?.nombre || 'Empleado Operativo (Sin permisos admin)',
+      });
+
+      this.nuevoEmpleado.set({
+        nombre: '',
+        apellido: '',
+        fecha_nacimiento: '',
+        correo: '',
+        password: '',
+        rol_admin_id: '',
+      });
+
+      alert('✔️ Empleado registrado correctamente.');
+      await this.cargarRolesYEmpleados();
+    } catch (err: any) {
+      alert('Error al registrar empleado: ' + (err.message || 'Ocurrió un error inesperado.'));
+    } finally {
+      this.creandoEmpleado.set(false);
     }
   }
 
@@ -363,7 +433,7 @@ export class AdminDashboardComponent implements OnInit {
       }
     }
 
-    await this.cargarRolesYUsuarios();
+    await this.cargarRolesYEmpleados();
   }
 
   editarRol(rol: any) {
@@ -385,7 +455,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async eliminarRol(rol: any) {
-    if (!confirm(`¿Eliminar el rol "${rol.nombre}"? Los usuarios con este rol perderán sus permisos asignados.`)) {
+    if (!confirm(`¿Eliminar el rol "${rol.nombre}"? Los empleados con este rol perderán sus permisos asignados.`)) {
       return;
     }
 
@@ -395,19 +465,19 @@ export class AdminDashboardComponent implements OnInit {
       alert('Error al eliminar el rol: ' + error.message);
     } else {
       await this.auditoriaService.registrarAccion('ELIMINAR_ROL_ADMIN', { id: rol.id, nombre: rol.nombre });
-      await this.cargarRolesYUsuarios();
+      await this.cargarRolesYEmpleados();
     }
   }
 
-  actualizarSeleccionRolUsuario(usuarioId: string, rolId: string) {
-    this.rolSeleccionadoPorUsuario.update((prev) => ({
+  actualizarSeleccionRolEmpleado(empleadoId: string, rolId: string) {
+    this.rolSeleccionadoPorEmpleado.update((prev) => ({
       ...prev,
-      [usuarioId]: rolId,
+      [empleadoId]: rolId,
     }));
   }
 
-  async asignarRolAUsuario(usuario: any) {
-    const rolId = this.rolSeleccionadoPorUsuario()[usuario.id];
+  async asignarRolAEmpleado(empleado: any) {
+    const rolId = this.rolSeleccionadoPorEmpleado()[empleado.id];
     if (!rolId) {
       return alert('Seleccioná un rol del desplegable antes de asignar.');
     }
@@ -417,34 +487,58 @@ export class AdminDashboardComponent implements OnInit {
     const { error } = await this.supabaseService.client
       .from('perfiles')
       .update({ rol_admin_id: rolId })
-      .eq('id', usuario.id);
+      .eq('id', empleado.id);
 
     if (error) {
       alert('Error al asignar el rol: ' + error.message);
     } else {
-      await this.auditoriaService.registrarAccion('ASIGNAR_ROL_USUARIO', {
-        usuario_email: usuario.correo,
+      await this.auditoriaService.registrarAccion('ASIGNAR_ROL_EMPLEADO', {
+        empleado_email: empleado.correo,
         rol_asignado: rolObj?.nombre || rolId,
       });
-      await this.cargarRolesYUsuarios();
+      await this.cargarRolesYEmpleados();
     }
   }
 
-  async quitarRolAUsuario(usuario: any) {
-    if (!confirm(`¿Quitar el rol administrativo asignado a ${usuario.correo}?`)) return;
+  async quitarRolAEmpleado(empleado: any) {
+    if (!confirm(`¿Quitar los permisos administrativos asignados a ${empleado.correo}?`)) return;
 
     const { error } = await this.supabaseService.client
       .from('perfiles')
       .update({ rol_admin_id: null })
-      .eq('id', usuario.id);
+      .eq('id', empleado.id);
 
     if (error) {
       alert('Error al quitar el rol: ' + error.message);
     } else {
-      await this.auditoriaService.registrarAccion('QUITAR_ROL_USUARIO', {
-        usuario_email: usuario.correo,
+      await this.auditoriaService.registrarAccion('QUITAR_ROL_EMPLEADO', {
+        empleado_email: empleado.correo,
       });
-      await this.cargarRolesYUsuarios();
+      await this.cargarRolesYEmpleados();
+    }
+  }
+
+  async toggleEstadoEmpleado(empleado: any) {
+    const nuevoEstado = empleado.activo === false ? true : false;
+    const accionTexto = nuevoEstado ? 'habilitar' : 'deshabilitar';
+
+    if (!confirm(`¿Deseás ${accionTexto} el acceso de ${empleado.nombre || empleado.correo}?`)) {
+      return;
+    }
+
+    const { error } = await this.supabaseService.client
+      .from('perfiles')
+      .update({ activo: nuevoEstado })
+      .eq('id', empleado.id);
+
+    if (error) {
+      alert('Error al cambiar estado: ' + error.message);
+    } else {
+      await this.auditoriaService.registrarAccion(
+        nuevoEstado ? 'HABILITAR_EMPLEADO' : 'DESHABILITAR_EMPLEADO',
+        { empleado_email: empleado.correo }
+      );
+      await this.cargarRolesYEmpleados();
     }
   }
 

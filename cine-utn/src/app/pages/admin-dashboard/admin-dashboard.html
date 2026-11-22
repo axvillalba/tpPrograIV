@@ -76,8 +76,18 @@
             <button 
               class="btn admin-tab-btn" 
               [class.active]="pestanaActiva() === 'roles'" 
-              (click)="pestanaActiva.set('roles'); cargarRolesYUsuarios()">
-              <i class="bi bi-shield-lock me-2"></i>Roles y Usuarios
+              (click)="pestanaActiva.set('roles'); cargarRolesYEmpleados()">
+              <i class="bi bi-shield-lock me-2"></i>Roles y Permisos
+            </button>
+          </li>
+        }
+        @if (puedeVerPestana('empleados')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'empleados'" 
+              (click)="pestanaActiva.set('empleados'); cargarRolesYEmpleados()">
+              <i class="bi bi-people-fill me-2"></i>Empleados
             </button>
           </li>
         }
@@ -681,11 +691,9 @@
       </div>
     }
 
-    <!-- PESTAÑA ROLES Y ASIGNACIÓN DE USUARIOS -->
+    <!-- PESTAÑA ROLES Y PERMISOS -->
     @if (pestanaActiva() === 'roles' && puedeVerPestana('roles')) {
       <div class="row g-4">
-        
-        <!-- COLUMNA IZQUIERDA: CREAR / EDITAR ROL CONFIGURABLE -->
         <div class="col-lg-4">
           <div class="card bg-dark-card text-white p-4">
             <div class="card-section-title mb-3">
@@ -747,18 +755,13 @@
           </div>
         </div>
 
-        <!-- COLUMNA DERECHA: ROLES CREADOS + ASIGNACIÓN A USUARIOS -->
-        <div class="col-lg-8 d-flex flex-column gap-4">
-          
-          <!-- BLOQUE 1: ROLES CONFIGURADOS -->
+        <div class="col-lg-8">
           <div class="card bg-dark-card text-white p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <div class="card-section-title">
-                <span class="accent-dot"></span>
-                <h5 class="m-0 fw-bold text-white text-uppercase letter-spacing-1">
-                  Roles Configurados ({{ rolesAdmin().length }})
-                </h5>
-              </div>
+            <div class="card-section-title mb-3">
+              <span class="accent-dot"></span>
+              <h5 class="m-0 fw-bold text-white text-uppercase letter-spacing-1">
+                Roles Configurados ({{ rolesAdmin().length }})
+              </h5>
             </div>
 
             <div class="table-responsive">
@@ -799,8 +802,8 @@
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="3" class="text-center text-secondary py-4">
-                        Todavía no creaste roles personalizados. Creá uno desde el panel izquierdo.
+                      <td colspan="3" class="text-center text-secondary py-5">
+                        Todavía no creaste roles personalizados. Creá uno desde el formulario izquierdo.
                       </td>
                     </tr>
                   }
@@ -808,14 +811,100 @@
               </table>
             </div>
           </div>
+        </div>
+      </div>
+    }
 
-          <!-- BLOQUE 2: USUARIOS REGISTRADOS Y ASIGNACIÓN DE ROLES -->
+    <!-- PESTAÑA EMPLEADOS (ALTA DIRECTA Y GESTIÓN DE PERSONAL) -->
+    @if (pestanaActiva() === 'empleados' && puedeVerPestana('empleados')) {
+      <div class="row g-4">
+        
+        <!-- COLUMNA IZQUIERDA: REGISTRAR NUEVO EMPLEADO -->
+        <div class="col-lg-4">
+          <div class="card bg-dark-card text-white p-4">
+            <div class="card-section-title mb-3">
+              <span class="accent-dot"></span>
+              <h5 class="m-0 fw-bold text-white text-uppercase letter-spacing-1">
+                Registrar Nuevo Empleado
+              </h5>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label small text-secondary fw-medium">Nombre *</label>
+                <input 
+                  type="text" 
+                  class="form-control bg-dark text-white" 
+                  placeholder="Ej: Laura"
+                  [(ngModel)]="nuevoEmpleado().nombre">
+              </div>
+              <div class="col-6">
+                <label class="form-label small text-secondary fw-medium">Apellido *</label>
+                <input 
+                  type="text" 
+                  class="form-control bg-dark text-white" 
+                  placeholder="Ej: Gómez"
+                  [(ngModel)]="nuevoEmpleado().apellido">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary fw-medium">Fecha de Nacimiento</label>
+              <input 
+                type="date" 
+                class="form-control bg-dark text-white" 
+                [(ngModel)]="nuevoEmpleado().fecha_nacimiento">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary fw-medium">Correo Electrónico *</label>
+              <input 
+                type="email" 
+                class="form-control bg-dark text-white" 
+                placeholder="empleado@cineutn.com"
+                [(ngModel)]="nuevoEmpleado().correo">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary fw-medium">Contraseña Provisoria *</label>
+              <input 
+                type="password" 
+                class="form-control bg-dark text-white" 
+                placeholder="Mínimo 6 caracteres"
+                [(ngModel)]="nuevoEmpleado().password">
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label small text-secondary fw-medium">Rol / Permisos en el Panel</label>
+              <select class="form-select bg-dark text-white" [(ngModel)]="nuevoEmpleado().rol_admin_id">
+                <option value="">Sin permisos de panel (Solo Validador QR)</option>
+                @for (rol of rolesAdmin(); track rol.id) {
+                  <option [value]="rol.id">{{ rol.nombre }}</option>
+                }
+              </select>
+              <small class="text-secondary d-block mt-1" style="font-size: 0.72rem;">
+                Si no asignás un rol administrativo, ingresará al Validador QR operativo.
+              </small>
+            </div>
+
+            <button 
+              class="btn btn-danger-custom w-100 py-2 text-uppercase letter-spacing-1" 
+              [disabled]="creandoEmpleado()"
+              (click)="darDeAltaEmpleado()">
+              <i class="bi bi-person-plus-fill me-2"></i>
+              {{ creandoEmpleado() ? 'Registrando Empleado...' : '+ Dar de Alta Empleado' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: EMPLEADOS REGISTRADOS -->
+        <div class="col-lg-8">
           <div class="card bg-dark-card text-white p-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
               <div class="card-section-title">
                 <span class="accent-dot"></span>
                 <h5 class="m-0 fw-bold text-white text-uppercase letter-spacing-1">
-                  Usuarios Registrados ({{ usuariosFiltrados().length }})
+                  Empleados Registrados ({{ empleadosFiltrados().length }})
                 </h5>
               </div>
 
@@ -823,12 +912,12 @@
                 <input 
                   type="text" 
                   class="form-control form-control-sm bg-dark text-white" 
-                  style="width: 220px;"
-                  placeholder="Filtrar por nombre o correo..."
-                  [ngModel]="filtroUsuario()"
-                  (ngModelChange)="filtroUsuario.set($event)">
+                  style="width: 210px;"
+                  placeholder="Buscar empleado..."
+                  [ngModel]="filtroEmpleado()"
+                  (ngModelChange)="filtroEmpleado.set($event)">
 
-                <button class="btn-rect-action btn-rect-cyan" (click)="cargarRolesYUsuarios()">
+                <button class="btn-rect-action btn-rect-cyan" (click)="cargarRolesYEmpleados()">
                   <i class="bi bi-arrow-clockwise me-1"></i> ACTUALIZAR
                 </button>
               </div>
@@ -838,7 +927,7 @@
               <table class="table table-cinema align-middle m-0">
                 <thead>
                   <tr>
-                    <th>Usuario</th>
+                    <th>Empleado</th>
                     <th>Correo</th>
                     <th>Perfil / Rol</th>
                     <th>Estado</th>
@@ -846,62 +935,57 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (u of usuariosFiltrados(); track u.id) {
+                  @for (emp of empleadosFiltrados(); track emp.id) {
                     <tr>
-                      <!-- Avatar + Nombre -->
                       <td>
                         <div class="d-flex align-items-center gap-2">
                           <div class="user-row-avatar">
-                            <i class="bi bi-person-fill"></i>
+                            <i class="bi bi-person-badge"></i>
                           </div>
                           <div>
-                            <div class="fw-bold text-white small">{{ u.nombre || 'Sin nombre' }} {{ u.apellido || '' }}</div>
-                            <small class="text-danger" style="font-size: 0.72rem;">@{{ (u.correo || '').split('@')[0] }}</small>
+                            <div class="fw-bold text-white small">{{ emp.nombre || 'Sin nombre' }} {{ emp.apellido || '' }}</div>
+                            <small class="text-danger" style="font-size: 0.72rem;">@{{ (emp.correo || '').split('@')[0] }}</small>
                           </div>
                         </div>
                       </td>
 
-                      <!-- Correo -->
-                      <td class="small text-light">{{ u.correo }}</td>
+                      <td class="small text-light">{{ emp.correo }}</td>
 
-                      <!-- Badge Perfil / Rol -->
                       <td>
-                        @if ((u.rol === 'gerente' || u.rol === 'admin') && !u.rol_admin_id) {
+                        @if ((emp.rol === 'gerente' || emp.rol === 'admin') && !emp.rol_admin_id) {
                           <span class="status-rect-badge badge-rect-admin">
                             <i class="bi bi-shield-fill-check me-1"></i> Superadmin
                           </span>
-                        } @else if (u.roles_admin) {
+                        } @else if (emp.roles_admin) {
                           <span class="status-rect-badge badge-rect-custom">
-                            <i class="bi bi-person-badge-fill me-1"></i> {{ u.roles_admin.nombre }}
+                            <i class="bi bi-person-badge-fill me-1"></i> {{ emp.roles_admin.nombre }}
                           </span>
                         } @else {
                           <span class="status-rect-badge badge-rect-user">
-                            <i class="bi bi-person me-1"></i> {{ u.rol | titlecase }}
+                            <i class="bi bi-qr-code-scan me-1"></i> Empleado QR
                           </span>
                         }
                       </td>
 
-                      <!-- Estado de Acceso -->
                       <td>
-                        @if ((u.rol === 'gerente' || u.rol === 'admin' || u.rol_admin_id)) {
-                          <span class="status-rect-badge badge-rect-enabled">CON ACCESO ADMIN</span>
+                        @if (emp.activo !== false) {
+                          <span class="status-rect-badge badge-rect-enabled">HABILITADO</span>
                         } @else {
-                          <span class="status-rect-badge badge-rect-standard">ESTÁNDAR</span>
+                          <span class="status-rect-badge badge-rect-red">DESHABILITADO</span>
                         }
                       </td>
 
-                      <!-- Acciones Rectangulares Estructuradas -->
                       <td class="text-end">
-                        @if ((u.rol === 'gerente' || u.rol === 'admin') && !u.rol_admin_id) {
-                          <span class="text-secondary small fst-italic">Acceso total fijo</span>
+                        @if ((emp.rol === 'gerente' || emp.rol === 'admin') && !emp.rol_admin_id) {
+                          <span class="text-secondary small fst-italic">Gerencia Principal</span>
                         } @else {
                           <div class="d-inline-flex flex-column gap-1 align-items-end">
                             <div class="d-flex align-items-center gap-1">
                               <select 
                                 class="form-select form-select-sm bg-dark text-white select-role-mini"
-                                [ngModel]="rolSeleccionadoPorUsuario()[u.id]"
-                                (ngModelChange)="actualizarSeleccionRolUsuario(u.id, $event)">
-                                <option value="">Seleccionar rol...</option>
+                                [ngModel]="rolSeleccionadoPorEmpleado()[emp.id]"
+                                (ngModelChange)="actualizarSeleccionRolEmpleado(emp.id, $event)">
+                                <option value="">Elegir rol...</option>
                                 @for (r of rolesAdmin(); track r.id) {
                                   <option [value]="r.id">{{ r.nombre }}</option>
                                 }
@@ -909,25 +993,35 @@
 
                               <button 
                                 class="btn-rect-action btn-rect-light"
-                                [disabled]="!rolSeleccionadoPorUsuario()[u.id]"
-                                (click)="asignarRolAUsuario(u)">
+                                [disabled]="!rolSeleccionadoPorEmpleado()[emp.id]"
+                                (click)="asignarRolAEmpleado(emp)">
                                 <i class="bi bi-shield-plus me-1 text-danger"></i> ASIGNAR ROL
                               </button>
                             </div>
 
-                            @if (u.rol_admin_id) {
-                              <button class="btn-rect-action btn-rect-red" (click)="quitarRolAUsuario(u)">
-                                <i class="bi bi-x-circle me-1"></i> QUITAR ROL
+                            <div class="d-flex align-items-center gap-1">
+                              @if (emp.rol_admin_id) {
+                                <button class="btn-rect-action btn-rect-gold" (click)="quitarRolAEmpleado(emp)">
+                                  <i class="bi bi-x-circle me-1"></i> QUITAR ROL
+                                </button>
+                              }
+
+                              <button 
+                                class="btn-rect-action"
+                                [class.btn-rect-red]="emp.activo !== false"
+                                [class.btn-rect-cyan]="emp.activo === false"
+                                (click)="toggleEstadoEmpleado(emp)">
+                                {{ emp.activo !== false ? 'DESHABILITAR' : 'HABILITAR' }}
                               </button>
-                            }
+                            </div>
                           </div>
                         }
                       </td>
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="5" class="text-center text-secondary py-4">
-                        No se encontraron usuarios registrados con ese criterio.
+                      <td colspan="5" class="text-center text-secondary py-5">
+                        No hay empleados registrados. Creá el primero desde el formulario izquierdo.
                       </td>
                     </tr>
                   }
@@ -935,8 +1029,8 @@
               </table>
             </div>
           </div>
-
         </div>
+
       </div>
     }
 

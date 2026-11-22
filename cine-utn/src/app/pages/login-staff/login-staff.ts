@@ -30,7 +30,6 @@ export class LoginStaffComponent {
     const pass = this.password();
 
     try {
-      // 1. Iniciar sesión en Supabase Auth
       const { data, error } = await this.supabaseService.client.auth.signInWithPassword({
         email: emailLimpio,
         password: pass
@@ -40,10 +39,9 @@ export class LoginStaffComponent {
         throw new Error('Credenciales inválidas. Verifique su correo y contraseña.');
       }
 
-      // 2. Consultar perfil y rol configurable en la tabla 'perfiles'
       const { data: perfil, error: errorPerfil } = await this.supabaseService.client
         .from('perfiles')
-        .select('rol, rol_admin_id, roles_admin(permisos)')
+        .select('rol, activo, rol_admin_id, roles_admin(permisos)')
         .eq('id', data.user.id)
         .maybeSingle();
 
@@ -56,7 +54,11 @@ export class LoginStaffComponent {
         throw new Error('No se encontró información de perfil para esta cuenta.');
       }
 
-      // 3. Redirección según superadmin, rol configurable o empleado operativo
+      if (perfil.activo === false) {
+        await this.supabaseService.client.auth.signOut();
+        throw new Error('Acceso denegado: Esta cuenta de empleado se encuentra deshabilitada.');
+      }
+
       if (this.authService.tienePermisoAdmin(perfil)) {
         this.router.navigate(['/admin/dashboard']);
       } else if (perfil.rol === 'empleado') {

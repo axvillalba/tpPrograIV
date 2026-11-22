@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { SupabaseService } from './supabase';
-import { User } from '@supabase/supabase-js';
+import { User, createClient} from '@supabase/supabase-js';
 
 export interface RegistroUsuario {
   email: string;
@@ -11,6 +11,15 @@ export interface RegistroUsuario {
   tipoSangre?: string;
   colorOjos?: string;
   diasVacaciones?: number;
+}
+
+export interface RegistroEmpleado {
+  email: string;
+  password: string;
+  nombre: string;
+  apellido: string;
+  fechaNacimiento?: string;
+  rolAdminId?: string | null;
 }
 
 @Injectable({
@@ -56,6 +65,56 @@ export class AuthService {
 
     if (error) throw error;
     return data;
+  }
+
+  // Alta directa de Empleados desde el Panel de Gerencia (sin cerrar la sesión actual)
+  async registrarEmpleadoDesdeAdmin(datos: RegistroEmpleado) {
+    const clientAny = this.supabaseService.client as any;
+    const tempClient = createClient(clientAny.supabaseUrl, clientAny.supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    });
+
+    const emailLimpio = datos.email.trim().toLowerCase();
+
+    const { data, error } = await tempClient.auth.signUp({
+      email: emailLimpio,
+      password: datos.password,
+      options: {
+        data: {
+          nombre: datos.nombre.trim(),
+          apellido: datos.apellido.trim(),
+          fecha_nacimiento: datos.fechaNacimiento || null,
+          rol: 'empleado'
+        }
+      }
+    });
+
+    if (error) throw error;
+    if (!data.user) {
+      throw new Error('No se pudo generar el usuario en el sistema de autenticación.');
+    }
+
+    // Asegurar rol 'empleado', rol_admin_id y estado activo en la tabla perfiles
+    const { error: errorPerfil } = await this.supabaseService.client
+      .from('perfiles')
+      .upsert({
+        id: data.user.id,
+        correo: emailLimpio,
+        nombre: datos.nombre.trim(),
+        apellido: datos.apellido.trim(),
+        fecha_nacimiento: datos.fechaNacimiento || null,
+        rol: 'empleado',
+        rol_admin_id: datos.rolAdminId || null,
+        activo: true
+      });
+
+    if (errorPerfil) throw errorPerfil;
+
+    return data.user;
   }
 
   async login(email: string, password: string) {
