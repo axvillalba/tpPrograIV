@@ -1,8 +1,17 @@
+/* =========================================================
+   ESTILOS BASE DEL PANEL DE GERENCIA (CINE UTN)
+   ========================================================= */
+.admin-shell {
+  background: radial-gradient(circle at top right, rgba(229, 9, 20, 0.08), transparent 45%),
+              #09090d;
+}
+
 .max-w-admin {
   max-width: 1440px;
   margin: 0 auto;
 }
 
+/* Cabecera Ejecutiva */
 .admin-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -11,22 +20,23 @@
   width: 46px;
   height: 46px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #e50914 0%, #99060d 100%);
+  background: linear-gradient(135deg, #e50914 0%, #b80710 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.35rem;
   box-shadow: 0 6px 18px rgba(229, 9, 20, 0.35);
+  flex-shrink: 0;
 }
 
 .btn-logout-admin {
-  background: rgba(229, 9, 20, 0.12);
-  border: 1px solid rgba(229, 9, 20, 0.35);
+  background: rgba(229, 9, 20, 0.1);
+  border: 1px solid rgba(229, 9, 20, 0.4);
   color: #ff6b72;
-  border-radius: 999px;
-  padding: 7px 16px;
-  font-weight: 500;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-weight: 600;
   transition: all 0.2s ease;
 }
 
@@ -38,10 +48,10 @@
 
 /* Barra de Pestañas Segmentada */
 .admin-tabs-container {
-  background: rgba(14, 14, 19, 0.85);
+  background: rgba(18, 18, 24, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 8px;
   border-radius: 14px;
+  padding: 8px;
   overflow-x: auto;
 }
 
@@ -49,37 +59,37 @@
   flex-wrap: nowrap;
 }
 
-@media (min-width: 992px) {
-  .admin-nav-pills {
-    flex-wrap: wrap;
-  }
-}
-
 .admin-tab-btn {
-  background: transparent;
-  border: 1px solid transparent;
   color: #a1a1aa;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  font-size: 0.92rem;
-  padding: 9px 18px;
+  background: transparent;
+  border: none;
   border-radius: 10px;
+  padding: 9px 18px;
+  font-weight: 600;
+  font-size: 0.88rem;
   white-space: nowrap;
   transition: all 0.2s ease;
 }
 
 .admin-tab-btn:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .admin-tab-btn.active {
   background: linear-gradient(135deg, #e50914 0%, #b80710 100%);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(229, 9, 20, 0.35);
+  box-shadow: 0 4px 14px rgba(229, 9, 20, 0.38);
 }
 
-/* Títulos de Tarjetas */
+/* Tarjetas y Contenedores Internos */
+.bg-dark-card {
+  background: rgba(19, 19, 26, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
 .card-section-title {
   display: flex;
   align-items: center;
@@ -90,103 +100,160 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #e50914;
-  box-shadow: 0 0 10px #e50914;
+  background: #e50914;
+  box-shadow: 0 0 8px rgba(229, 9, 20, 0.85);
+  display: inline-block;
+  flex-shrink: 0;
 }
 
-/* Cajas Internas y Chips */
 .admin-inner-box {
-  background: rgba(10, 10, 14, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(11, 11, 15, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.admin-warning-banner {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.35);
+  color: #f4f4f5;
+}
+
+/* Inputs y Botón Principal */
+.form-control.bg-dark,
+.form-select.bg-dark {
+  background-color: rgba(11, 11, 15, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border-radius: 10px;
+}
+
+.form-control.bg-dark:focus,
+.form-select.bg-dark:focus {
+  border-color: #e50914 !important;
+  box-shadow: 0 0 0 0.2rem rgba(229, 9, 20, 0.2) !important;
+}
+
+.btn-danger-custom {
+  background: linear-gradient(135deg, #e50914 0%, #b80710 100%);
+  border: none;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-danger-custom:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f40b17 0%, #cc0812 100%);
+  transform: translateY(-1px);
+  color: #ffffff;
+}
+
+.btn-danger-custom:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Chips de Géneros y Días de Semana */
 .chip-btn {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #a1a1aa;
+  color: #d4d4d8;
   border-radius: 8px;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
+  padding: 4px 10px;
   transition: all 0.18s ease;
 }
 
 .chip-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .chip-btn.chip-active {
-  background: #e50914;
+  background: rgba(229, 9, 20, 0.22);
   border-color: #e50914;
   color: #ffffff;
   font-weight: 600;
 }
 
-.admin-warning-banner {
-  background: rgba(255, 193, 7, 0.08);
-  border: 1px solid rgba(255, 193, 7, 0.3);
-  color: #fde68a;
-}
-
-/* Tablas Cinematográficas */
-.table-cinema {
-  --bs-table-bg: transparent;
-  --bs-table-color: #e4e4e7;
-  --bs-table-border-color: rgba(255, 255, 255, 0.06);
-}
-
-.table-cinema thead th {
-  background: rgba(10, 10, 14, 0.9);
-  color: #a1a1aa;
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 10px;
-}
-
-.table-cinema tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.table-cinema tbody tr:hover {
-  background-color: rgba(229, 9, 20, 0.06);
-}
-
+/* Miniaturas de Catálogo */
 .admin-thumb-poster {
   width: 44px;
   height: 64px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #09090c;
+  display: block;
 }
 
 .admin-thumb-square {
   width: 46px;
   height: 46px;
   object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #09090c;
+  display: block;
+}
+
+/* Tablas Oscuras */
+.table-cinema {
+  --bs-table-bg: transparent;
+  --bs-table-color: #e4e4e7;
+  --bs-table-border-color: rgba(255, 255, 255, 0.07);
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.03);
+  --bs-table-hover-color: #ffffff;
+  color: #e4e4e7;
+}
+
+.table-cinema thead th {
+  background: rgba(11, 11, 15, 0.85);
+  color: #a1a1aa;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 10px;
+  white-space: nowrap;
+}
+
+.table-cinema tbody td {
+  background: transparent;
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
 }
 
 .badge-neutral {
   display: inline-block;
   background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #e4e4e7;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 3px 9px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 3px 10px;
   border-radius: 6px;
 }
 
-/* Botones de Acción en Tablas */
-.btn-action-edit {
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.35);
-  color: #ffc107;
+/* Botones de Acción (Editar / Eliminar) */
+.btn-action-edit,
+.btn-action-delete {
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.btn-action-edit {
+  background: rgba(255, 193, 7, 0.12);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  color: #ffc107;
 }
 
 .btn-action-edit:hover {
@@ -195,10 +262,9 @@
 }
 
 .btn-action-delete {
-  background: rgba(229, 9, 20, 0.1);
-  border: 1px solid rgba(229, 9, 20, 0.35);
+  background: rgba(229, 9, 20, 0.12);
+  border: 1px solid rgba(229, 9, 20, 0.4);
   color: #ff6b72;
-  border-radius: 8px;
 }
 
 .btn-action-delete:hover {
@@ -206,29 +272,27 @@
   color: #ffffff;
 }
 
-/* Tarjetas KPIs */
+/* KPI Cards & Reportes */
 .kpi-card {
-  background: linear-gradient(165deg, rgba(26, 26, 33, 0.95) 0%, rgba(15, 15, 20, 0.98) 100%);
+  background: rgba(19, 19, 26, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
-  border-left-width: 4px;
 }
 
-.kpi-success { border-left-color: #198754; }
-.kpi-primary { border-left-color: #0d6efd; }
-.kpi-warning { border-left-color: #ffc107; }
-.kpi-info    { border-left-color: #0dcaf0; }
+.kpi-success { border-left: 4px solid #198754; }
+.kpi-primary { border-left: 4px solid #0d6efd; }
+.kpi-warning { border-left: 4px solid #ffc107; }
+.kpi-info    { border-left: 4px solid #0dcaf0; }
 
 .kpi-icon-box {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #d4d4d8;
+  color: #e4e4e7;
 }
 
 .export-icon-circle {
@@ -242,4 +306,173 @@
   align-items: center;
   justify-content: center;
   font-size: 1.6rem;
+}
+
+/* =========================================================
+   MÓDULO ROLES Y USUARIOS (BOTONES Y BADGES ESTRUCTURADOS)
+   ========================================================= */
+.letter-spacing-1 {
+  letter-spacing: 0.06em;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.role-perm-check {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all 0.2s ease;
+}
+
+.role-perm-check:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.role-perm-check.active {
+  background: rgba(229, 9, 20, 0.12);
+  border-color: rgba(229, 9, 20, 0.45);
+}
+
+.perm-tag-rect {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e4e4e7;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.user-row-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e4e4e7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.status-rect-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.badge-rect-user {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #d4d4d8;
+}
+
+.badge-rect-admin {
+  background: rgba(229, 9, 20, 0.16);
+  border: 1px solid rgba(229, 9, 20, 0.55);
+  color: #ff6b72;
+}
+
+.badge-rect-custom {
+  background: rgba(255, 193, 7, 0.14);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  color: #ffc107;
+}
+
+.badge-rect-enabled {
+  background: rgba(25, 135, 84, 0.14);
+  border: 1px solid rgba(25, 135, 84, 0.5);
+  color: #4ade80;
+}
+
+.badge-rect-standard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #71717a;
+}
+
+.btn-rect-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.btn-rect-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-rect-light {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #f4f4f5;
+}
+
+.btn-rect-light:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.btn-rect-red {
+  background: rgba(229, 9, 20, 0.1);
+  border: 1px solid rgba(229, 9, 20, 0.55);
+  color: #ff6b72;
+}
+
+.btn-rect-red:hover:not(:disabled) {
+  background: #e50914;
+  border-color: #e50914;
+  color: #ffffff;
+}
+
+.btn-rect-gold {
+  background: rgba(255, 193, 7, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  color: #ffc107;
+}
+
+.btn-rect-gold:hover:not(:disabled) {
+  background: #ffc107;
+  border-color: #ffc107;
+  color: #121212;
+}
+
+.btn-rect-cyan {
+  background: rgba(13, 202, 240, 0.08);
+  border: 1px solid rgba(13, 202, 240, 0.45);
+  color: #38bdf8;
+}
+
+.btn-rect-cyan:hover:not(:disabled) {
+  background: rgba(13, 202, 240, 0.2);
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.select-role-mini {
+  width: 165px;
+  font-size: 0.78rem;
+  border-radius: 4px !important;
+  padding: 4px 8px;
 }

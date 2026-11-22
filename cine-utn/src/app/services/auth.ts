@@ -26,15 +26,15 @@ export class AuthService {
   }
 
   async registrarUsuario(datos: RegistroUsuario) {
-    const { 
-      email, 
-      password, 
-      nombre, 
-      apellido, 
-      fechaNacimiento, 
-      tipoSangre, 
-      colorOjos, 
-      diasVacaciones 
+    const {
+      email,
+      password,
+      nombre,
+      apellido,
+      fechaNacimiento,
+      tipoSangre,
+      colorOjos,
+      diasVacaciones
     } = datos;
 
     // Enviar metadatos completos para que el Trigger de Postgres arme el perfil en 'perfiles'
@@ -77,10 +77,10 @@ export class AuthService {
     const { data: { user } } = await this.supabaseService.client.auth.getUser();
     if (!user) return null;
 
-    // Consulta directa y limpia a la tabla unificada 'perfiles'
+    // Trae el perfil junto con los datos y permisos del rol configurable si tiene uno asignado
     const { data: perfil, error } = await this.supabaseService.client
       .from('perfiles')
-      .select('*')
+      .select('*, roles_admin(id, nombre, descripcion, permisos)')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -92,7 +92,26 @@ export class AuthService {
     return perfil;
   }
 
-    calcularEdad(fechaNacimientoStr: string | Date): number {
+  /**
+   * Verifica si el perfil tiene acceso administrativo general o a una pestaña específica.
+   */
+  tienePermisoAdmin(perfil: any, seccion?: string): boolean {
+    if (!perfil) return false;
+
+    // Superadmin: gerente o admin sin restricción de rol granular
+    const esSuperAdmin = (perfil.rol === 'gerente' || perfil.rol === 'admin') && !perfil.rol_admin_id;
+    if (esSuperAdmin) return true;
+
+    // Usuario con rol personalizado asignado
+    const permisos: string[] = perfil.roles_admin?.permisos || [];
+    if (!seccion) {
+      return permisos.length > 0;
+    }
+
+    return permisos.includes(seccion);
+  }
+
+  calcularEdad(fechaNacimientoStr: string | Date): number {
     if (!fechaNacimientoStr) return 0;
 
     const hoy = new Date();

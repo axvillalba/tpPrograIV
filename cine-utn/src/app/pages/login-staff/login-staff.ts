@@ -30,7 +30,7 @@ export class LoginStaffComponent {
     const pass = this.password();
 
     try {
-      // 1. Iniciar sesión en Supabase Auth con credenciales reales
+      // 1. Iniciar sesión en Supabase Auth
       const { data, error } = await this.supabaseService.client.auth.signInWithPassword({
         email: emailLimpio,
         password: pass
@@ -40,25 +40,24 @@ export class LoginStaffComponent {
         throw new Error('Credenciales inválidas. Verifique su correo y contraseña.');
       }
 
-      // 2. Consultar perfil en la tabla 'perfiles'
-      const { data: perfiles, error: errorPerfil } = await this.supabaseService.client
+      // 2. Consultar perfil y rol configurable en la tabla 'perfiles'
+      const { data: perfil, error: errorPerfil } = await this.supabaseService.client
         .from('perfiles')
-        .select('rol')
-        .eq('id', data.user.id);
+        .select('rol, rol_admin_id, roles_admin(permisos)')
+        .eq('id', data.user.id)
+        .maybeSingle();
 
       if (errorPerfil) {
         console.error('Error al consultar perfil:', errorPerfil);
         throw new Error('Error al conectar con la tabla de perfiles.');
       }
 
-      if (!perfiles || perfiles.length === 0) {
+      if (!perfil) {
         throw new Error('No se encontró información de perfil para esta cuenta.');
       }
 
-      const perfil = perfiles[0];
-
-      // 3. Redirección estricta según el rol verificado en base de datos
-      if (perfil.rol === 'gerente' || perfil.rol === 'admin') {
+      // 3. Redirección según superadmin, rol configurable o empleado operativo
+      if (this.authService.tienePermisoAdmin(perfil)) {
         this.router.navigate(['/admin/dashboard']);
       } else if (perfil.rol === 'empleado') {
         this.router.navigate(['/empleado/validador']);

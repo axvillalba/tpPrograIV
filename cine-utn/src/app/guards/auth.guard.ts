@@ -3,7 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth';
 
 /**
- * Guard para acceso exclusivo de Administradores y Gerentes.
+ * Guard para acceso de Gerencia, Administradores y Roles Configurables.
  * Protege /admin/dashboard.
  */
 export const adminGuard: CanActivateFn = async () => {
@@ -12,7 +12,7 @@ export const adminGuard: CanActivateFn = async () => {
 
   const perfil = await authService.getPerfilActual();
 
-  if (perfil && (perfil.rol === 'gerente' || perfil.rol === 'admin')) {
+  if (authService.tienePermisoAdmin(perfil)) {
     return true;
   }
 
@@ -22,7 +22,7 @@ export const adminGuard: CanActivateFn = async () => {
 
 /**
  * Guard para acceso de Personal de Control y Operaciones (Staff).
- * Protege /empleado/validador para roles 'empleado', 'gerente' y 'admin'.
+ * Protege /empleado/validador.
  */
 export const staffGuard: CanActivateFn = async () => {
   const authService = inject(AuthService);
@@ -30,7 +30,7 @@ export const staffGuard: CanActivateFn = async () => {
 
   const perfil = await authService.getPerfilActual();
 
-  if (perfil && (perfil.rol === 'empleado' || perfil.rol === 'gerente' || perfil.rol === 'admin')) {
+  if (perfil && (perfil.rol === 'empleado' || authService.tienePermisoAdmin(perfil))) {
     return true;
   }
 

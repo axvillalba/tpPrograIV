@@ -9,7 +9,7 @@
         </div>
         <div>
           <h2 class="text-white fw-bold m-0">Panel de <span class="text-danger">Gerencia</span></h2>
-          <small class="text-secondary">Cine UTN · Control Total de Catálogo, Salas y Auditoría</small>
+          <small class="text-secondary">Cine UTN · Control de Catálogo, Salas, Roles y Auditoría</small>
         </div>
       </div>
 
@@ -18,64 +18,85 @@
       </button>
     </header>
 
-    <!-- NAVEGACIÓN DE PESTAÑAS SEGMENTADA -->
+    <!-- NAVEGACIÓN DE PESTAÑAS SEGMENTADA (FILTRADA POR PERMISOS) -->
     <div class="admin-tabs-container mb-4">
       <ul class="nav nav-pills admin-nav-pills gap-2">
-        <li class="nav-item">
-          <button 
-            class="btn admin-tab-btn" 
-            [class.active]="pestanaActiva() === 'peliculas'" 
-            (click)="pestanaActiva.set('peliculas')">
-            <i class="bi bi-film me-2"></i>Películas
-          </button>
-        </li>
-        <li class="nav-item">
-          <button 
-            class="btn admin-tab-btn" 
-            [class.active]="pestanaActiva() === 'candy'" 
-            (click)="pestanaActiva.set('candy')">
-            <i class="bi bi-cup-straw me-2"></i>Candy Bar
-          </button>
-        </li>
-        <li class="nav-item">
-          <button 
-            class="btn admin-tab-btn" 
-            [class.active]="pestanaActiva() === 'cupones'" 
-            (click)="pestanaActiva.set('cupones')">
-            <i class="bi bi-ticket-perforated me-2"></i>Cupones
-          </button>
-        </li>
-        <li class="nav-item">
-          <button 
-            class="btn admin-tab-btn" 
-            [class.active]="pestanaActiva() === 'funciones'" 
-            (click)="pestanaActiva.set('funciones')">
-            <i class="bi bi-calendar-event me-2"></i>Funciones & Salas
-          </button>
-        </li>
-        <li class="nav-item">
-          <button 
-            class="btn admin-tab-btn" 
-            [class.active]="pestanaActiva() === 'recompensas'" 
-            (click)="pestanaActiva.set('recompensas')">
-            <i class="bi bi-star-fill me-2"></i>Fidelización
-          </button>
-        </li>
-        <li class="nav-item">
-          <button 
-            class="btn admin-tab-btn" 
-            [class.active]="pestanaActiva() === 'reportes'" 
-            (click)="pestanaActiva.set('reportes'); cargarMetricasYLogs()">
-            <i class="bi bi-graph-up-arrow me-2"></i>Reportes & Logs
-          </button>
-        </li>
+        @if (puedeVerPestana('peliculas')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'peliculas'" 
+              (click)="pestanaActiva.set('peliculas')">
+              <i class="bi bi-film me-2"></i>Películas
+            </button>
+          </li>
+        }
+        @if (puedeVerPestana('candy')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'candy'" 
+              (click)="pestanaActiva.set('candy')">
+              <i class="bi bi-cup-straw me-2"></i>Candy Bar
+            </button>
+          </li>
+        }
+        @if (puedeVerPestana('cupones')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'cupones'" 
+              (click)="pestanaActiva.set('cupones')">
+              <i class="bi bi-ticket-perforated me-2"></i>Cupones
+            </button>
+          </li>
+        }
+        @if (puedeVerPestana('funciones')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'funciones'" 
+              (click)="pestanaActiva.set('funciones')">
+              <i class="bi bi-calendar-event me-2"></i>Funciones & Salas
+            </button>
+          </li>
+        }
+        @if (puedeVerPestana('recompensas')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'recompensas'" 
+              (click)="pestanaActiva.set('recompensas')">
+              <i class="bi bi-star-fill me-2"></i>Fidelización
+            </button>
+          </li>
+        }
+        @if (puedeVerPestana('roles')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'roles'" 
+              (click)="pestanaActiva.set('roles'); cargarRolesYUsuarios()">
+              <i class="bi bi-shield-lock me-2"></i>Roles y Usuarios
+            </button>
+          </li>
+        }
+        @if (puedeVerPestana('reportes')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'reportes'" 
+              (click)="pestanaActiva.set('reportes'); cargarMetricasYLogs()">
+              <i class="bi bi-graph-up-arrow me-2"></i>Reportes & Logs
+            </button>
+          </li>
+        }
       </ul>
     </div>
 
     <!-- PESTAÑA PELÍCULAS -->
-    @if (pestanaActiva() === 'peliculas') {
+    @if (pestanaActiva() === 'peliculas' && puedeVerPestana('peliculas')) {
       <div class="row g-4">
-        <!-- FORMULARIO: AGREGAR / EDITAR PELÍCULA -->
         <div class="col-lg-4">
           <div class="card bg-dark-card text-white p-4">
             <div class="card-section-title mb-3">
@@ -126,7 +147,6 @@
               </div>
             </div>
 
-            <!-- CONTROLES DE PRÓXIMAMENTE Y PREVENTA -->
             <div class="p-3 admin-inner-box rounded-3 mb-3">
               <div class="row g-2">
                 <div class="col-6">
@@ -173,7 +193,6 @@
           </div>
         </div>
 
-        <!-- TABLA DE CATÁLOGO DE PELÍCULAS -->
         <div class="col-lg-8">
           <div class="card bg-dark-card text-white p-4">
             <div class="card-section-title mb-3">
@@ -233,7 +252,7 @@
     }
 
     <!-- PESTAÑA CANDY BAR -->
-    @if (pestanaActiva() === 'candy') {
+    @if (pestanaActiva() === 'candy' && puedeVerPestana('candy')) {
       <div class="row g-4">
         <div class="col-lg-4">
           <div class="card bg-dark-card text-white p-4">
@@ -322,7 +341,7 @@
     }
 
     <!-- PESTAÑA CUPONES -->
-    @if (pestanaActiva() === 'cupones') {
+    @if (pestanaActiva() === 'cupones' && puedeVerPestana('cupones')) {
       <div class="row g-4">
         <div class="col-lg-4">
           <div class="card bg-dark-card text-white p-4">
@@ -404,9 +423,8 @@
     }
 
     <!-- PESTAÑA FUNCIONES & SALAS -->
-    @if (pestanaActiva() === 'funciones') {
+    @if (pestanaActiva() === 'funciones' && puedeVerPestana('funciones')) {
       <div class="row g-4">
-        <!-- FORMULARIO: PROGRAMAR FUNCIÓN -->
         <div class="col-lg-4">
           <div class="card bg-dark-card text-white p-4">
             <div class="card-section-title mb-3">
@@ -421,7 +439,6 @@
               <strong>Regla obligatoria:</strong> Bloque de 30 minutos libres entre funciones en la misma sala para limpieza.
             </div>
 
-            <!-- Película -->
             <div class="mb-3">
               <label class="form-label small text-secondary fw-medium">Película</label>
               <select class="form-select bg-dark text-white" [(ngModel)]="nuevaFuncion().pelicula_id">
@@ -432,7 +449,6 @@
               </select>
             </div>
 
-            <!-- Sala -->
             <div class="mb-3">
               <label class="form-label small text-secondary fw-medium">Sala</label>
               <select class="form-select bg-dark text-white" [(ngModel)]="nuevaFuncion().sala_id">
@@ -443,13 +459,11 @@
               </select>
             </div>
 
-            <!-- Fecha y Hora de Inicio -->
             <div class="mb-3">
               <label class="form-label small text-secondary fw-medium">Fecha y Hora de Inicio</label>
               <input type="datetime-local" class="form-control bg-dark text-white" [(ngModel)]="nuevaFuncion().fecha_hora">
             </div>
 
-            <!-- Formato e Idioma -->
             <div class="row g-2 mb-3">
               <div class="col-6">
                 <label class="form-label small text-secondary fw-medium">Formato</label>
@@ -471,7 +485,6 @@
 
             <hr class="border-secondary border-opacity-25 my-3">
 
-            <!-- RECURRENCIA OPCIONAL EN EL FORMULARIO -->
             <div class="mb-3">
               <label class="form-label small text-secondary fw-medium d-block">Repetir en los días (Opcional):</label>
               <div class="d-flex flex-wrap gap-1 mb-2">
@@ -514,7 +527,6 @@
           </div>
         </div>
 
-        <!-- TABLA DE FUNCIONES PROGRAMADAS -->
         <div class="col-lg-8">
           <div class="card bg-dark-card text-white p-4">
             <div class="card-section-title mb-3">
@@ -573,7 +585,7 @@
     }
 
     <!-- PESTAÑA FIDELIZACIÓN / RECOMPENSAS -->
-    @if (pestanaActiva() === 'recompensas') {
+    @if (pestanaActiva() === 'recompensas' && puedeVerPestana('recompensas')) {
       <div class="row g-4">
         <div class="col-lg-4">
           <div class="card bg-dark-card text-white p-4">
@@ -647,8 +659,8 @@
                       <td>
                         <img [src]="rec.imagen_url || 'assets/placeholder-award.png'" class="admin-thumb-square">
                       </td>
-                      <td>
-                        <div class="fw-bold text-white">{{ rec.nombre }}</div>
+                      <td class="fw-bold">
+                        <div class="text-white">{{ rec.nombre }}</div>
                         <small class="text-secondary">{{ rec.descripcion }}</small>
                       </td>
                       <td><span class="badge-neutral">{{ rec.tipo }}</span></td>
@@ -669,9 +681,267 @@
       </div>
     }
 
+    <!-- PESTAÑA ROLES Y ASIGNACIÓN DE USUARIOS -->
+    @if (pestanaActiva() === 'roles' && puedeVerPestana('roles')) {
+      <div class="row g-4">
+        
+        <!-- COLUMNA IZQUIERDA: CREAR / EDITAR ROL CONFIGURABLE -->
+        <div class="col-lg-4">
+          <div class="card bg-dark-card text-white p-4">
+            <div class="card-section-title mb-3">
+              <span class="accent-dot"></span>
+              <h5 class="m-0 fw-bold text-white">
+                {{ idRolEditando() ? 'Editar Rol Administrativo' : 'Crear Rol Administrativo' }}
+              </h5>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary fw-medium">Nombre del Rol</label>
+              <input 
+                type="text" 
+                class="form-control bg-dark text-white" 
+                placeholder="Ej: Analista de Reportes"
+                [(ngModel)]="nuevoRol().nombre">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary fw-medium">Descripción (Opcional)</label>
+              <textarea 
+                class="form-control bg-dark text-white" 
+                rows="2" 
+                placeholder="Detalle de responsabilidades..."
+                [(ngModel)]="nuevoRol().descripcion"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small text-secondary fw-medium d-block mb-2">
+                Secciones Habilitadas en el Panel:
+              </label>
+              <div class="p-3 admin-inner-box rounded-3 d-flex flex-column gap-2">
+                @for (sec of seccionesDisponibles; track sec.id) {
+                  <label class="role-perm-check d-flex align-items-center justify-content-between p-2 rounded-2 cursor-pointer"
+                         [class.active]="nuevoRol().permisos.includes(sec.id)">
+                    <span class="small fw-medium text-white">
+                      <i class="bi {{ sec.icono }} me-2 text-danger"></i>{{ sec.nombre }}
+                    </span>
+                    <input 
+                      type="checkbox" 
+                      class="form-check-input m-0"
+                      [checked]="nuevoRol().permisos.includes(sec.id)"
+                      (change)="togglePermisoRol(sec.id)">
+                  </label>
+                }
+              </div>
+            </div>
+
+            <button class="btn btn-danger-custom w-100 py-2" (click)="guardarRol()">
+              <i class="bi bi-shield-check me-1"></i>
+              {{ idRolEditando() ? 'Guardar Cambios del Rol' : 'Crear Rol Configurable' }}
+            </button>
+
+            @if (idRolEditando()) {
+              <button class="btn btn-outline-light w-100 mt-2 btn-sm" (click)="cancelarEdicionRol()">
+                Cancelar Edición
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: ROLES CREADOS + ASIGNACIÓN A USUARIOS -->
+        <div class="col-lg-8 d-flex flex-column gap-4">
+          
+          <!-- BLOQUE 1: ROLES CONFIGURADOS -->
+          <div class="card bg-dark-card text-white p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="card-section-title">
+                <span class="accent-dot"></span>
+                <h5 class="m-0 fw-bold text-white text-uppercase letter-spacing-1">
+                  Roles Configurados ({{ rolesAdmin().length }})
+                </h5>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-cinema align-middle m-0">
+                <thead>
+                  <tr>
+                    <th>Nombre del Rol</th>
+                    <th>Secciones Permitidas</th>
+                    <th class="text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (rol of rolesAdmin(); track rol.id) {
+                    <tr>
+                      <td>
+                        <div class="fw-bold text-white">{{ rol.nombre }}</div>
+                        @if (rol.descripcion) {
+                          <small class="text-secondary">{{ rol.descripcion }}</small>
+                        }
+                      </td>
+                      <td>
+                        <div class="d-flex flex-wrap gap-1">
+                          @for (p of rol.permisos; track p) {
+                            <span class="perm-tag-rect">{{ obtenerNombreSeccion(p) }}</span>
+                          }
+                        </div>
+                      </td>
+                      <td class="text-end text-nowrap">
+                        <div class="d-inline-flex flex-column gap-1 align-items-end">
+                          <button class="btn-rect-action btn-rect-gold" (click)="editarRol(rol)">
+                            <i class="bi bi-pencil-square me-1"></i> EDITAR ROL
+                          </button>
+                          <button class="btn-rect-action btn-rect-red" (click)="eliminarRol(rol)">
+                            <i class="bi bi-trash me-1"></i> ELIMINAR
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="3" class="text-center text-secondary py-4">
+                        Todavía no creaste roles personalizados. Creá uno desde el panel izquierdo.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- BLOQUE 2: USUARIOS REGISTRADOS Y ASIGNACIÓN DE ROLES -->
+          <div class="card bg-dark-card text-white p-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <div class="card-section-title">
+                <span class="accent-dot"></span>
+                <h5 class="m-0 fw-bold text-white text-uppercase letter-spacing-1">
+                  Usuarios Registrados ({{ usuariosFiltrados().length }})
+                </h5>
+              </div>
+
+              <div class="d-flex align-items-center gap-2">
+                <input 
+                  type="text" 
+                  class="form-control form-control-sm bg-dark text-white" 
+                  style="width: 220px;"
+                  placeholder="Filtrar por nombre o correo..."
+                  [ngModel]="filtroUsuario()"
+                  (ngModelChange)="filtroUsuario.set($event)">
+
+                <button class="btn-rect-action btn-rect-cyan" (click)="cargarRolesYUsuarios()">
+                  <i class="bi bi-arrow-clockwise me-1"></i> ACTUALIZAR
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-cinema align-middle m-0">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Correo</th>
+                    <th>Perfil / Rol</th>
+                    <th>Estado</th>
+                    <th class="text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (u of usuariosFiltrados(); track u.id) {
+                    <tr>
+                      <!-- Avatar + Nombre -->
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="user-row-avatar">
+                            <i class="bi bi-person-fill"></i>
+                          </div>
+                          <div>
+                            <div class="fw-bold text-white small">{{ u.nombre || 'Sin nombre' }} {{ u.apellido || '' }}</div>
+                            <small class="text-danger" style="font-size: 0.72rem;">@{{ (u.correo || '').split('@')[0] }}</small>
+                          </div>
+                        </div>
+                      </td>
+
+                      <!-- Correo -->
+                      <td class="small text-light">{{ u.correo }}</td>
+
+                      <!-- Badge Perfil / Rol -->
+                      <td>
+                        @if ((u.rol === 'gerente' || u.rol === 'admin') && !u.rol_admin_id) {
+                          <span class="status-rect-badge badge-rect-admin">
+                            <i class="bi bi-shield-fill-check me-1"></i> Superadmin
+                          </span>
+                        } @else if (u.roles_admin) {
+                          <span class="status-rect-badge badge-rect-custom">
+                            <i class="bi bi-person-badge-fill me-1"></i> {{ u.roles_admin.nombre }}
+                          </span>
+                        } @else {
+                          <span class="status-rect-badge badge-rect-user">
+                            <i class="bi bi-person me-1"></i> {{ u.rol | titlecase }}
+                          </span>
+                        }
+                      </td>
+
+                      <!-- Estado de Acceso -->
+                      <td>
+                        @if ((u.rol === 'gerente' || u.rol === 'admin' || u.rol_admin_id)) {
+                          <span class="status-rect-badge badge-rect-enabled">CON ACCESO ADMIN</span>
+                        } @else {
+                          <span class="status-rect-badge badge-rect-standard">ESTÁNDAR</span>
+                        }
+                      </td>
+
+                      <!-- Acciones Rectangulares Estructuradas -->
+                      <td class="text-end">
+                        @if ((u.rol === 'gerente' || u.rol === 'admin') && !u.rol_admin_id) {
+                          <span class="text-secondary small fst-italic">Acceso total fijo</span>
+                        } @else {
+                          <div class="d-inline-flex flex-column gap-1 align-items-end">
+                            <div class="d-flex align-items-center gap-1">
+                              <select 
+                                class="form-select form-select-sm bg-dark text-white select-role-mini"
+                                [ngModel]="rolSeleccionadoPorUsuario()[u.id]"
+                                (ngModelChange)="actualizarSeleccionRolUsuario(u.id, $event)">
+                                <option value="">Seleccionar rol...</option>
+                                @for (r of rolesAdmin(); track r.id) {
+                                  <option [value]="r.id">{{ r.nombre }}</option>
+                                }
+                              </select>
+
+                              <button 
+                                class="btn-rect-action btn-rect-light"
+                                [disabled]="!rolSeleccionadoPorUsuario()[u.id]"
+                                (click)="asignarRolAUsuario(u)">
+                                <i class="bi bi-shield-plus me-1 text-danger"></i> ASIGNAR ROL
+                              </button>
+                            </div>
+
+                            @if (u.rol_admin_id) {
+                              <button class="btn-rect-action btn-rect-red" (click)="quitarRolAUsuario(u)">
+                                <i class="bi bi-x-circle me-1"></i> QUITAR ROL
+                              </button>
+                            }
+                          </div>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="text-center text-secondary py-4">
+                        No se encontraron usuarios registrados con ese criterio.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    }
+
     <!-- PESTAÑA REPORTES & LOGS DE AUDITORÍA -->
-    @if (pestanaActiva() === 'reportes') {
-      <!-- TARJETAS DE MÉTRICAS / KPIS -->
+    @if (pestanaActiva() === 'reportes' && puedeVerPestana('reportes')) {
       <div class="row g-3 g-md-4 mb-4">
         <div class="col-sm-6 col-lg-3">
           <div class="kpi-card kpi-success p-3">
@@ -712,7 +982,6 @@
       </div>
 
       <div class="row g-4">
-        <!-- TABLA DE LOGS DE AUDITORÍA -->
         <div class="col-lg-8">
           <div class="card bg-dark-card text-white p-4">
             <div class="card-section-title mb-3">
@@ -744,7 +1013,6 @@
           </div>
         </div>
 
-        <!-- BOTÓN EXPORTAR EXCEL / CSV -->
         <div class="col-lg-4">
           <div class="card bg-dark-card text-white p-4 text-center d-flex flex-column justify-content-center h-100">
             <div class="export-icon-circle mx-auto mb-3">

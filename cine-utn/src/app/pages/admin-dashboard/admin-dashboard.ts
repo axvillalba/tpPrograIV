@@ -1,6 +1,7 @@
 import {
   Component,
   signal,
+  computed,
   ViewChild,
   ElementRef,
   inject,
@@ -16,6 +17,15 @@ import { CandyService } from '../../services/candy';
 import { CuponesService } from '../../services/cupones';
 import { RecompensasService } from '../../services/recompensas';
 import { AuditoriaService } from '../../services/auditoria';
+
+export type PestanaAdmin =
+  | 'peliculas'
+  | 'candy'
+  | 'cupones'
+  | 'funciones'
+  | 'recompensas'
+  | 'roles'
+  | 'reportes';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -40,7 +50,22 @@ export class AdminDashboardComponent implements OnInit {
   @ViewChild('fileInputCandy') fileInputCandy!: ElementRef<HTMLInputElement>;
   @ViewChild('fileInputRecompensa') fileInputRecompensa!: ElementRef<HTMLInputElement>;
 
-pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recompensas' | 'reportes'>('peliculas')
+  pestanaActiva = signal<PestanaAdmin>('peliculas');
+
+  // Control de Permisos del Usuario Logueado
+  esSuperAdmin = signal<boolean>(false);
+  permisosUsuario = signal<string[]>([]);
+
+  // Catálogo de secciones configurables para los Roles
+  seccionesDisponibles: { id: PestanaAdmin; nombre: string; icono: string }[] = [
+    { id: 'peliculas', nombre: 'Películas', icono: 'bi-film' },
+    { id: 'candy', nombre: 'Candy Bar', icono: 'bi-cup-straw' },
+    { id: 'cupones', nombre: 'Cupones', icono: 'bi-ticket-perforated' },
+    { id: 'funciones', nombre: 'Funciones & Salas', icono: 'bi-calendar-event' },
+    { id: 'recompensas', nombre: 'Fidelización', icono: 'bi-star-fill' },
+    { id: 'roles', nombre: 'Roles y Usuarios', icono: 'bi-shield-lock' },
+    { id: 'reportes', nombre: 'Reportes & Logs', icono: 'bi-graph-up-arrow' },
+  ];
 
   // Listas de datos
   peliculas = signal<any[]>([]);
@@ -50,6 +75,24 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
   salas = signal<any[]>([]);
   recompensas = signal<any[]>([]);
 
+  // Datos de Roles y Usuarios
+  rolesAdmin = signal<any[]>([]);
+  usuariosSistema = signal<any[]>([]);
+  filtroUsuario = signal<string>('');
+  rolSeleccionadoPorUsuario = signal<Record<string, string>>({});
+
+  usuariosFiltrados = computed(() => {
+    const termino = this.filtroUsuario().trim().toLowerCase();
+    const lista = this.usuariosSistema();
+    if (!termino) return lista;
+
+    return lista.filter((u) => {
+      const nombreCompleto = `${u.nombre || ''} ${u.apellido || ''}`.toLowerCase();
+      const correo = (u.correo || '').toLowerCase();
+      return nombreCompleto.includes(termino) || correo.includes(termino);
+    });
+  });
+
   // Estados de carga y edición
   subiendoImagen = signal<boolean>(false);
   idPeliculaEditando = signal<string | null>(null);
@@ -57,6 +100,7 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
   idCuponEditando = signal<string | null>(null);
   idFuncionEditando = signal<string | null>(null);
   idRecompensaEditando = signal<string | null>(null);
+  idRolEditando = signal<string | null>(null);
 
   // Archivos seleccionados
   archivoPosterSeleccionado: File | null = null;
@@ -80,7 +124,7 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
 
   generosSeleccionados = signal<string[]>([]);
 
-  // Formulario Película actualizado
+  // Formulario Película
   nuevaPelicula = signal<any>({
     titulo: '',
     sinopsis: '',
@@ -130,8 +174,15 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
     activo: true,
   });
 
+  // Formulario Roles Configurables
+  nuevoRol = signal<{ nombre: string; descripcion: string; permisos: PestanaAdmin[] }>({
+    nombre: '',
+    descripcion: '',
+    permisos: [],
+  });
+
   // Programación Recurrente
-  periodoRecurrencia: number = 1; // Cantidad de semanas (1, 2 o 4)
+  periodoRecurrencia: number = 1;
   diasSemana = [
     { id: 1, nombre: 'Lun', seleccionado: false },
     { id: 2, nombre: 'Mar', seleccionado: false },
@@ -153,13 +204,40 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
 
   async ngOnInit() {
     const perfil = await this.authService.getPerfilActual();
-    if (!perfil || (perfil.rol !== 'admin' && perfil.rol !== 'gerente')) {
-      alert('Acceso restringido únicamente para la gerencia del cine.');
+
+    if (!this.authService.tienePermisoAdmin(perfil)) {
+      alert('Acceso restringido únicamente para personal autorizado de administración.');
       this.router.navigate(['/login-staff']);
       return;
     }
+
+    const superAdmin = (perfil.rol === 'admin' || perfil.rol === 'gerente') && !perfil.rol_admin_id;
+    const permisos: string[] = superAdmin
+      ? this.seccionesDisponibles.map((s) => s.id)
+      : perfil.roles_admin?.permisos || [];
+
+    this.esSuperAdmin.set(superAdmin);
+    this.permisosUsuario.set(permisos);
+
+    // Seleccionar automáticamente la primera pestaña habilitada para este usuario
+    const primeraHabilitada = this.seccionesDisponibles.find((s) => permisos.includes(s.id));
+    if (primeraHabilitada) {
+      this.pestanaActiva.set(primeraHabilitada.id);
+    }
+
     await this.cargarDatos();
     await this.cargarSalas();
+
+    if (this.puedeVerPestana('roles')) {
+      await this.cargarRolesYUsuarios();
+    }
+    if (this.pestanaActiva() === 'reportes') {
+      await this.cargarMetricasYLogs();
+    }
+  }
+
+  puedeVerPestana(seccion: PestanaAdmin): boolean {
+    return this.esSuperAdmin() || this.permisosUsuario().includes(seccion);
   }
 
   async cargarDatos() {
@@ -192,6 +270,181 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
 
     if (!error && data) {
       this.salas.set(data);
+    }
+  }
+
+  // --- GESTIÓN DE ROLES Y ASIGNACIÓN A USUARIOS ---
+  async cargarRolesYUsuarios() {
+    const [resRoles, resUsuarios] = await Promise.all([
+      this.supabaseService.client
+        .from('roles_admin')
+        .select('*')
+        .order('created_at', { ascending: true }),
+      this.supabaseService.client
+        .from('perfiles')
+        .select('id, nombre, apellido, correo, rol, rol_admin_id, roles_admin(id, nombre, permisos)')
+        .order('created_at', { ascending: false }),
+    ]);
+
+    if (resRoles.data) {
+      this.rolesAdmin.set(resRoles.data);
+    }
+
+    if (resUsuarios.data) {
+      this.usuariosSistema.set(resUsuarios.data);
+      const mapaSeleccion: Record<string, string> = {};
+      resUsuarios.data.forEach((u: any) => {
+        mapaSeleccion[u.id] = u.rol_admin_id || '';
+      });
+      this.rolSeleccionadoPorUsuario.set(mapaSeleccion);
+    }
+  }
+
+  togglePermisoRol(seccionId: PestanaAdmin) {
+    const actual = { ...this.nuevoRol() };
+    const permisos = [...actual.permisos];
+    const idx = permisos.indexOf(seccionId);
+
+    if (idx > -1) {
+      permisos.splice(idx, 1);
+    } else {
+      permisos.push(seccionId);
+    }
+
+    this.nuevoRol.set({ ...actual, permisos });
+  }
+
+  obtenerNombreSeccion(id: string): string {
+    return this.seccionesDisponibles.find((s) => s.id === id)?.nombre || id;
+  }
+
+  async guardarRol() {
+    const rolData = { ...this.nuevoRol() };
+    if (!rolData.nombre.trim()) {
+      return alert('Ingresá un nombre para el rol.');
+    }
+    if (rolData.permisos.length === 0) {
+      return alert('Seleccioná al menos una sección habilitada para este rol.');
+    }
+
+    const payload = {
+      nombre: rolData.nombre.trim(),
+      descripcion: rolData.descripcion.trim() || null,
+      permisos: rolData.permisos,
+    };
+
+    if (this.idRolEditando()) {
+      const { error } = await this.supabaseService.client
+        .from('roles_admin')
+        .update(payload)
+        .eq('id', this.idRolEditando());
+
+      if (error) {
+        alert('Error al actualizar el rol: ' + error.message);
+      } else {
+        await this.auditoriaService.registrarAccion('MODIFICAR_ROL_ADMIN', {
+          id: this.idRolEditando(),
+          nombre: payload.nombre,
+          permisos: payload.permisos,
+        });
+        this.cancelarEdicionRol();
+      }
+    } else {
+      const { error } = await this.supabaseService.client.from('roles_admin').insert([payload]);
+
+      if (error) {
+        alert('Error al crear el rol: ' + error.message);
+      } else {
+        await this.auditoriaService.registrarAccion('CREAR_ROL_ADMIN', {
+          nombre: payload.nombre,
+          permisos: payload.permisos,
+        });
+        this.cancelarEdicionRol();
+      }
+    }
+
+    await this.cargarRolesYUsuarios();
+  }
+
+  editarRol(rol: any) {
+    this.idRolEditando.set(rol.id);
+    this.nuevoRol.set({
+      nombre: rol.nombre,
+      descripcion: rol.descripcion || '',
+      permisos: [...(rol.permisos || [])],
+    });
+  }
+
+  cancelarEdicionRol() {
+    this.idRolEditando.set(null);
+    this.nuevoRol.set({
+      nombre: '',
+      descripcion: '',
+      permisos: [],
+    });
+  }
+
+  async eliminarRol(rol: any) {
+    if (!confirm(`¿Eliminar el rol "${rol.nombre}"? Los usuarios con este rol perderán sus permisos asignados.`)) {
+      return;
+    }
+
+    const { error } = await this.supabaseService.client.from('roles_admin').delete().eq('id', rol.id);
+
+    if (error) {
+      alert('Error al eliminar el rol: ' + error.message);
+    } else {
+      await this.auditoriaService.registrarAccion('ELIMINAR_ROL_ADMIN', { id: rol.id, nombre: rol.nombre });
+      await this.cargarRolesYUsuarios();
+    }
+  }
+
+  actualizarSeleccionRolUsuario(usuarioId: string, rolId: string) {
+    this.rolSeleccionadoPorUsuario.update((prev) => ({
+      ...prev,
+      [usuarioId]: rolId,
+    }));
+  }
+
+  async asignarRolAUsuario(usuario: any) {
+    const rolId = this.rolSeleccionadoPorUsuario()[usuario.id];
+    if (!rolId) {
+      return alert('Seleccioná un rol del desplegable antes de asignar.');
+    }
+
+    const rolObj = this.rolesAdmin().find((r) => r.id === rolId);
+
+    const { error } = await this.supabaseService.client
+      .from('perfiles')
+      .update({ rol_admin_id: rolId })
+      .eq('id', usuario.id);
+
+    if (error) {
+      alert('Error al asignar el rol: ' + error.message);
+    } else {
+      await this.auditoriaService.registrarAccion('ASIGNAR_ROL_USUARIO', {
+        usuario_email: usuario.correo,
+        rol_asignado: rolObj?.nombre || rolId,
+      });
+      await this.cargarRolesYUsuarios();
+    }
+  }
+
+  async quitarRolAUsuario(usuario: any) {
+    if (!confirm(`¿Quitar el rol administrativo asignado a ${usuario.correo}?`)) return;
+
+    const { error } = await this.supabaseService.client
+      .from('perfiles')
+      .update({ rol_admin_id: null })
+      .eq('id', usuario.id);
+
+    if (error) {
+      alert('Error al quitar el rol: ' + error.message);
+    } else {
+      await this.auditoriaService.registrarAccion('QUITAR_ROL_USUARIO', {
+        usuario_email: usuario.correo,
+      });
+      await this.cargarRolesYUsuarios();
     }
   }
 
@@ -551,7 +804,6 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
     const peliElegida = this.peliculas().find((p) => p.id === fn.pelicula_id);
     const duracionMinutos = peliElegida?.duracion_minutos || 120;
 
-    // Determinar fechas a procesar
     const diasElegidos = this.diasSemana.filter((d) => d.seleccionado).map((d) => d.id);
     const fechasAProgramar: Date[] = [];
 
@@ -817,12 +1069,11 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
         recaudacionTotal: totalDinero,
         entradasVendidas: totalEntradas,
         productosCandyVendidos: totalCandy,
-        porcentajeOcupacion: Math.min(Math.round((totalEntradas / 500) * 100), 100) // Estimación sobre capacidad total
+        porcentajeOcupacion: Math.min(Math.round((totalEntradas / 500) * 100), 100)
       });
     }
   }
 
-  // Exportar historial de ventas a archivo CSV (Excel)
   async exportarVentasCSV() {
     const { data: ventasData, error } = await this.supabaseService.client
       .from('ventas')
@@ -861,7 +1112,4 @@ pestanaActiva = signal<'peliculas' | 'candy' | 'cupones' | 'funciones' | 'recomp
     await this.auditoriaService.registrarAccion('EXPORTAR_REPORTE_CSV', { cantidad_registros: ventasData.length });
     await this.cargarMetricasYLogs();
   }
-
-
-
 }
