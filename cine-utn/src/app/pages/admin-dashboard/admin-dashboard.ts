@@ -258,16 +258,17 @@ export class AdminDashboardComponent implements OnInit {
     return this.esSuperAdmin() || this.permisosUsuario().includes(seccion);
   }
 
-  async cargarDatos() {
+async cargarDatos() {
     const hoy = new Date().toISOString();
 
     const [resPelis, resCandy, resCups, resFuncs, resRecompensas] = await Promise.all([
-      this.supabaseService.client.from('peliculas').select('*'),
+      this.supabaseService.client.from('peliculas').select('*').eq('activa', true),
       this.candyService.getProductos(),
       this.cuponesService.getCupones(),
       this.supabaseService.client
         .from('funciones')
         .select('*, peliculas(titulo, duracion_minutos), salas(nombre)')
+        .neq('estado', 'cancelada')
         .gte('horario_fin', hoy)
         .order('fecha_hora', { ascending: true }),
       this.recompensasService.getRecompensas(),
@@ -662,7 +663,7 @@ export class AdminDashboardComponent implements OnInit {
     await this.cargarDatos();
   }
 
-  editarPelicula(peli: any) {
+editarPelicula(peli: any) {
     this.idPeliculaEditando.set(peli.id);
     this.archivoPosterSeleccionado = null;
 
@@ -681,16 +682,24 @@ export class AdminDashboardComponent implements OnInit {
       duracion_minutos: peli.duracion_minutos,
       clasificacion: peli.clasificacion_edad || 'ATP',
       poster_url: peli.imagen_url || '',
+      es_proximamente: peli.es_proximamente || false,
+      fecha_estreno: peli.fecha_estreno || '',
+      es_preventa: peli.es_preventa || false,
+      precio_preventa: Number(peli.precio_preventa) || 0,
     });
   }
 
   async eliminarPelicula(id: string) {
-    if (!confirm('¿Seguro que deseas eliminar esta película?')) return;
+    if (!confirm('¿Seguro que deseas quitar esta película de la cartelera? (Se conservará en el historial de ventas y de clientes)')) return;
     const peliEliminada = this.peliculas().find((p) => p.id === id);
-    const { error } = await this.supabaseService.client.from('peliculas').delete().eq('id', id);
-    if (error) alert('Error al eliminar: ' + error.message);
+    const { error } = await this.supabaseService.client
+      .from('peliculas')
+      .update({ activa: false })
+      .eq('id', id);
+
+    if (error) alert('Error al dar de baja la película: ' + error.message);
     else {
-      await this.auditoriaService.registrarAccion('ELIMINAR_PELICULA', { id, titulo: peliEliminada?.titulo || 'Desconocido' });
+      await this.auditoriaService.registrarAccion('BAJA_LOGICA_PELICULA', { id, titulo: peliEliminada?.titulo || 'Desconocido' });
       await this.cargarDatos();
     }
   }
@@ -898,6 +907,13 @@ export class AdminDashboardComponent implements OnInit {
     const peliElegida = this.peliculas().find((p) => p.id === fn.pelicula_id);
     const duracionMinutos = peliElegida?.duracion_minutos || 120;
 
+    // Tarifa dinámica según Preventa y Formato (2D / 3D)
+    const tarifaBase =
+      peliElegida?.es_preventa && Number(peliElegida?.precio_preventa) > 0
+        ? Number(peliElegida.precio_preventa)
+        : 4500;
+    const precioFinalFuncion = fn.formato === '3D' ? Math.round(tarifaBase * 1.2) : tarifaBase;
+
     const diasElegidos = this.diasSemana.filter((d) => d.seleccionado).map((d) => d.id);
     const fechasAProgramar: Date[] = [];
 
@@ -946,10 +962,13 @@ export class AdminDashboardComponent implements OnInit {
           horario_fin: new Date(fechaInicio.getTime() + duracionMinutos * 60000).toISOString(),
           formato: fn.formato,
           idioma: fn.idioma,
-          precio_base: 4500,
+          precio_base: precioFinalFuncion,
         };
         nuevasFuncionesPayload.push(payload);
-        funcionesExistentes.push(payload);
+        funcionesExistentes.push({
+          ...payload,
+          peliculas: { duracion_minutos: duracionMinutos },
+        });
       }
     }
 
@@ -967,7 +986,13 @@ export class AdminDashboardComponent implements OnInit {
 
       if (error) alert('Error al actualizar: ' + error.message);
       else {
-        await this.auditoriaService.registrarAccion('MODIFICAR_FUNCION', { id: this.idFuncionEditando(), pelicula: peliElegida?.titulo, fecha: nuevasFuncionesPayload[0].fecha_hora });
+        await this.auditoriaService.registrarAccion('MODIFICAR_FUNCION', {
+          id: this.idFuncionEditando(),
+          pelicula: peliElegida?.titulo,
+          fecha: nuevasFuncionesPayload[0].fecha_hora,
+          formato: fn.formato,
+          precio_base: precioFinalFuncion,
+        });
         this.cancelarEdicionFuncion();
       }
     } else {
@@ -978,8 +1003,13 @@ export class AdminDashboardComponent implements OnInit {
       if (error) {
         alert('Error al programar: ' + error.message);
       } else {
-        await this.auditoriaService.registrarAccion('PROGRAMAR_FUNCION', { pelicula: peliElegida?.titulo, cantidad_programada: nuevasFuncionesPayload.length, formato: fn.formato });
-        let msg = `✔️ Se programó ${nuevasFuncionesPayload.length} función(es) con éxito.`;
+        await this.auditoriaService.registrarAccion('PROGRAMAR_FUNCION', {
+          pelicula: peliElegida?.titulo,
+          cantidad_programada: nuevasFuncionesPayload.length,
+          formato: fn.formato,
+          precio_base: precioFinalFuncion,
+        });
+        let msg = `✔️ Se programó ${nuevasFuncionesPayload.length} función(es) con éxito (Tarifa aplicada: $${precioFinalFuncion}).`;
         if (omitidasPorSolapamiento > 0) {
           msg += `\n⚠️ ${omitidasPorSolapamiento} fecha(s) omitida(s) por superposición.`;
         }
@@ -1023,15 +1053,43 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async eliminarFuncion(id: string) {
-    if (!confirm('¿Seguro que deseas eliminar esta función programada?')) return;
     const funcEliminada = this.funciones().find((f) => f.id === id);
+    const motivo = prompt(
+      '⚠️ Vas a cancelar esta función de forma atómica.\n' +
+        'Se devolverá el 100% del dinero como crédito a favor a todos los clientes con entradas, se revertirán los puntos correspondientes y se les enviará una alerta.\n\n' +
+        'Ingresá el motivo de la cancelación:',
+      'Motivos operativos / técnicos de sala',
+    );
 
-    const { error } = await this.supabaseService.client.from('funciones').delete().eq('id', id);
+    if (motivo === null) return;
 
-    if (error) alert('Error al eliminar función: ' + error.message);
-    else {
-      await this.auditoriaService.registrarAccion('ELIMINAR_FUNCION', { id, pelicula: funcEliminada?.peliculas?.titulo, fecha: funcEliminada?.fecha_hora });
+    try {
+      const { data, error } = await this.supabaseService.client.rpc('cancelar_funcion_atomica', {
+        p_funcion_id: id,
+        p_motivo: motivo.trim() || 'Motivos operativos de sala',
+      });
+
+      if (error) throw error;
+
+      await this.auditoriaService.registrarAccion('CANCELAR_FUNCION_ATOMICA', {
+        id,
+        pelicula: funcEliminada?.peliculas?.titulo,
+        fecha: funcEliminada?.fecha_hora,
+        motivo: motivo.trim() || 'Motivos operativos de sala',
+        ventas_canceladas: data?.ventas_canceladas || 0,
+        total_reembolsado: data?.total_reembolsado || 0,
+      });
+
+      alert(
+        `✔️ Función cancelada de forma atómica.\n` +
+          `• Entradas reembolsadas: ${data?.ventas_canceladas || 0}\n` +
+          `• Total acreditado a clientes: $${data?.total_reembolsado || 0}`,
+      );
+
       await this.cargarDatos();
+    } catch (err: any) {
+      console.error('Error al cancelar función:', err);
+      alert('Error al cancelar función: ' + (err.message || 'Ocurrió un error inesperado.'));
     }
   }
 

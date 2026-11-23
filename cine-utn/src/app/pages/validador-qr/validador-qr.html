@@ -28,8 +28,8 @@
           </h5>
           
           <div class="input-group input-group-lg validator-input-group mb-2">
-            <input type="text" class="form-control font-monospace"
-                   placeholder="Ej. CINE-UTN-3fad1658-552a-41fa-978d-178ca658a421"
+            <input type="text" class="form-control font-monospace text-uppercase"
+                   placeholder="Ej. UTN-8X2K9P"
                    [(ngModel)]="codigoQrInput"
                    (keyup.enter)="buscarVentaPorCodigo()">
             <button class="btn btn-danger-custom px-4" (click)="buscarVentaPorCodigo()" [disabled]="cargando">
@@ -41,8 +41,15 @@
 
         <!-- ALERTA DE ESTADO -->
         @if (mensajeEstado) {
-          <div class="alert alert-{{ mensajeEstado.tipo }} fw-bold text-center fs-5 shadow mb-4 rounded-3">
+          <div class="alert alert-{{ mensajeEstado.tipo }} fw-bold text-center fs-5 shadow mb-3 rounded-3">
             {{ mensajeEstado.texto }}
+          </div>
+        }
+
+        <!-- ADVERTENCIA DE FECHA DE FUNCIÓN -->
+        @if (avisoFechaFuncion && !esReservaCancelada) {
+          <div class="alert alert-warning fw-semibold text-center shadow-sm mb-4 rounded-3">
+            {{ avisoFechaFuncion }}
           </div>
         }
 
@@ -99,23 +106,23 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <button class="btn btn-lg w-100 fw-bold py-3"
-                        [class.btn-success]="!ventaEncontrada.entradas_validadas"
-                        [class.btn-secondary]="ventaEncontrada.entradas_validadas"
-                        [disabled]="ventaEncontrada.entradas_validadas || cargando"
+                        [class.btn-success]="!ventaEncontrada.entradas_validadas && !esReservaCancelada"
+                        [class.btn-secondary]="ventaEncontrada.entradas_validadas || esReservaCancelada"
+                        [disabled]="ventaEncontrada.entradas_validadas || esReservaCancelada || cargando"
                         (click)="validarIngresoCine()">
                   <i class="bi bi-check-circle-fill me-2"></i>
-                  {{ ventaEncontrada.entradas_validadas ? '✔️ Entradas Ya Validadas' : 'Validar Ingreso a Sala' }}
+                  {{ esReservaCancelada ? '🚫 Reserva Cancelada' : (ventaEncontrada.entradas_validadas ? '✔️ Entradas Ya Validadas' : 'Validar Ingreso a Sala') }}
                 </button>
               </div>
 
               <div class="col-md-6">
                 <button class="btn btn-lg w-100 fw-bold py-3"
-                        [class.btn-warning]="!ventaEncontrada.candy_entregado"
-                        [class.btn-secondary]="ventaEncontrada.candy_entregado"
-                        [disabled]="ventaEncontrada.candy_entregado || !ventaEncontrada.detalle_candy?.length || cargando"
+                        [class.btn-warning]="!ventaEncontrada.candy_entregado && !esReservaCancelada && ventaEncontrada.detalle_candy?.length"
+                        [class.btn-secondary]="ventaEncontrada.candy_entregado || esReservaCancelada || !ventaEncontrada.detalle_candy?.length"
+                        [disabled]="ventaEncontrada.candy_entregado || esReservaCancelada || !ventaEncontrada.detalle_candy?.length || cargando"
                         (click)="entregarCandyBar()">
                   <i class="bi bi-box-seam me-2"></i>
-                  {{ ventaEncontrada.candy_entregado ? '✔️ Candy Ya Entregado' : (ventaEncontrada.detalle_candy?.length ? 'Registrar Entrega Candy' : 'Sin Candy Bar') }}
+                  {{ esReservaCancelada ? '🚫 Reserva Cancelada' : (ventaEncontrada.candy_entregado ? '✔️ Candy Ya Entregado' : (ventaEncontrada.detalle_candy?.length ? 'Registrar Entrega Candy' : 'Sin Candy Bar')) }}
                 </button>
               </div>
             </div>

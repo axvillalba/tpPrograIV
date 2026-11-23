@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SupabaseService } from '../../services/supabase';
 import { AuthService } from '../../services/auth';
+import { ListaEsperaService, RegistroListaEspera } from '../../services/lista-espera';
 import { NavbarComponent } from '../../components/navbar/navbar';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -28,7 +29,7 @@ interface Resena {
 @Component({
   selector: 'app-seleccion-entradas',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavbarComponent],
+  imports: [CommonModule, FormsModule, NavbarComponent, RouterLink],
   templateUrl: './seleccion-entradas.html',
   styleUrl: './seleccion-entradas.css'
 })
@@ -37,13 +38,33 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private supabaseService = inject(SupabaseService);
   private authService = inject(AuthService);
+  listaEsperaService = inject(ListaEsperaService);
 
   private canalRealtime: RealtimeChannel | null = null;
+  private canalListaEspera: RealtimeChannel | null = null;
 
   pelicula = signal<any>(null);
   funcionSeleccionada = signal<any>(null);
   mapaButacas = signal<Butaca[]>([]);
   usuarioActual = signal<any>(null);
+
+  // Estados de Lista de Espera
+  miRegistroEspera = signal<RegistroListaEspera | null>(null);
+  posicionEnFila = signal<number>(0);
+  turnoExclusivoOtroUsuario = signal<boolean>(false);
+  cantidadLugaresEspera = signal<number>(1);
+  usuarioLogueadoId = computed(() => this.usuarioActual()?.id || this.authService.currentUser()?.id || null);
+
+  butacasLibres = computed(() => this.mapaButacas().filter(b => !b.ocupada).length);
+
+  mostrarPanelListaEspera = computed(() => {
+    // Si este usuario tiene su ventana activa de 15 min, siempre ve el mapa para elegir su asiento
+    if (this.miRegistroEspera()?.estado === 'notificado') {
+      return false;
+    }
+    // Si la sala está llena o si el lugar liberado pertenece al turno exclusivo de 15 min de otro usuario
+    return this.butacasLibres() === 0 || this.turnoExclusivoOtroUsuario();
+  });
 
   // Estados de Reseñas y Puntuaciones
   resenas = signal<Resena[]>([]);
@@ -61,7 +82,6 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     try {
-      // 1. El ID recibido en la URL corresponde a la FUNCION elegida en el paso anterior
       const funcionId = this.route.snapshot.paramMap.get('id');
       if (!funcionId) return;
 
@@ -69,6 +89,8 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
       this.usuarioActual.set(perfil);
 
       await this.cargarFuncionYPelicula(funcionId);
+      await this.actualizarEstadoCola(funcionId);
+      this.suscribirAColaEnTiempoReal(funcionId);
     } catch (err) {
       console.error('Error al inicializar:', err);
     }
@@ -78,10 +100,12 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
     if (this.canalRealtime) {
       this.supabaseService.client.removeChannel(this.canalRealtime);
     }
+    if (this.canalListaEspera) {
+      this.supabaseService.client.removeChannel(this.canalListaEspera);
+    }
   }
 
   private async cargarFuncionYPelicula(funcionId: string) {
-    // Cargar la función con los datos vinculados de película y sala
     const { data: f, error } = await this.supabaseService.client
       .from('funciones')
       .select('*, peliculas(*), salas(*)')
@@ -111,7 +135,7 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
     this.filas.forEach(fila => {
       const esDiscapacidad = fila === 'DISC';
       const esVip = fila === 'R' || fila === 'S' || fila === 'T';
-      
+
       let tipo: 'estandar' | 'discapacidad' | 'vip' = 'estandar';
       let precio = precioBase;
 
@@ -181,7 +205,7 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'ventas', filter: `funcion_id=eq.${funcionId}` },
-        (payload) => {
+        async (payload) => {
           // 1. Cuando se concreta una nueva venta activa: inhabilitar butacas
           if (payload.eventType === 'INSERT') {
             const nuevaVenta = payload.new as Record<string, any>;
@@ -205,7 +229,7 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
               }
             }
           }
-          // 2. Cuando se cancela una reserva: liberar inmediatamente las butacas en el mapa
+          // 2. Cuando se cancela una reserva: liberar butacas y disparar turno de lista de espera
           else if (payload.eventType === 'UPDATE') {
             const ventaActualizada = payload.new as Record<string, any>;
             if (ventaActualizada && ventaActualizada['estado_qr'] === 'cancelado') {
@@ -225,12 +249,78 @@ export class SeleccionEntradasComponent implements OnInit, OnDestroy {
                     return b;
                   })
                 );
+
+                // Activa automáticamente la ventana de 15 min al #1 de la fila
+                await this.actualizarEstadoCola(funcionId);
               }
             }
           }
         }
       )
       .subscribe();
+  }
+
+  private suscribirAColaEnTiempoReal(funcionId: string) {
+    if (this.canalListaEspera) {
+      this.supabaseService.client.removeChannel(this.canalListaEspera);
+    }
+
+    this.canalListaEspera = this.supabaseService.client
+      .channel(`cola-funcion-${funcionId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'lista_espera', filter: `funcion_id=eq.${funcionId}` },
+        async () => {
+          await this.actualizarEstadoCola(funcionId);
+        }
+      )
+      .subscribe();
+  }
+
+  private async actualizarEstadoCola(funcionId: string) {
+    const turnoVigente = await this.listaEsperaService.procesarColaFuncion(funcionId);
+    const userId = this.usuarioLogueadoId();
+
+    if (turnoVigente && turnoVigente.usuario_id !== userId) {
+      this.turnoExclusivoOtroUsuario.set(true);
+    } else {
+      this.turnoExclusivoOtroUsuario.set(false);
+    }
+
+    if (userId) {
+      const { registro, posicion } = await this.listaEsperaService.obtenerEstadoEnFuncion(funcionId);
+      this.miRegistroEspera.set(registro);
+      this.posicionEnFila.set(posicion);
+    } else {
+      this.miRegistroEspera.set(null);
+      this.posicionEnFila.set(0);
+    }
+  }
+
+async anotarmeEnEspera() {
+    try {
+      const funcionId = this.funcionSeleccionada()?.id;
+      if (!funcionId) return;
+
+      const cantidad = Number(this.cantidadLugaresEspera()) || 1;
+      await this.listaEsperaService.unirseAListaEspera(funcionId, cantidad);
+      await this.actualizarEstadoCola(funcionId);
+    } catch (err: any) {
+      alert(err.message || 'No se pudo registrar en la lista de espera.');
+    }
+  }
+
+  async bajarmeDeEspera() {
+    const reg = this.miRegistroEspera();
+    const funcionId = this.funcionSeleccionada()?.id;
+    if (!reg || !funcionId) return;
+
+    try {
+      await this.listaEsperaService.salirDeListaEspera(reg.id, funcionId);
+      await this.actualizarEstadoCola(funcionId);
+    } catch (err: any) {
+      alert(err.message || 'Error al salir de la lista de espera.');
+    }
   }
 
   toggleButaca(b: Butaca) {

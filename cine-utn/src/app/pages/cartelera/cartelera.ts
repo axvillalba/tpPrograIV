@@ -38,7 +38,6 @@ export class CarteleraComponent implements OnInit {
     const esProximamenteVista = this.pestanaVista() === 'proximamente';
 
     return this.peliculas().filter(p => {
-      // Filtrar por estado 'Próximamente' o 'En Cartelera'
       const coincidePestana = esProximamenteVista ? p.es_proximamente : !p.es_proximamente;
 
       const coincideTexto = p.titulo?.toLowerCase().includes(this.filtroTexto().toLowerCase()) ||
@@ -57,10 +56,11 @@ export class CarteleraComponent implements OnInit {
   }
 
   async cargarPeliculasYTop() {
-    // 1. Cargar películas
+    // 1. Cargar solo películas activas (baja lógica)
     const { data: listaPeliculas } = await this.supabaseService.client
       .from('peliculas')
-      .select('*');
+      .select('*')
+      .eq('activa', true);
 
     // 2. Cargar funciones y ventas para calcular el ranking real
     const { data: listaFunciones } = await this.supabaseService.client
@@ -69,12 +69,11 @@ export class CarteleraComponent implements OnInit {
 
     const { data: listaVentas } = await this.supabaseService.client
       .from('ventas')
-      .select('funcion_id, detalle_butacas');
+      .select('funcion_id, detalle_butacas, estado_qr');
 
     if (listaPeliculas) {
       this.peliculas.set(listaPeliculas);
 
-      // Calcular Ranking Top 3 según entradas vendidas en Supabase
       if (listaVentas && listaFunciones) {
         const mapaVentasPorPelicula = new Map<string, number>();
         const funcionAPeliculaMap = new Map<string, string>();
@@ -82,6 +81,9 @@ export class CarteleraComponent implements OnInit {
         listaFunciones.forEach((f: any) => funcionAPeliculaMap.set(f.id, f.pelicula_id));
 
         listaVentas.forEach((v: any) => {
+          // Excluir ventas canceladas del ranking de más vendidas
+          if (v.estado_qr === 'cancelado') return;
+
           const peliculaId = funcionAPeliculaMap.get(v.funcion_id);
           if (peliculaId && v.detalle_butacas) {
             const cantEntradas = Array.isArray(v.detalle_butacas) ? v.detalle_butacas.length : 0;
@@ -102,9 +104,6 @@ export class CarteleraComponent implements OnInit {
     }
   }
 
-  
-
-  // Cargar las alertas activadas por el usuario logueado
   async cargarAlertasDelUsuario() {
     const user = this.authService.currentUser();
     if (!user) return;
@@ -120,7 +119,6 @@ export class CarteleraComponent implements OnInit {
     }
   }
 
-  // Activar o desactivar recordatorios para estrenos
   async toggleAlertaEstreno(peliculaId: string) {
     const user = this.authService.currentUser();
     if (!user) {
@@ -132,7 +130,6 @@ export class CarteleraComponent implements OnInit {
     const setActual = new Set(this.alertasUsuario());
 
     if (setActual.has(peliculaId)) {
-      // Eliminar la alerta
       await this.supabaseService.client
         .from('alertas_estrenos')
         .delete()
@@ -142,7 +139,6 @@ export class CarteleraComponent implements OnInit {
       setActual.delete(peliculaId);
       alert('🔔 Alerta desactivada para esta película.');
     } else {
-      // Registrar la alerta
       await this.supabaseService.client
         .from('alertas_estrenos')
         .insert([{ usuario_id: user.id, pelicula_id: peliculaId }]);
@@ -154,17 +150,15 @@ export class CarteleraComponent implements OnInit {
     this.alertasUsuario.set(setActual);
   }
 
-async seleccionarPelicula(peliculaId: string) {
+  async seleccionarPelicula(peliculaId: string) {
     if (!peliculaId) {
       console.error('No se proporcionó un ID de película válido');
       return;
     }
 
-    // 1. Buscar la película en el listado cargado
     const pelicula = this.peliculas().find(p => p.id === peliculaId);
     const clasificacion = pelicula?.clasificacion_edad || pelicula?.clasificacion || 'ATP';
 
-    // 2. Control de restricción +18
     if (clasificacion === '+18') {
       const perfil = await this.authService.getPerfilActual();
 
@@ -183,7 +177,6 @@ async seleccionarPelicula(peliculaId: string) {
       }
     }
 
-    // 3. Si cumple los requisitos, navega a la vista de la película
     this.router.navigate(['/pelicula', peliculaId]);
   }
 }

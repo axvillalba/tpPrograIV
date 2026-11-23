@@ -99,7 +99,8 @@ export class DetallePeliculaComponent implements OnInit {
     const { data } = await this.supabaseService.client
       .from('funciones')
       .select('*, salas(nombre)')
-      .eq('pelicula_id', peliculaId);
+      .eq('pelicula_id', peliculaId)
+      .neq('estado', 'cancelada');
 
     if (data) this.funciones.set(data);
   }
@@ -156,7 +157,7 @@ export class DetallePeliculaComponent implements OnInit {
   funcionesDelDia() {
     const diaActivo = this.diaSeleccionadoIso();
     return this.funciones().filter(f => {
-      if (!f.fecha_hora) return false;
+      if (!f.fecha_hora || f.estado === 'cancelada') return false;
       const fechaFn = new Date(f.fecha_hora);
       const fechaFnIso = this.formatearAFechaLocalIso(fechaFn);
       return fechaFnIso === diaActivo;

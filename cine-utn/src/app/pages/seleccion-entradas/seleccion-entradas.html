@@ -35,129 +35,207 @@
     </div>
   }
 
-  <!-- LEYENDA CON COLORES DE BUTACAS -->
-  <div class="card bg-dark-card text-white p-3 mb-4">
-    <div class="d-flex justify-content-center align-items-center flex-wrap gap-3 gap-md-4 small">
-      <div class="d-flex align-items-center gap-2">
-        <span class="butaca-referencia estandar"></span>
-        <span>Estándar (${{ funcionSeleccionada()?.precio_base || 4500 }})</span>
+<!-- BANNER DE TURNO ACTIVO (CUANDO EL USUARIO TIENE SUS 15 MINUTOS EXCLUSIVOS) -->
+  @if (miRegistroEspera()?.estado === 'notificado') {
+    <div class="alert alert-success d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 shadow"
+         style="background: rgba(25, 135, 84, 0.16); border: 1px solid rgba(25, 135, 84, 0.55); color: #e4e4e7;">
+      <div>
+        <i class="bi bi-alarm-fill text-warning me-2 fs-5"></i>
+        <strong class="text-white">¡Es tu turno en la lista de espera!</strong>
+        Ya tenés disponibles los <strong>{{ miRegistroEspera()?.cantidad_butacas || 1 }} lugar(es)</strong> que solicitaste. Elegí tus butacas y completá la compra antes de que termine el tiempo.
       </div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="butaca-referencia discapacidad"></span>
-        <span>Adaptada Discapacidad (Fila DISC)</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="butaca-referencia vip"></span>
-        <span>VIP (R, S, T) (${{ (funcionSeleccionada()?.precio_base || 4500) * 1.35 }})</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="butaca-referencia seleccionada"></span>
-        <span>Seleccionada</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="butaca-referencia ocupada"></span>
-        <span>Ocupada</span>
-      </div>
+      <span class="badge bg-dark text-warning border border-warning fs-6 font-monospace px-3 py-2">
+        <i class="bi bi-stopwatch me-1"></i>{{ listaEsperaService.tiempoFormateado() }}
+      </span>
     </div>
-  </div>
+  }
 
-  <!-- MAPA DE BUTACAS DE LA SALA -->
-  <div class="card bg-dark-card p-3 p-md-4 my-4">
-    <div class="mapa-sala-container text-center overflow-auto pb-2">
-      <!-- Pantalla de Cine Curva con Luz Ambiental -->
-      <div class="pantalla-cine mb-5 mx-auto">
-        <i class="bi bi-projector me-2"></i> P A N T A L L A
+  <!-- SI LA FUNCIÓN ESTÁ AGOTADA (O RESERVADA EN TURNO DE OTRO USUARIO), MOSTRAR LISTA DE ESPERA -->
+  @if (mostrarPanelListaEspera()) {
+    <div class="card bg-dark-card text-white p-4 p-md-5 my-4 text-center"
+         style="border: 1px solid rgba(229, 9, 20, 0.45) !important;">
+      <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle"
+           style="width: 64px; height: 64px; background: rgba(229, 9, 20, 0.14); border: 1px solid rgba(229, 9, 20, 0.4);">
+        <i class="bi bi-hourglass-split text-warning fs-2"></i>
       </div>
 
-      <div class="d-inline-block text-nowrap">
-        @for (fila of filas; track fila) {
-          <div class="d-flex align-items-center justify-content-center mb-1">
-            <span class="fw-bold text-danger me-3 text-end small" style="width: 35px;">{{ fila }}</span>
+      <h4 class="fw-bold text-white mb-2">Función Agotada · Sala Completa</h4>
 
-            @if (fila === 'DISC') {
-              <!-- FILA ESPECIAL ACCESIBLE -->
-              <div class="d-flex me-3">
-                @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
-                  <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                    {{ b.columna }}
-                  </button>
-                }
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-              </div>
+      @if (!usuarioLogueadoId()) {
+        <p class="text-secondary small mx-auto mb-4" style="max-width: 500px;">
+          Todas las butacas de esta función están ocupadas. Iniciá sesión con tu cuenta de cliente para anotarte en la lista de espera.
+        </p>
+        <a routerLink="/login" class="btn btn-danger-custom px-4 py-2">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión para Anotarme
+        </a>
+      } @else if (!miRegistroEspera()) {
+        <p class="text-secondary small mx-auto mb-4" style="max-width: 540px;">
+          Indicá cuántos lugares necesitás y anotate en la fila virtual: apenas se libere esa cantidad de butacas, te avisaremos y tendrás <strong>15 minutos exclusivos</strong> para comprar.
+        </p>
 
-              <div class="d-flex me-3">
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-
-                @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
-                  <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                    {{ b.columna }}
-                  </button>
-                }
-
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-              </div>
-
-              <div class="d-flex">
-                <div class="butaca-hueco"></div>
-                <div class="butaca-hueco"></div>
-                @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
-                  <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                    {{ b.columna }}
-                  </button>
-                }
-              </div>
-            } @else {
-              <!-- FILAS ESTÁNDAR Y VIP -->
-              <div class="d-flex me-3">
-                @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
-                  <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                    {{ b.columna }}
-                  </button>
-                }
-              </div>
-
-              <div class="d-flex me-3">
-                @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
-                  <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                    {{ b.columna }}
-                  </button>
-                }
-              </div>
-
-              <div class="d-flex">
-                @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
-                  <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
-                    {{ b.columna }}
-                  </button>
-                }
-              </div>
-            }
-
-            <span class="fw-bold text-danger ms-3 text-start small" style="width: 35px;">{{ fila }}</span>
+        <div class="d-flex justify-content-center align-items-center flex-wrap gap-3">
+          <div class="d-flex align-items-center gap-2 bg-dark px-3 py-2 rounded-3 border border-secondary border-opacity-50">
+            <label for="selectLugaresEspera" class="small text-secondary mb-0">Lugares:</label>
+            <select id="selectLugaresEspera"
+                    class="form-select form-select-sm bg-dark text-white border-0"
+                    style="width: auto;"
+                    [ngModel]="cantidadLugaresEspera()"
+                    (ngModelChange)="cantidadLugaresEspera.set(+$event)">
+              <option [value]="1">1 entrada</option>
+              <option [value]="2">2 entradas</option>
+              <option [value]="3">3 entradas</option>
+              <option [value]="4">4 entradas</option>
+            </select>
           </div>
-        }
+
+          <button class="btn btn-danger-custom btn-lg px-4 py-2" (click)="anotarmeEnEspera()">
+            <i class="bi bi-bell-fill me-2"></i>Anotarme en Lista de Espera
+          </button>
+        </div>
+      } @else if (miRegistroEspera()?.estado === 'esperando') {
+        <div class="p-3 rounded-3 mx-auto mb-3"
+             style="max-width: 500px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.4);">
+          <div class="text-warning fw-bold fs-5 mb-1">
+            <i class="bi bi-person-lines-fill me-2"></i>Tu posición en la fila: #{{ posicionEnFila() }}
+          </div>
+          <div class="small text-white fw-semibold mb-1">
+            Solicitud activa por {{ miRegistroEspera()?.cantidad_butacas || 1 }} {{ (miRegistroEspera()?.cantidad_butacas || 1) === 1 ? 'lugar' : 'lugares' }}
+          </div>
+          <small class="text-light opacity-75 d-block">
+            Te avisaremos automáticamente apenas se libere la cantidad de butacas que pediste.
+          </small>
+        </div>
+
+        <button class="btn btn-outline-light btn-sm px-3" (click)="bajarmeDeEspera()">
+          <i class="bi bi-x-circle me-1"></i>Salir de la lista de espera
+        </button>
+      }
+    </div>
+  } @else {
+    <!-- LEYENDA CON COLORES DE BUTACAS -->
+    <div class="card bg-dark-card text-white p-3 mb-4">
+      <div class="d-flex justify-content-center align-items-center flex-wrap gap-3 gap-md-4 small">
+        <div class="d-flex align-items-center gap-2">
+          <span class="butaca-referencia estandar"></span>
+          <span>Estándar (${{ funcionSeleccionada()?.precio_base || 4500 }})</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="butaca-referencia discapacidad"></span>
+          <span>Adaptada Discapacidad (Fila DISC)</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="butaca-referencia vip"></span>
+          <span>VIP (R, S, T) (${{ (funcionSeleccionada()?.precio_base || 4500) * 1.35 }})</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="butaca-referencia seleccionada"></span>
+          <span>Seleccionada</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="butaca-referencia ocupada"></span>
+          <span>Ocupada</span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- BOTÓN DE CONFIRMACIÓN -->
-  <div class="text-center my-4">
-    <button 
-      class="btn btn-danger-custom btn-lg px-5 py-3"
-      [disabled]="butacasSeleccionadas().length === 0"
-      (click)="continuarAlCandy()">
-      Confirmar Selección y Continuar <i class="bi bi-arrow-right ms-2"></i>
-    </button>
-  </div>
+    <!-- MAPA DE BUTACAS DE LA SALA -->
+    <div class="card bg-dark-card p-3 p-md-4 my-4">
+      <div class="mapa-sala-container text-center overflow-auto pb-2">
+        <!-- Pantalla de Cine Curva con Luz Ambiental -->
+        <div class="pantalla-cine mb-5 mx-auto">
+          <i class="bi bi-projector me-2"></i> P A N T A L L A
+        </div>
+
+        <div class="d-inline-block text-nowrap">
+          @for (fila of filas; track fila) {
+            <div class="d-flex align-items-center justify-content-center mb-1">
+              <span class="fw-bold text-danger me-3 text-end small" style="width: 35px;">{{ fila }}</span>
+
+              @if (fila === 'DISC') {
+                <!-- FILA ESPECIAL ACCESIBLE -->
+                <div class="d-flex me-3">
+                  @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
+                    <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                      {{ b.columna }}
+                    </button>
+                  }
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                </div>
+
+                <div class="d-flex me-3">
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+
+                  @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
+                    <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                      {{ b.columna }}
+                    </button>
+                  }
+
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                </div>
+
+                <div class="d-flex">
+                  <div class="butaca-hueco"></div>
+                  <div class="butaca-hueco"></div>
+                  @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
+                    <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                      {{ b.columna }}
+                    </button>
+                  }
+                </div>
+              } @else {
+                <!-- FILAS ESTÁNDAR Y VIP -->
+                <div class="d-flex me-3">
+                  @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
+                    <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                      {{ b.columna }}
+                    </button>
+                  }
+                </div>
+
+                <div class="d-flex me-3">
+                  @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
+                    <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                      {{ b.columna }}
+                    </button>
+                  }
+                </div>
+
+                <div class="d-flex">
+                  @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
+                    <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                      {{ b.columna }}
+                    </button>
+                  }
+                </div>
+              }
+
+              <span class="fw-bold text-danger ms-3 text-start small" style="width: 35px;">{{ fila }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTÓN DE CONFIRMACIÓN -->
+    <div class="text-center my-4">
+      <button 
+        class="btn btn-danger-custom btn-lg px-5 py-3"
+        [disabled]="butacasSeleccionadas().length === 0"
+        (click)="continuarAlCandy()">
+        Confirmar Selección y Continuar <i class="bi bi-arrow-right ms-2"></i>
+      </button>
+    </div>
+  }
 
   <!-- RESEÑAS DE LA COMUNIDAD -->
   <div class="card bg-dark-card text-white p-4 mt-5">

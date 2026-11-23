@@ -24,12 +24,25 @@ export class ValidadorQrComponent implements OnInit {
   cargando: boolean = false;
   ventaEncontrada: any = null;
   mensajeEstado: { texto: string; tipo: 'success' | 'danger' | 'warning' | 'info' } | null = null;
+  avisoFechaFuncion: string | null = null;
   usuarioStaff: any = null;
+
+  get esReservaCancelada(): boolean {
+    if (!this.ventaEncontrada) return false;
+    return (
+      this.ventaEncontrada.estado_qr === 'cancelado' ||
+      this.ventaEncontrada.funciones?.estado === 'cancelada'
+    );
+  }
 
   async ngOnInit() {
     const perfil = await this.authService.getPerfilActual();
-    if (!perfil || (perfil.rol !== 'empleado' && perfil.rol !== 'admin' && perfil.rol !== 'gerente')) {
-      alert('Acceso restringido únicamente para el personal del cine.');
+    if (
+      !perfil ||
+      perfil.activo === false ||
+      (perfil.rol !== 'empleado' && perfil.rol !== 'admin' && perfil.rol !== 'gerente')
+    ) {
+      alert('Acceso restringido únicamente para el personal activo del cine.');
       this.router.navigate(['/cartelera']);
       return;
     }
@@ -38,15 +51,16 @@ export class ValidadorQrComponent implements OnInit {
   }
 
   async buscarVentaPorCodigo() {
-    const codigoLimpio = this.codigoQrInput.trim();
+    const codigoLimpio = this.codigoQrInput.trim().toUpperCase();
     if (!codigoLimpio) return;
 
+    this.codigoQrInput = codigoLimpio;
     this.cargando = true;
     this.ventaEncontrada = null;
     this.mensajeEstado = null;
+    this.avisoFechaFuncion = null;
 
     try {
-      // Consultar directamente por el campo text 'codigo_qr'
       const { data, error } = await this.supabaseService.client
         .from('ventas')
         .select('*, funciones(*, peliculas(*), salas(*))')
@@ -63,6 +77,7 @@ export class ValidadorQrComponent implements OnInit {
       } else {
         this.ventaEncontrada = data;
         this.evaluarEstadoQR(data);
+        this.evaluarFechaFuncion(data);
       }
     } catch (err: any) {
       console.error('Error al consultar código:', err);
@@ -77,26 +92,60 @@ export class ValidadorQrComponent implements OnInit {
   }
 
   private evaluarEstadoQR(venta: any) {
-    if (venta.estado_qr === 'cancelado') {
-      this.mensajeEstado = { texto: '🚫 Esta reserva se encuentra CANCELADA.', tipo: 'danger' };
+    if (venta.estado_qr === 'cancelado' || venta.funciones?.estado === 'cancelada') {
+      this.mensajeEstado = {
+        texto: '🚫 RESERVA CANCELADA O FUNCIÓN ANULADA. No habilitar ingreso ni entrega.',
+        tipo: 'danger'
+      };
     } else if (venta.estado_qr === 'usado_total') {
-      this.mensajeEstado = { texto: '⚠️ Entrada y Combo Candy ya fueron consumidos en su totalidad.', tipo: 'warning' };
+      this.mensajeEstado = {
+        texto: '⚠️ Entrada y Combo Candy ya fueron consumidos en su totalidad.',
+        tipo: 'warning'
+      };
     } else if (venta.entradas_validadas && venta.candy_entregado) {
-      this.mensajeEstado = { texto: '✔️ Reserva completada en su totalidad.', tipo: 'info' };
+      this.mensajeEstado = {
+        texto: '✔️ Reserva completada en su totalidad.',
+        tipo: 'info'
+      };
     } else {
-      this.mensajeEstado = { texto: '✅ Código VÁLIDO. Listo para control.', tipo: 'success' };
+      this.mensajeEstado = {
+        texto: '✅ Código VÁLIDO. Listo para control.',
+        tipo: 'success'
+      };
+    }
+  }
+
+  private evaluarFechaFuncion(venta: any) {
+    const fechaRaw = venta.funciones?.fecha_hora;
+    if (!fechaRaw) return;
+
+    const fechaFn = new Date(fechaRaw);
+    const hoy = new Date();
+    const esMismoDia =
+      fechaFn.getDate() === hoy.getDate() &&
+      fechaFn.getMonth() === hoy.getMonth() &&
+      fechaFn.getFullYear() === hoy.getFullYear();
+
+    if (!esMismoDia) {
+      this.avisoFechaFuncion = `⚠️ Atención: Esta entrada corresponde a otra fecha (${this.formatearFecha(fechaRaw)} hs).`;
     }
   }
 
   async validarIngresoCine() {
     if (!this.ventaEncontrada) return;
 
+    if (this.esReservaCancelada) {
+      return alert('🚫 Esta reserva está CANCELADA. No se puede validar el ingreso.');
+    }
+
     if (this.ventaEncontrada.entradas_validadas) {
       return alert('Las entradas de esta reserva ya fueron validadas previamente.');
     }
 
     this.cargando = true;
-    const nuevoEstado = this.ventaEncontrada.candy_entregado ? 'usado_total' : 'usado_cine';
+    const sinCandy = !this.ventaEncontrada.detalle_candy?.length;
+    const nuevoEstado =
+      this.ventaEncontrada.candy_entregado || sinCandy ? 'usado_total' : 'usado_cine';
     const ahoraIso = new Date().toISOString();
 
     const { error } = await this.supabaseService.client
@@ -131,6 +180,10 @@ export class ValidadorQrComponent implements OnInit {
 
   async entregarCandyBar() {
     if (!this.ventaEncontrada) return;
+
+    if (this.esReservaCancelada) {
+      return alert('🚫 Esta reserva está CANCELADA. No se puede entregar Candy Bar.');
+    }
 
     if (this.ventaEncontrada.candy_entregado) {
       return alert('Los productos de Candy Bar de esta reserva ya fueron entregados.');
@@ -173,6 +226,7 @@ export class ValidadorQrComponent implements OnInit {
     this.codigoQrInput = '';
     this.ventaEncontrada = null;
     this.mensajeEstado = null;
+    this.avisoFechaFuncion = null;
     this.cdr.detectChanges();
   }
 

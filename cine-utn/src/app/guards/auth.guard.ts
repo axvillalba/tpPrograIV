@@ -12,7 +12,7 @@ export const adminGuard: CanActivateFn = async () => {
 
   const perfil = await authService.getPerfilActual();
 
-  if (authService.tienePermisoAdmin(perfil)) {
+  if (perfil && perfil.activo !== false && authService.tienePermisoAdmin(perfil)) {
     return true;
   }
 
@@ -30,7 +30,11 @@ export const staffGuard: CanActivateFn = async () => {
 
   const perfil = await authService.getPerfilActual();
 
-  if (perfil && (perfil.rol === 'empleado' || authService.tienePermisoAdmin(perfil))) {
+  if (
+    perfil &&
+    perfil.activo !== false &&
+    (perfil.rol === 'empleado' || authService.tienePermisoAdmin(perfil))
+  ) {
     return true;
   }
 
@@ -48,7 +52,7 @@ export const authGuard: CanActivateFn = async () => {
 
   const perfil = await authService.getPerfilActual();
 
-  if (perfil) {
+  if (perfil && perfil.activo !== false) {
     return true;
   }
 

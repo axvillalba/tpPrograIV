@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase';
 import { AuthService } from '../../services/auth';
+import { ListaEsperaService } from '../../services/lista-espera';
 import { NavbarComponent } from '../../components/navbar/navbar';
 
 @Component({
@@ -18,12 +19,14 @@ export class PerfilComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  listaEsperaService = inject(ListaEsperaService);
 
   // Variables de clase
   perfilUsuario: any = null;
   ventas: any[] = [];
   resenasDelUsuario: any[] = [];
   peliculasCompradas: any[] = [];
+  listasEsperaActivas: any[] = [];
   cargando: boolean = true;
 
   // Fidelización (Puntos)
@@ -70,7 +73,8 @@ export class PerfilComponent implements OnInit {
           this.cargarHistorialVentas(perfil.id),
           this.cargarResenasDelUsuario(perfil.id),
           this.cargarMovimientosPuntos(perfil.id),
-          this.cargarRecompensasDisponibles()
+          this.cargarRecompensasDisponibles(),
+          this.cargarListasEsperaUsuario(perfil.id)
         ]);
         this.procesarPeliculasCompradas();
       }
@@ -80,6 +84,59 @@ export class PerfilComponent implements OnInit {
       this.cargando = false;
       this.cdr.detectChanges();
     }
+  }
+
+  // --- LISTA DE ESPERA DEL USUARIO ---
+
+  async cargarListasEsperaUsuario(userId: string) {
+    try {
+      const { data, error } = await this.supabaseService.client
+        .from('lista_espera')
+        .select('*, funciones(id, fecha_hora, formato, idioma, peliculas(titulo, imagen_url), salas(nombre))')
+        .eq('usuario_id', userId)
+        .in('estado', ['esperando', 'notificado'])
+        .order('created_at', { ascending: true });
+
+      if (error || !data) {
+        this.listasEsperaActivas = [];
+        return;
+      }
+
+      const activasActualizadas: any[] = [];
+      for (const item of data) {
+        const { registro, posicion } = await this.listaEsperaService.obtenerEstadoEnFuncion(item.funcion_id);
+        if (registro) {
+          activasActualizadas.push({
+            ...item,
+            estado: registro.estado,
+            expira_en: registro.expira_en,
+            posicion
+          });
+        }
+      }
+
+      this.listasEsperaActivas = activasActualizadas;
+    } catch (err) {
+      console.error('Error al cargar listas de espera:', err);
+    }
+  }
+
+  async bajarmeDeListaEspera(item: any) {
+    if (!confirm('¿Querés salir de la lista de espera para esta función?')) return;
+
+    try {
+      await this.listaEsperaService.salirDeListaEspera(item.id, item.funcion_id);
+      if (this.perfilUsuario?.id) {
+        await this.cargarListasEsperaUsuario(this.perfilUsuario.id);
+        this.cdr.detectChanges();
+      }
+    } catch (err: any) {
+      alert('No se pudo salir de la lista de espera: ' + (err.message || 'Error desconocido'));
+    }
+  }
+
+  irAComprarDesdeEspera(funcionId: string) {
+    this.router.navigate(['/seleccion-entradas', funcionId]);
   }
 
   // --- CANCELACIÓN DE RESERVAS Y CRÉDITO A FAVOR ---
@@ -118,6 +175,12 @@ export class PerfilComponent implements OnInit {
         .eq('id', venta.id);
 
       if (errVenta) throw errVenta;
+
+      // 1.1 Notificar inmediatamente al #1 de la lista de espera (ventana de 15 minutos)
+      const funcionId = venta.funcion_id || venta.funcion?.id;
+      if (funcionId) {
+        await this.listaEsperaService.procesarColaFuncion(funcionId);
+      }
 
       // 2. Acreditar el saldo en la cuenta del usuario
       const { error: errPerfil } = await this.supabaseService.client
@@ -158,6 +221,7 @@ export class PerfilComponent implements OnInit {
       alert(`✔️ Compra cancelada con éxito. Tenés $${nuevoSaldo} de crédito disponible en tu perfil.`);
       if (perfilActual?.id) {
         await this.cargarHistorialVentas(perfilActual.id);
+        await this.cargarListasEsperaUsuario(perfilActual.id);
       }
     } catch (err: any) {
       console.error('Error al cancelar compra:', err);
@@ -213,7 +277,7 @@ export class PerfilComponent implements OnInit {
     }
   }
 
-  async canjearRecompensa(recompensa: any) {
+async canjearRecompensa(recompensa: any) {
     if (this.saldoPuntos < recompensa.costo_puntos) {
       return alert(`No tenés puntos suficientes. Necesitás ${recompensa.costo_puntos} pts y tenés ${this.saldoPuntos} pts.`);
     }
@@ -223,7 +287,7 @@ export class PerfilComponent implements OnInit {
     const userId = this.perfilUsuario?.id;
     if (!userId) return;
 
-    const { error } = await this.supabaseService.client
+    const { error: errMov } = await this.supabaseService.client
       .from('movimientos_puntos')
       .insert([{
         usuario_id: userId,
@@ -232,24 +296,31 @@ export class PerfilComponent implements OnInit {
         fecha: new Date().toISOString()
       }]);
 
-    if (error) {
-      alert('Error al procesar el canje: ' + error.message);
-    } else {
-      const beneficiosPrevios = JSON.parse(localStorage.getItem('beneficios_canjeados') || '[]');
-      beneficiosPrevios.push({
-        id: crypto.randomUUID(),
+    if (errMov) {
+      alert('Error al procesar el canje: ' + errMov.message);
+      return;
+    }
+
+    const { error: errCanje } = await this.supabaseService.client
+      .from('canjes_usuarios')
+      .insert([{
+        usuario_id: userId,
         recompensa_id: recompensa.id,
         nombre: recompensa.nombre,
         tipo: recompensa.tipo,
-        costo_puntos: recompensa.costo_puntos
-      });
-      localStorage.setItem('beneficios_canjeados', JSON.stringify(beneficiosPrevios));
+        costo_puntos: recompensa.costo_puntos,
+        estado: 'disponible'
+      }]);
 
-      alert(`¡Canje exitoso! Tenés disponible "${recompensa.nombre}". Se aplicará en tu próximo checkout.`);
-
-      await this.cargarMovimientosPuntos(userId);
-      this.cdr.detectChanges();
+    if (errCanje) {
+      alert('Se descontaron los puntos pero hubo un problema al registrar el cupón: ' + errCanje.message);
+      return;
     }
+
+    alert(`¡Canje exitoso! Tenés disponible "${recompensa.nombre}" en tu cuenta. Se aplicará automáticamente en tu próximo checkout.`);
+
+    await this.cargarMovimientosPuntos(userId);
+    this.cdr.detectChanges();
   }
 
   // --- HISTORIAL DE VENTAS Y RESEÑAS ---
