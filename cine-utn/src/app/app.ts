@@ -1,13 +1,14 @@
-import { Component, signal, inject, effect, OnDestroy } from '@angular/core';
+import { Component, untracked, signal, inject, effect, OnDestroy } from '@angular/core';
 import { RouterOutlet, Router } from '@angular/router';
 import { AuthService } from './services/auth';
 import { ListaEsperaService } from './services/lista-espera';
 import { SupabaseService } from './services/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { ModalSistemaComponent } from './components/modal-sistema/modal-sistema';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ModalSistemaComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -25,13 +26,15 @@ export class App implements OnDestroy {
   constructor() {
     effect(() => {
       const user = this.authService.currentUser();
-      if (user) {
-        this.listaEsperaService.iniciarEscuchaRealtime(user.id);
-        this.iniciarEscuchaAlertas(user.id);
-      } else {
-        this.listaEsperaService.detenerEscuchaRealtime();
-        this.detenerEscuchaAlertas();
-      }
+      untracked(() => {
+        if (user) {
+          this.listaEsperaService.iniciarEscuchaRealtime(user.id);
+          this.iniciarEscuchaAlertas(user.id);
+        } else {
+          this.listaEsperaService.detenerEscuchaRealtime();
+          this.detenerEscuchaAlertas();
+        }
+      });
     });
   }
 

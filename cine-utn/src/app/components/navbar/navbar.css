@@ -139,3 +139,32 @@
     max-width: 110px;
   }
 }
+
+nav.navbar {
+  background: rgba(13, 12, 18, 0.95) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  --bs-navbar-color: #e4e4e7;
+  --bs-navbar-hover-color: #ffffff;
+  --bs-navbar-brand-color: #ffffff;
+  --bs-navbar-brand-hover-color: #ffffff;
+}
+
+nav.navbar .navbar-brand {
+  color: #ffffff !important;
+}
+
+nav.navbar .nav-link,
+nav.navbar .btn-link,
+nav.navbar .text-dark,
+nav.navbar .text-muted,
+nav.navbar .text-secondary {
+  color: #e4e4e7 !important;
+  transition: color 0.15s ease;
+}
+
+nav.navbar .nav-link:hover,
+nav.navbar .btn-link:hover,
+nav.navbar a:hover {
+  color: #ffffff !important;
+}

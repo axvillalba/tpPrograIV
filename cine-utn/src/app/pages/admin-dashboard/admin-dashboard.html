@@ -31,6 +31,19 @@
             </button>
           </li>
         }
+        @if (puedeVerPestana('propuestas')) {
+          <li class="nav-item">
+            <button 
+              class="btn admin-tab-btn" 
+              [class.active]="pestanaActiva() === 'propuestas'" 
+              (click)="pestanaActiva.set('propuestas')">
+              <i class="bi bi-megaphone-fill me-2"></i>Películas Sugeridas
+              @if (propuestasPendientesCount() > 0) {
+                <span class="badge bg-danger ms-1">{{ propuestasPendientesCount() }}</span>
+              }
+            </button>
+          </li>
+        }
         @if (puedeVerPestana('candy')) {
           <li class="nav-item">
             <button 
@@ -161,17 +174,31 @@
               <div class="row g-2">
                 <div class="col-6">
                   <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="chkProximamente" [(ngModel)]="nuevaPelicula().es_proximamente">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="chkProximamente"
+                      [ngModel]="nuevaPelicula().es_proximamente"
+                      (ngModelChange)="onToggleProximamente($event)">
                     <label class="form-check-label small text-white fw-semibold" for="chkProximamente">Próximamente</label>
                   </div>
                 </div>
                 <div class="col-6">
                   <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="chkPreventa" [(ngModel)]="nuevaPelicula().es_preventa">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="chkPreventa"
+                      [ngModel]="nuevaPelicula().es_preventa"
+                      (ngModelChange)="onTogglePreventa($event)">
                     <label class="form-check-label small text-warning fw-semibold" for="chkPreventa">Preventa</label>
                   </div>
                 </div>
               </div>
+
+              <small class="text-secondary d-block mt-2" style="font-size: 0.72rem;">
+                Toda preventa se publica automáticamente dentro de Próximamente con venta anticipada habilitada.
+              </small>
 
               @if (nuevaPelicula().es_proximamente) {
                 <div class="mt-3 pt-2 border-top border-secondary border-opacity-25">
@@ -232,7 +259,7 @@
                         <div class="d-flex flex-wrap gap-1 mt-1">
                           @if (peli.es_proximamente) {
                             <span class="badge bg-info text-dark" style="font-size: 0.68rem;">
-                              <i class="bi bi-calendar-event me-1"></i>Estreno: {{ peli.fecha_estreno | date:'dd/MM/yyyy' }}
+                              <i class="bi bi-calendar-event me-1"></i>Estreno: {{ peli.fecha_estreno ? (peli.fecha_estreno | date:'dd/MM/yyyy') : 'A confirmar' }}
                             </span>
                           }
                           @if (peli.es_preventa) {
@@ -247,7 +274,7 @@
                       <td><span class="badge-neutral">{{ peli.clasificacion_edad || 'ATP' }}</span></td>
                       <td class="text-end text-nowrap">
                         <button class="btn btn-sm btn-action-edit me-1" (click)="editarPelicula(peli)" title="Editar"><i class="bi bi-pencil-square"></i></button>
-                        <button class="btn btn-sm btn-action-delete" (click)="eliminarPelicula(peli.id)" title="Eliminar"><i class="bi bi-trash"></i></button>
+                        <button class="btn btn-sm btn-action-delete" (click)="eliminarPelicula(peli.id)" title="Quitar de cartelera"><i class="bi bi-trash"></i></button>
                       </td>
                     </tr>
                   } @empty {
@@ -257,6 +284,100 @@
               </table>
             </div>
           </div>
+        </div>
+      </div>
+    }
+
+    <!-- PESTAÑA PELÍCULAS SUGERIDAS POR CLIENTES -->
+    @if (pestanaActiva() === 'propuestas' && puedeVerPestana('propuestas')) {
+      <div class="card bg-dark-card text-white p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div class="card-section-title">
+            <span class="accent-dot"></span>
+            <h5 class="m-0 fw-bold text-white">
+              Películas Sugeridas por los Clientes ({{ propuestasClientes().length }})
+            </h5>
+          </div>
+
+          <button class="btn-rect-action btn-rect-cyan" (click)="cargarDatos()">
+            <i class="bi bi-arrow-clockwise me-1"></i> ACTUALIZAR
+          </button>
+        </div>
+
+        <p class="small text-secondary mb-4">
+          Al aceptar una sugerencia, el cliente recibe una notificación automática y se precarga el título en el formulario de Películas para que completes su ficha de estreno.
+        </p>
+
+        <div class="table-responsive">
+          <table class="table table-cinema align-middle m-0">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Película Solicitada</th>
+                <th>Detalle Adicional</th>
+                <th>Estado</th>
+                <th class="text-end">Evaluación</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (prop of propuestasClientes(); track prop.id) {
+                <tr>
+                  <td class="small text-secondary text-nowrap">
+                    {{ prop.created_at | date:'dd/MM/yyyy HH:mm' }}
+                  </td>
+                  <td class="fw-semibold text-white">
+                    {{ prop.nombre_usuario }}
+                  </td>
+                  <td class="fw-bold text-warning">
+                    {{ prop.titulo }}
+                  </td>
+                  <td class="small text-light opacity-75" style="max-width: 340px;">
+                    {{ prop.comentario || 'Sin comentario adicional' }}
+                  </td>
+                  <td>
+                    @if (prop.estado === 'aprobada') {
+                      <span class="badge bg-success bg-opacity-25 text-success border border-success">
+                        Aceptada
+                      </span>
+                    } @else if (prop.estado === 'rechazada') {
+                      <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">
+                        Denegada
+                      </span>
+                    } @else {
+                      <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">
+                        Pendiente
+                      </span>
+                    }
+                  </td>
+                  <td class="text-end text-nowrap">
+                    @if (prop.estado === 'pendiente') {
+                      <button
+                        class="btn btn-sm btn-success fw-bold me-2"
+                        (click)="aceptarPropuestaCliente(prop)"
+                        title="Aceptar y cargar película">
+                        <i class="bi bi-check-lg me-1"></i>Aceptar
+                      </button>
+                      <button
+                        class="btn btn-sm btn-action-delete fw-bold"
+                        (click)="denegarPropuestaCliente(prop)"
+                        title="Denegar solicitud">
+                        <i class="bi bi-x-lg me-1"></i>Denegar
+                      </button>
+                    } @else {
+                      <span class="text-secondary small fst-italic">Evaluada</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="text-center text-secondary py-5">
+                    Todavía no hay sugerencias de películas enviadas por los clientes.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       </div>
     }
@@ -573,11 +694,11 @@
                         <span class="badge-neutral">{{ func.idioma }}</span>
                       </td>
                       <td class="text-end text-nowrap">
-                        <button class="btn btn-sm btn-action-edit me-1" (click)="editarFuncion(func)">
+                        <button class="btn btn-sm btn-action-edit me-1" (click)="editarFuncion(func)" title="Editar función">
                           <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-sm btn-action-delete" (click)="eliminarFuncion(func.id)">
-                          <i class="bi bi-trash"></i>
+                        <button class="btn btn-sm btn-action-delete" (click)="eliminarFuncion(func.id)" title="Cancelar función y reembolsar">
+                          <i class="bi bi-x-circle me-1"></i>Cancelar
                         </button>
                       </td>
                     </tr>

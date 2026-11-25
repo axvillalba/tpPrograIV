@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase';
 import { AuthService } from '../../services/auth';
+import { ModalService } from '../../services/modal';
 import { NavbarComponent } from '../../components/navbar/navbar';
 
 @Component({
@@ -16,12 +17,13 @@ import { NavbarComponent } from '../../components/navbar/navbar';
 export class CarteleraComponent implements OnInit {
   private supabaseService = inject(SupabaseService);
   private authService = inject(AuthService);
+  private modalService = inject(ModalService);
   private router = inject(Router);
 
   peliculas = signal<any[]>([]);
   topVendidas = signal<any[]>([]);
   
-  // Pestaña activa: 'cartelera' o 'proximamente'
+  // Pestaña activa: 'cartelera' o 'proximamente' (incluye preventas)
   pestanaVista = signal<'cartelera' | 'proximamente'>('cartelera');
 
   // Conjunto de IDs de películas con alerta activada por el usuario
@@ -32,6 +34,15 @@ export class CarteleraComponent implements OnInit {
 
   // Lista de géneros para el selector
   generosDisponibles = ['todos', 'Acción', 'Anime', 'Ciencia Ficción', 'Animación', 'Romance', 'Aventura', 'Drama'];
+
+  // --- SUGERENCIAS DE PELÍCULAS DEL CLIENTE ---
+  mostrarFormPropuesta = signal<boolean>(false);
+  enviandoPropuesta = signal<boolean>(false);
+  misPropuestas = signal<any[]>([]);
+  nuevaPropuesta = signal<{ titulo: string; comentario: string }>({
+    titulo: '',
+    comentario: ''
+  });
 
   // Filtro dinámico en tiempo real según pestaña, texto y género
   peliculasFiltradas = computed(() => {
@@ -51,8 +62,11 @@ export class CarteleraComponent implements OnInit {
   });
 
   async ngOnInit() {
-    await this.cargarPeliculasYTop();
-    await this.cargarAlertasDelUsuario();
+    await Promise.all([
+      this.cargarPeliculasYTop(),
+      this.cargarAlertasDelUsuario(),
+      this.cargarMisPropuestas()
+    ]);
   }
 
   async cargarPeliculasYTop() {
@@ -104,6 +118,113 @@ export class CarteleraComponent implements OnInit {
     }
   }
 
+  // --- MÉTODOS DE PELÍCULAS SUGERIDAS ---
+
+  async cargarMisPropuestas() {
+    const user = this.authService.currentUser();
+    if (!user) {
+      this.misPropuestas.set([]);
+      return;
+    }
+
+    const { data, error } = await this.supabaseService.client
+      .from('propuestas_peliculas')
+      .select('*')
+      .eq('usuario_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      this.misPropuestas.set(data);
+    }
+  }
+
+  async abrirFormularioPropuesta() {
+    const user = this.authService.currentUser();
+    if (!user) {
+      await this.modalService.alerta(
+        'Iniciá sesión con tu cuenta de cliente para sugerir una película al cine.',
+        'Sesión Requerida',
+        'warning'
+      );
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    this.mostrarFormPropuesta.update(v => !v);
+  }
+
+  async enviarPropuestaPelicula() {
+    const user = this.authService.currentUser();
+    if (!user) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const form = this.nuevaPropuesta();
+    const tituloLimpio = form.titulo.trim();
+
+    if (!tituloLimpio) {
+      await this.modalService.alerta(
+        'Ingresá el nombre de la película que querés sugerir.',
+        'Campo Requerido',
+        'warning'
+      );
+      return;
+    }
+
+    const yaEnCartelera = this.peliculas().some(
+      p => p.titulo?.trim().toLowerCase() === tituloLimpio.toLowerCase()
+    );
+    if (yaEnCartelera) {
+      await this.modalService.alerta(
+        '¡Buenas noticias! Esa película ya se encuentra cargada en cartelera o próximos estrenos.',
+        'Ya Disponible',
+        'info'
+      );
+      return;
+    }
+
+    this.enviandoPropuesta.set(true);
+    try {
+      const perfil = await this.authService.getPerfilActual();
+      const nombreCliente = perfil
+        ? `${perfil.nombre || ''} ${perfil.apellido || ''}`.trim() || 'Cliente Cine UTN'
+        : 'Cliente Cine UTN';
+
+      const { error } = await this.supabaseService.client
+        .from('propuestas_peliculas')
+        .insert([{
+          usuario_id: user.id,
+          nombre_usuario: nombreCliente,
+          titulo: tituloLimpio,
+          comentario: form.comentario.trim() || null,
+          estado: 'pendiente'
+        }]);
+
+      if (error) throw error;
+
+      await this.modalService.alerta(
+        'Tu pedido fue enviado al gerente de Cine UTN. Te notificaremos cuando sea evaluado.',
+        'Sugerencia Enviada',
+        'success'
+      );
+
+      this.nuevaPropuesta.set({ titulo: '', comentario: '' });
+      this.mostrarFormPropuesta.set(false);
+      await this.cargarMisPropuestas();
+    } catch (err: any) {
+      await this.modalService.alerta(
+        err.message || 'No se pudo enviar la sugerencia.',
+        'Error',
+        'danger'
+      );
+    } finally {
+      this.enviandoPropuesta.set(false);
+    }
+  }
+
+  // --- ALERTAS DE ESTRENOS ---
+
   async cargarAlertasDelUsuario() {
     const user = this.authService.currentUser();
     if (!user) return;
@@ -122,7 +243,11 @@ export class CarteleraComponent implements OnInit {
   async toggleAlertaEstreno(peliculaId: string) {
     const user = this.authService.currentUser();
     if (!user) {
-      alert('Debés iniciar sesión para recibir alertas cuando se abran las entradas.');
+      await this.modalService.alerta(
+        'Debés iniciar sesión para recibir alertas cuando se abran las entradas.',
+        'Sesión Requerida',
+        'warning'
+      );
       this.router.navigate(['/login']);
       return;
     }
@@ -137,18 +262,28 @@ export class CarteleraComponent implements OnInit {
         .eq('pelicula_id', peliculaId);
 
       setActual.delete(peliculaId);
-      alert('🔔 Alerta desactivada para esta película.');
+      await this.modalService.alerta(
+        'Alerta desactivada para esta película.',
+        'Notificación Desactivada',
+        'info'
+      );
     } else {
       await this.supabaseService.client
         .from('alertas_estrenos')
         .insert([{ usuario_id: user.id, pelicula_id: peliculaId }]);
 
       setActual.add(peliculaId);
-      alert('🔔 ¡Alerta activada! Te avisaremos cuando las entradas estén disponibles.');
+      await this.modalService.alerta(
+        '¡Alerta activada! Te avisaremos cuando las entradas estén disponibles.',
+        'Alerta Activada',
+        'success'
+      );
     }
 
     this.alertasUsuario.set(setActual);
   }
+
+  // --- SELECCIÓN DE PELÍCULA (CARTELERA O PREVENTA) ---
 
   async seleccionarPelicula(peliculaId: string) {
     if (!peliculaId) {
@@ -163,7 +298,11 @@ export class CarteleraComponent implements OnInit {
       const perfil = await this.authService.getPerfilActual();
 
       if (!perfil) {
-        alert('Debés iniciar sesión para seleccionar funciones de películas clasificadas para mayores de 18 años.');
+        await this.modalService.alerta(
+          'Debés iniciar sesión para seleccionar funciones de películas clasificadas para mayores de 18 años.',
+          'Restricción de Edad (+18)',
+          'warning'
+        );
         this.router.navigate(['/login']);
         return;
       }
@@ -171,7 +310,11 @@ export class CarteleraComponent implements OnInit {
       if (perfil.fecha_nacimiento) {
         const edad = this.authService.calcularEdad(perfil.fecha_nacimiento);
         if (edad < 18) {
-          alert('⛔ Acceso restringido: Esta película es exclusiva para mayores de 18 años y tu perfil indica que sos menor de edad.');
+          await this.modalService.alerta(
+            'Esta película es exclusiva para mayores de 18 años y tu perfil indica que sos menor de edad.',
+            'Acceso Restringido',
+            'danger'
+          );
           return;
         }
       }

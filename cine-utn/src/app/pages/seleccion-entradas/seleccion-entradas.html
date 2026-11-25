@@ -35,23 +35,15 @@
     </div>
   }
 
-<!-- BANNER DE TURNO ACTIVO (CUANDO EL USUARIO TIENE SUS 15 MINUTOS EXCLUSIVOS) -->
-  @if (miRegistroEspera()?.estado === 'notificado') {
-    <div class="alert alert-success d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 shadow"
-         style="background: rgba(25, 135, 84, 0.16); border: 1px solid rgba(25, 135, 84, 0.55); color: #e4e4e7;">
-      <div>
-        <i class="bi bi-alarm-fill text-warning me-2 fs-5"></i>
-        <strong class="text-white">¡Es tu turno en la lista de espera!</strong>
-        Ya tenés disponibles los <strong>{{ miRegistroEspera()?.cantidad_butacas || 1 }} lugar(es)</strong> que solicitaste. Elegí tus butacas y completá la compra antes de que termine el tiempo.
-      </div>
-      <span class="badge bg-dark text-warning border border-warning fs-6 font-monospace px-3 py-2">
-        <i class="bi bi-stopwatch me-1"></i>{{ listaEsperaService.tiempoFormateado() }}
-      </span>
+  <!-- ESTADO 1: SPINNER MIENTRAS CARGA LA SALA Y LA COLA -->
+  @if (cargandoSala()) {
+    <div class="card bg-dark-card text-white p-5 my-4 text-center">
+      <div class="spinner-border text-danger mx-auto mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+      <h5 class="fw-bold text-white mb-1">Cargando sala y disponibilidad de butacas...</h5>
+      <small class="text-secondary">Sincronizando ocupación en tiempo real</small>
     </div>
-  }
-
-  <!-- SI LA FUNCIÓN ESTÁ AGOTADA (O RESERVADA EN TURNO DE OTRO USUARIO), MOSTRAR LISTA DE ESPERA -->
-  @if (mostrarPanelListaEspera()) {
+  } @else if (mostrarPanelListaEspera()) {
+    <!-- ESTADO 2: SALA COMPLETA O TURNO EXCLUSIVO DE OTRO USUARIO -> LISTA DE ESPERA -->
     <div class="card bg-dark-card text-white p-4 p-md-5 my-4 text-center"
          style="border: 1px solid rgba(229, 9, 20, 0.45) !important;">
       <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle"
@@ -112,6 +104,23 @@
       }
     </div>
   } @else {
+    <!-- ESTADO 3: MAPA DE SALA DISPONIBLE -->
+
+    <!-- BANNER DE TURNO ACTIVO (CUANDO EL USUARIO TIENE SUS 15 MINUTOS EXCLUSIVOS) -->
+    @if (miRegistroEspera()?.estado === 'notificado') {
+      <div class="alert alert-success d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 shadow"
+           style="background: rgba(25, 135, 84, 0.16); border: 1px solid rgba(25, 135, 84, 0.55); color: #e4e4e7;">
+        <div>
+          <i class="bi bi-alarm-fill text-warning me-2 fs-5"></i>
+          <strong class="text-white">¡Es tu turno en la lista de espera!</strong>
+          Ya tenés disponibles los <strong>{{ miRegistroEspera()?.cantidad_butacas || 1 }} lugar(es)</strong> que solicitaste. Elegí tus butacas y completá la compra antes de que termine el tiempo.
+        </div>
+        <span class="badge bg-dark text-warning border border-warning fs-6 font-monospace px-3 py-2">
+          <i class="bi bi-stopwatch me-1"></i>{{ listaEsperaService.tiempoFormateado() }}
+        </span>
+      </div>
+    }
+
     <!-- LEYENDA CON COLORES DE BUTACAS -->
     <div class="card bg-dark-card text-white p-3 mb-4">
       <div class="d-flex justify-content-center align-items-center flex-wrap gap-3 gap-md-4 small">
@@ -130,6 +139,10 @@
         <div class="d-flex align-items-center gap-2">
           <span class="butaca-referencia seleccionada"></span>
           <span>Seleccionada</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="butaca-referencia seleccionando-otro"></span>
+          <span>En selección por otro cliente</span>
         </div>
         <div class="d-flex align-items-center gap-2">
           <span class="butaca-referencia ocupada"></span>
@@ -155,7 +168,13 @@
                 <!-- FILA ESPECIAL ACCESIBLE -->
                 <div class="d-flex me-3">
                   @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
-                    <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    <button type="button"
+                            class="butaca discapacidad"
+                            [class.seleccionada]="b.seleccionada"
+                            [class.seleccionando-otro]="b.seleccionadaPorOtro"
+                            [class.ocupada]="b.ocupada"
+                            [disabled]="b.ocupada || b.seleccionadaPorOtro"
+                            (click)="toggleButaca(b)">
                       {{ b.columna }}
                     </button>
                   }
@@ -171,7 +190,13 @@
                   <div class="butaca-hueco"></div>
 
                   @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
-                    <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    <button type="button"
+                            class="butaca discapacidad"
+                            [class.seleccionada]="b.seleccionada"
+                            [class.seleccionando-otro]="b.seleccionadaPorOtro"
+                            [class.ocupada]="b.ocupada"
+                            [disabled]="b.ocupada || b.seleccionadaPorOtro"
+                            (click)="toggleButaca(b)">
                       {{ b.columna }}
                     </button>
                   }
@@ -187,7 +212,13 @@
                   <div class="butaca-hueco"></div>
                   <div class="butaca-hueco"></div>
                   @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
-                    <button type="button" class="butaca discapacidad" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    <button type="button"
+                            class="butaca discapacidad"
+                            [class.seleccionada]="b.seleccionada"
+                            [class.seleccionando-otro]="b.seleccionadaPorOtro"
+                            [class.ocupada]="b.ocupada"
+                            [disabled]="b.ocupada || b.seleccionadaPorOtro"
+                            (click)="toggleButaca(b)">
                       {{ b.columna }}
                     </button>
                   }
@@ -196,7 +227,14 @@
                 <!-- FILAS ESTÁNDAR Y VIP -->
                 <div class="d-flex me-3">
                   @for (b of getButacasPorFilaYBloque(fila, 1); track b.columna) {
-                    <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    <button type="button"
+                            class="butaca"
+                            [class.vip]="b.tipo === 'vip'"
+                            [class.seleccionada]="b.seleccionada"
+                            [class.seleccionando-otro]="b.seleccionadaPorOtro"
+                            [class.ocupada]="b.ocupada"
+                            [disabled]="b.ocupada || b.seleccionadaPorOtro"
+                            (click)="toggleButaca(b)">
                       {{ b.columna }}
                     </button>
                   }
@@ -204,7 +242,14 @@
 
                 <div class="d-flex me-3">
                   @for (b of getButacasPorFilaYBloque(fila, 2); track b.columna) {
-                    <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    <button type="button"
+                            class="butaca"
+                            [class.vip]="b.tipo === 'vip'"
+                            [class.seleccionada]="b.seleccionada"
+                            [class.seleccionando-otro]="b.seleccionadaPorOtro"
+                            [class.ocupada]="b.ocupada"
+                            [disabled]="b.ocupada || b.seleccionadaPorOtro"
+                            (click)="toggleButaca(b)">
                       {{ b.columna }}
                     </button>
                   }
@@ -212,7 +257,14 @@
 
                 <div class="d-flex">
                   @for (b of getButacasPorFilaYBloque(fila, 3); track b.columna) {
-                    <button type="button" class="butaca" [class.vip]="b.tipo === 'vip'" [class.seleccionada]="b.seleccionada" [class.ocupada]="b.ocupada" [disabled]="b.ocupada" (click)="toggleButaca(b)">
+                    <button type="button"
+                            class="butaca"
+                            [class.vip]="b.tipo === 'vip'"
+                            [class.seleccionada]="b.seleccionada"
+                            [class.seleccionando-otro]="b.seleccionadaPorOtro"
+                            [class.ocupada]="b.ocupada"
+                            [disabled]="b.ocupada || b.seleccionadaPorOtro"
+                            (click)="toggleButaca(b)">
                       {{ b.columna }}
                     </button>
                   }

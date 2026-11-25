@@ -56,7 +56,7 @@ private dispararNotificacionNativa(registro: RegistroListaEspera) {
 
       new Notification('🎟️ ¡Tu turno en Cine UTN!', {
         body: `¡${textoLugares[0].toUpperCase() + textoLugares.slice(1)} para ${tituloPeli}! Tenés 15 minutos exclusivos para completar tu compra.`,
-        icon: registro.funciones?.peliculas?.imagen_url || '/favicon.ico',
+        icon: registro.funciones?.peliculas?.imagen_url || '/favicon.png',
         tag: `lista-espera-${registro.id}`,
       });
     }

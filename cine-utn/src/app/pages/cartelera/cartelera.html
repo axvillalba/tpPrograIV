@@ -50,7 +50,8 @@
                 </div>
 
                 <button class="btn btn-danger-custom w-100 mt-2 py-2" (click)="seleccionarPelicula(p.id)">
-                  <i class="bi bi-ticket-perforated me-1"></i> Comprar Entradas
+                  <i class="bi bi-ticket-perforated me-1"></i>
+                  {{ p.es_preventa ? 'Comprar Preventa' : 'Comprar Entradas' }}
                 </button>
               </div>
             </div>
@@ -60,7 +61,7 @@
     </section>
   }
 
-  <!-- SELECTOR DE PESTAÑAS SEGMENTADO (EN CARTELERA VS PRÓXIMAMENTE) -->
+  <!-- SELECTOR DE PESTAÑAS SEGMENTADO (EN CARTELERA VS PRÓXIMAMENTE Y PREVENTAS) -->
   <div class="cinema-tabs-wrapper mb-4">
     <div class="cinema-tabs">
       <button 
@@ -76,7 +77,7 @@
         class="cinema-tab-btn"
         [class.active-proximamente]="pestanaVista() === 'proximamente'"
         (click)="pestanaVista.set('proximamente')">
-        <i class="bi bi-calendar-event me-2"></i>Próximamente / Estrenos
+        <i class="bi bi-calendar-event me-2"></i>Próximamente y Preventas
       </button>
     </div>
   </div>
@@ -119,7 +120,7 @@
       @if (pestanaVista() === 'cartelera') {
         Cartelera Principal
       } @else {
-        Próximos Estrenos
+        Próximos Estrenos y Preventas
       }
     </h4>
   </div>
@@ -193,5 +194,114 @@
       <p class="text-secondary small m-0">Probá cambiando el término de búsqueda o seleccionando otro género.</p>
     </div>
   }
+
+  <!-- SECCIÓN: PELÍCULAS SUGERIDAS POR EL CLIENTE -->
+  <section class="mt-5 pt-4 border-top border-secondary border-opacity-25">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+      <div class="section-heading">
+        <span class="section-accent-bar"></span>
+        <div>
+          <h4 class="m-0 fw-bold text-white d-flex align-items-center gap-2">
+            <i class="bi bi-megaphone-fill text-danger"></i> ¿No encontrás la película que querés ver?
+          </h4>
+          <small class="text-secondary">
+            Sugerí un título a Gerencia para que lo evaluemos en próximas funciones de Cine UTN.
+          </small>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-danger-custom px-4 py-2 fw-bold" (click)="abrirFormularioPropuesta()">
+        <i class="bi me-2" [class.bi-x-lg]="mostrarFormPropuesta()" [class.bi-plus-circle]="!mostrarFormPropuesta()"></i>
+        {{ mostrarFormPropuesta() ? 'Cerrar Formulario' : 'Sugerir Película' }}
+      </button>
+    </div>
+
+    <!-- FORMULARIO DESPLEGABLE DE SUGERENCIA -->
+    @if (mostrarFormPropuesta()) {
+      <div class="card bg-dark-card text-white p-4 mb-4" style="border: 1px solid rgba(229, 9, 20, 0.45) !important;">
+        <h5 class="text-warning fw-bold mb-3">
+          <i class="bi bi-film me-2"></i>Enviar Sugerencia a Gerencia
+        </h5>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label small text-secondary fw-semibold">Nombre de la Película *</label>
+            <input
+              type="text"
+              class="form-control bg-dark text-white border-secondary"
+              placeholder="Ej. Interstellar (Reestreno)"
+              [ngModel]="nuevaPropuesta().titulo"
+              (ngModelChange)="nuevaPropuesta.set({ ...nuevaPropuesta(), titulo: $event })">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small text-secondary fw-semibold">Comentario o pedido adicional (Optativo)</label>
+            <textarea
+              rows="3"
+              class="form-control bg-dark text-white border-secondary"
+              placeholder="Contanos si te gustaría verla subtitulada, en 3D, en algún horario especial, etc."
+              [ngModel]="nuevaPropuesta().comentario"
+              (ngModelChange)="nuevaPropuesta.set({ ...nuevaPropuesta(), comentario: $event })"></textarea>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-3">
+          <button type="button" class="btn btn-outline-light btn-sm px-3" (click)="mostrarFormPropuesta.set(false)">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger-custom btn-sm px-4 fw-bold"
+            [disabled]="enviandoPropuesta()"
+            (click)="enviarPropuestaPelicula()">
+            <i class="bi bi-send-fill me-1"></i>
+            {{ enviandoPropuesta() ? 'Enviando...' : 'Enviar Sugerencia' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- MIS SUGERENCIAS ENVIADAS (SI EL CLIENTE TIENE PEDIDOS CARGADOS) -->
+    @if (misPropuestas().length > 0) {
+      <div class="card bg-dark-card text-white p-3 p-md-4">
+        <h6 class="text-white fw-bold mb-3">
+          <i class="bi bi-clock-history text-warning me-2"></i>Tus Sugerencias Enviadas ({{ misPropuestas().length }})
+        </h6>
+
+        <div class="d-flex flex-column gap-2">
+          @for (prop of misPropuestas(); track prop.id) {
+            <div class="p-3 rounded-3 d-flex justify-content-between align-items-start flex-wrap gap-2"
+                 style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+              <div>
+                <div class="fw-bold text-white">{{ prop.titulo }}</div>
+                @if (prop.comentario) {
+                  <small class="text-secondary d-block mt-1">"{{ prop.comentario }}"</small>
+                }
+                <small class="text-secondary opacity-75 d-block mt-1" style="font-size: 0.72rem;">
+                  Enviada el {{ prop.created_at | date:'dd/MM/yyyy · HH:mm' }} hs
+                </small>
+              </div>
+
+              <div>
+                @if (prop.estado === 'aprobada') {
+                  <span class="badge bg-success bg-opacity-25 text-success border border-success px-3 py-2">
+                    <i class="bi bi-check-circle-fill me-1"></i>Aceptada por Gerencia
+                  </span>
+                } @else if (prop.estado === 'rechazada') {
+                  <span class="badge bg-danger bg-opacity-25 text-danger border border-danger px-3 py-2">
+                    <i class="bi bi-x-circle-fill me-1"></i>Denegada
+                  </span>
+                } @else {
+                  <span class="badge bg-warning bg-opacity-25 text-warning border border-warning px-3 py-2">
+                    <i class="bi bi-hourglass-split me-1"></i>Pendiente de revisión
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </section>
 
 </div>
