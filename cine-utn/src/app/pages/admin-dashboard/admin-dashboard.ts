@@ -81,6 +81,7 @@ export class AdminDashboardComponent implements OnInit {
   funciones = signal<any[]>([]);
   salas = signal<any[]>([]);
   recompensas = signal<any[]>([]);
+  conteoEsperaPorFuncion = signal<Record<string, number>>({});
 
   propuestasPendientesCount = computed(
     () => this.propuestasClientes().filter((p) => p.estado === 'pendiente').length
@@ -274,7 +275,7 @@ export class AdminDashboardComponent implements OnInit {
   async cargarDatos() {
     const hoy = new Date().toISOString();
 
-    const [resPelis, resPropuestas, resCandy, resCups, resFuncs, resRecompensas] = await Promise.all([
+    const [resPelis, resPropuestas, resCandy, resCups, resFuncs, resRecompensas, resEspera] = await Promise.all([
       this.supabaseService.client.from('peliculas').select('*').eq('activa', true),
       this.supabaseService.client
         .from('propuestas_peliculas')
@@ -289,6 +290,10 @@ export class AdminDashboardComponent implements OnInit {
         .gte('horario_fin', hoy)
         .order('fecha_hora', { ascending: true }),
       this.recompensasService.getRecompensas(),
+      this.supabaseService.client
+        .from('lista_espera')
+        .select('funcion_id')
+        .in('estado', ['esperando', 'notificado']),
     ]);
 
     if (resPelis.data) this.peliculas.set(resPelis.data);
@@ -297,6 +302,20 @@ export class AdminDashboardComponent implements OnInit {
     if (resCups.data) this.cupones.set(resCups.data);
     if (resFuncs.data) this.funciones.set(resFuncs.data);
     if (resRecompensas.data) this.recompensas.set(resRecompensas.data);
+
+    const mapaEspera: Record<string, number> = {};
+    if (resEspera.data) {
+      resEspera.data.forEach((e: any) => {
+        if (e.funcion_id) {
+          mapaEspera[e.funcion_id] = (mapaEspera[e.funcion_id] || 0) + 1;
+        }
+      });
+    }
+    this.conteoEsperaPorFuncion.set(mapaEspera);
+  }
+
+  obtenerCantidadEnEspera(funcionId: string): number {
+    return this.conteoEsperaPorFuncion()[funcionId] || 0;
   }
 
   async cargarSalas() {

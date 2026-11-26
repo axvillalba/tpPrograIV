@@ -673,6 +673,7 @@
                     <th>Sala</th>
                     <th>Horario Proyección</th>
                     <th>Formato / Idioma</th>
+                    <th>Lista de Espera</th>
                     <th class="text-end">Acciones</th>
                   </tr>
                 </thead>
@@ -693,6 +694,15 @@
                         <span class="badge-neutral me-1">{{ func.formato }}</span>
                         <span class="badge-neutral">{{ func.idioma }}</span>
                       </td>
+                      <td>
+                        @if (obtenerCantidadEnEspera(func.id) > 0) {
+                          <span class="badge bg-warning text-dark fw-bold" title="Clientes en lista de espera">
+                            <i class="bi bi-people-fill me-1"></i>{{ obtenerCantidadEnEspera(func.id) }} en espera
+                          </span>
+                        } @else {
+                          <span class="text-secondary small">Sin espera</span>
+                        }
+                      </td>
                       <td class="text-end text-nowrap">
                         <button class="btn btn-sm btn-action-edit me-1" (click)="editarFuncion(func)" title="Editar función">
                           <i class="bi bi-pencil-square"></i>
@@ -704,7 +714,7 @@
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="5" class="text-center text-secondary py-5">No hay funciones programadas en la cartelera.</td>
+                      <td colspan="6" class="text-center text-secondary py-5">No hay funciones programadas en la cartelera.</td>
                     </tr>
                   }
                 </tbody>
