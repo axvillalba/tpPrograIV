@@ -20,7 +20,10 @@ yarn-error.log
 .settings/
 *.sublime-workspace
 
-.environments
+# Archivos de entorno con credenciales
+src/environments/environment.ts
+src/environments/environment.*.ts
+!src/environments/environment.example.ts
 
 # Visual Studio Code
 .vscode/*
