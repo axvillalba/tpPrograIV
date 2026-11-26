@@ -1,0 +1,18 @@
+{
+  "name": "Cine UTN · Experiencia Cinematográfica",
+  "short_name": "Cine UTN",
+  "description": "Cartelera, compra de entradas, Candy Bar y programa de fidelización de Cine UTN.",
+  "theme_color": "#e50914",
+  "background_color": "#0b0a0f",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/cartelera",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
