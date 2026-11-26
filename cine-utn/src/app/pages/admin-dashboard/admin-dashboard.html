@@ -352,18 +352,20 @@
                   </td>
                   <td class="text-end text-nowrap">
                     @if (prop.estado === 'pendiente') {
-                      <button
-                        class="btn btn-sm btn-success fw-bold me-2"
-                        (click)="aceptarPropuestaCliente(prop)"
-                        title="Aceptar y cargar película">
-                        <i class="bi bi-check-lg me-1"></i>Aceptar
-                      </button>
-                      <button
-                        class="btn btn-sm btn-action-delete fw-bold"
-                        (click)="denegarPropuestaCliente(prop)"
-                        title="Denegar solicitud">
-                        <i class="bi bi-x-lg me-1"></i>Denegar
-                      </button>
+                      <div class="d-inline-flex align-items-center gap-2">
+                        <button
+                          class="btn btn-sm btn-success fw-bold px-3 d-inline-flex align-items-center gap-1"
+                          (click)="aceptarPropuestaCliente(prop)"
+                          title="Aceptar y cargar película">
+                          <i class="bi bi-check-lg"></i> Aceptar
+                        </button>
+                        <button
+                          class="btn btn-sm btn-outline-danger fw-bold px-3 d-inline-flex align-items-center gap-1"
+                          (click)="denegarPropuestaCliente(prop)"
+                          title="Denegar solicitud">
+                          <i class="bi bi-x-lg"></i> Denegar
+                        </button>
+                      </div>
                     } @else {
                       <span class="text-secondary small fst-italic">Evaluada</span>
                     }
@@ -704,12 +706,14 @@
                         }
                       </td>
                       <td class="text-end text-nowrap">
-                        <button class="btn btn-sm btn-action-edit me-1" (click)="editarFuncion(func)" title="Editar función">
-                          <i class="bi bi-pencil-square"></i>
-                        </button>
-                        <button class="btn btn-sm btn-action-delete" (click)="eliminarFuncion(func.id)" title="Cancelar función y reembolsar">
-                          <i class="bi bi-x-circle me-1"></i>Cancelar
-                        </button>
+                        <div class="d-inline-flex align-items-center gap-2">
+                          <button class="btn btn-sm btn-action-edit" (click)="editarFuncion(func)" title="Editar función">
+                            <i class="bi bi-pencil-square"></i>
+                          </button>
+                          <button class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 px-2 py-1 fw-semibold" style="height: 32px;" (click)="eliminarFuncion(func.id)" title="Cancelar función y reembolsar">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   } @empty {

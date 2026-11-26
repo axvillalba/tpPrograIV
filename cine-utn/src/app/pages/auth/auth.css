@@ -98,12 +98,14 @@ h2 {
   display: flex;
   flex-direction: column;
   margin-bottom: 16px;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .form-row {
   display: flex;
   gap: 14px;
+  width: 100%;
 }
 
 label {
@@ -111,9 +113,14 @@ label {
   font-weight: 500;
   margin-bottom: 6px;
   color: #d4d4d8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 input, select {
+  width: 100%;
+  box-sizing: border-box;
   padding: 11px 14px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
